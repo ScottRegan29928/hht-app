@@ -13,6 +13,10 @@ export const getAllProperties = internalQuery({
       slug: p.slug,
       unitNumber: p.unitNumber,
       communityId: p.communityId,
+      // Required by hostawayApi.syncCalendar to order by staleness. Do not
+      // drop: without it every property sorts equal and each run re-syncs
+      // the same first N properties forever.
+      hostawayLastSyncAt: (p as any).hostawayLastSyncAt as number | undefined,
     }));
   },
 });

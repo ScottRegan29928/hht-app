@@ -152,6 +152,11 @@ const schema = defineSchema({
     ownerId: v.optional(v.id("users")),
     // External references
     hostawayId: v.optional(v.number()), // Hostaway listing ID for API sync
+    // Per-property HostAway sync tracking. HostAway throttles requests from
+    // Convex's egress, so a run may not cover every property; these let the
+    // next run prioritise the stalest and surface anything going cold.
+    hostawayLastSyncAt: v.optional(v.number()),
+    hostawayLastSyncError: v.optional(v.string()),
     wpPageId: v.optional(v.number()), // original WordPress page ID for migration
     wpSlug: v.optional(v.string()),
     // Rental details (from Hostaway)
@@ -377,6 +382,17 @@ const schema = defineSchema({
     .index("by_property", ["propertyId"])
     .index("by_status", ["status"])
     .index("by_email", ["email"]),
+
+  // Small key/value store for integration state (currently the cached
+  // HostAway access token). HostAway throttles token creation, so a cron
+  // must reuse a token rather than minting one per run.
+  syncState: defineTable({
+    key: v.string(),
+    value: v.string(),
+    expiresAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
 });
 
 export default schema;
