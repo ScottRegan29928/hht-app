@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+.tmp/
+
+# Environment
+.env
+.env.local
+.env.local.bak
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+.env.hostaway
+
+# Vercel
+.vercel/

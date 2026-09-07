@@ -2,11 +2,14 @@ import { formatPrice, weekNumberToDateRange } from "@/lib/utils";
 
 interface Week {
   _id: string;
+  id?: string;
   weekNumber: number;
   price?: number | null;
   priceLabel?: string | null;
   notes?: string | null;
   status: string;
+  listingType?: string;
+  rented?: boolean;
 }
 
 interface WeeksTableProps {
@@ -71,13 +74,15 @@ export function WeeksTable({ weeks, onInquire }: WeeksTableProps) {
               <td className="py-3.5 px-4 text-sm text-muted-foreground max-w-[200px] truncate">
                 {week.notes || "—"}
               </td>
-              <td className="py-3.5 px-4 text-right">
-                <button
-                  onClick={() => onInquire?.(week)}
-                  className="px-4 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  Make an Offer
-                </button>
+              <td className="py-3.5 px-4 text-right flex items-center justify-end gap-2">
+                {(week.listingType === "sale" || week.listingType === "both") && (
+                  <button
+                    onClick={() => onInquire?.(week)}
+                    className="px-4 py-2 text-xs font-medium border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors"
+                  >
+                    Make an Offer
+                  </button>
+                )}
               </td>
             </tr>
           ))}

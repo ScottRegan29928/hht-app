@@ -1,51 +1,148 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
-import { Search, LayoutGrid, Map as MapIcon, ListFilter } from "lucide-react";
+import { Search, LayoutGrid, Map as MapIcon, Calendar, ListFilter } from "lucide-react";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { SearchFilters } from "@/components/search/SearchFilters";
 import { IslandMap } from "@/components/map/IslandMap";
+import { CalendarView } from "@/components/search/CalendarView";
+import { computeFacets } from "@/lib/facets";
 import { cn } from "@/lib/utils";
 
-type ViewMode = "grid" | "map";
+type ViewMode = "grid" | "map" | "calendar";
+
+function parseMulti(val: string | null): string[] {
+  if (!val) return [];
+  return val.split(",").filter(Boolean);
+}
 
 export function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [communityId, setCommunityId] = useState(
-    searchParams.get("community") ?? ""
+  const [communitySlugs, setCommunitySlugs] = useState<string[]>(
+    parseMulti(searchParams.get("community"))
   );
-  const [weekNumber, setWeekNumber] = useState(
-    searchParams.get("week") ?? ""
+  const [weekNumbers, setWeekNumbers] = useState<string[]>(
+    parseMulti(searchParams.get("week"))
   );
-  const [bedrooms, setBedrooms] = useState(searchParams.get("beds") ?? "");
+  const [bedrooms, setBedrooms] = useState<string[]>(
+    parseMulti(searchParams.get("beds"))
+  );
+  const [listingTypes, setListingTypes] = useState<string[]>(
+    parseMulti(searchParams.get("type"))
+  );
+  const [amenities, setAmenities] = useState<string[]>(
+    parseMulti(searchParams.get("amenities"))
+  );
+  const [amenityMode, setAmenityMode] = useState<"and" | "or">(
+    (searchParams.get("amenityMode") as "and" | "or") || "or"
+  );
+  // Rent-mode date range
+  const [checkIn, setCheckIn] = useState(searchParams.get("checkIn") ?? "");
+  const [checkOut, setCheckOut] = useState(searchParams.get("checkOut") ?? "");
+  // Buy-mode year
+  const [selectedYear, setSelectedYear] = useState(searchParams.get("year") ?? "");
+
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const communities = useQuery(api.communities.list);
-  const properties = useQuery(api.properties.search, {
-    communityId: communityId
-      ? (communityId as Id<"communities">)
-      : undefined,
-    weekNumber: weekNumber ? parseInt(weekNumber) : undefined,
-    minBedrooms: bedrooms ? parseInt(bedrooms) : undefined,
-  });
+  const facetData = useQuery(api.properties.listForFacets);
+
+  const mode = listingTypes.length === 1 ? listingTypes[0] : null;
+  const isBuy = mode === "buy";
+  const isRent = mode === "rent";
+
+  // Build query args for Convex
+  const searchArgs: Record<string, unknown> = {};
+  if (communitySlugs.length > 0) searchArgs.communitySlugs = communitySlugs;
+  if (isBuy && weekNumbers.length > 0) searchArgs.weekNumbers = weekNumbers.map(Number);
+  if (bedrooms.length > 0) searchArgs.bedroomValues = bedrooms.map(Number);
+  if (listingTypes.length > 0 && listingTypes.length < 2) {
+    searchArgs.listingTypes = listingTypes;
+  }
+  if (amenities.length > 0) {
+    searchArgs.amenities = amenities;
+    searchArgs.amenityMode = amenityMode;
+  }
+  if (isRent && checkIn) searchArgs.checkIn = checkIn;
+  if (isRent && checkOut) searchArgs.checkOut = checkOut;
+
+  const hasActiveFilters =
+    communitySlugs.length > 0 ||
+    weekNumbers.length > 0 ||
+    bedrooms.length > 0 ||
+    listingTypes.length > 0 ||
+    amenities.length > 0 ||
+    checkIn !== "" ||
+    checkOut !== "";
+
+  const properties = useQuery(api.properties.search, searchArgs);
+
+  // Track last-known filtered communities for the map to avoid flicker
+  const lastMapCommunitiesRef = useRef<typeof communities>(null);
+  const mapCommunities = useMemo(() => {
+    const all = communities ?? [];
+    if (!hasActiveFilters) {
+      lastMapCommunitiesRef.current = all;
+      return all;
+    }
+    if (properties === undefined) {
+      return lastMapCommunitiesRef.current ?? all;
+    }
+    const filtered = all.filter((c) =>
+      properties.some((p: any) => p.communitySlug === c.slug)
+    );
+    lastMapCommunitiesRef.current = filtered;
+    return filtered;
+  }, [communities, properties, hasActiveFilters]);
+
+  // Compute dynamic facets
+  const availableFacets = useMemo(() => {
+    if (!facetData) return null;
+    return computeFacets(facetData, {
+      communitySlugs,
+      weekNumbers: weekNumbers.map(Number),
+      bedroomValues: bedrooms.map(Number),
+      listingTypes,
+      amenities,
+    });
+  }, [facetData, communitySlugs, weekNumbers, bedrooms, listingTypes, amenities]);
 
   // Sync URL params
   useEffect(() => {
     const params = new URLSearchParams();
-    if (communityId) params.set("community", communityId);
-    if (weekNumber) params.set("week", weekNumber);
-    if (bedrooms) params.set("beds", bedrooms);
+    if (communitySlugs.length) params.set("community", communitySlugs.join(","));
+    if (weekNumbers.length) params.set("week", weekNumbers.join(","));
+    if (bedrooms.length) params.set("beds", bedrooms.join(","));
+    if (listingTypes.length) params.set("type", listingTypes.join(","));
+    if (amenities.length) params.set("amenities", amenities.join(","));
+    if (amenityMode !== "or") params.set("amenityMode", amenityMode);
+    if (checkIn) params.set("checkIn", checkIn);
+    if (checkOut) params.set("checkOut", checkOut);
+    if (selectedYear) params.set("year", selectedYear);
     setSearchParams(params, { replace: true });
-  }, [communityId, weekNumber, bedrooms, setSearchParams]);
+  }, [communitySlugs, weekNumbers, bedrooms, listingTypes, amenities, amenityMode, checkIn, checkOut, selectedYear, setSearchParams]);
 
   const clearFilters = () => {
-    setCommunityId("");
-    setWeekNumber("");
-    setBedrooms("");
+    setCommunitySlugs([]);
+    setWeekNumbers([]);
+    setBedrooms([]);
+    setListingTypes([]);
+    setAmenities([]);
+    setAmenityMode("or");
+    setCheckIn("");
+    setCheckOut("");
+    setSelectedYear("");
   };
+
+  // Heading based on mode
+  const heading = isBuy ? "Buy a Timeshare Week" : isRent ? "Rent a Villa" : "Find Your Villa";
+  const subtitle = isBuy
+    ? "Browse available weeks with dates and pricing"
+    : isRent
+      ? "Pick your dates and find the perfect vacation rental"
+      : "Choose Buy or Rent to get started";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -53,11 +150,11 @@ export function SearchPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold font-[family-name:var(--font-display)]">
-            Find Your Villa
+            {heading}
           </h1>
           <p className="mt-1 text-muted-foreground text-sm">
             {properties === undefined
-              ? "Searching..."
+              ? subtitle
               : `${properties.length} ${properties.length === 1 ? "property" : "properties"} found`}
           </p>
         </div>
@@ -72,28 +169,25 @@ export function SearchPage() {
           </button>
           {/* View toggle */}
           <div className="flex items-center border border-border rounded-lg overflow-hidden">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={cn(
-                "p-2.5 transition-colors",
-                viewMode === "grid"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
-              )}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("map")}
-              className={cn(
-                "p-2.5 transition-colors",
-                viewMode === "map"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
-              )}
-            >
-              <MapIcon className="w-4 h-4" />
-            </button>
+            {([
+              { mode: "grid" as ViewMode, icon: LayoutGrid, label: "Grid" },
+              { mode: "map" as ViewMode, icon: MapIcon, label: "Map" },
+              { mode: "calendar" as ViewMode, icon: Calendar, label: "Calendar" },
+            ]).map(({ mode, icon: Icon, label }) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                title={label}
+                className={cn(
+                  "p-2.5 transition-colors",
+                  viewMode === mode
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -101,15 +195,28 @@ export function SearchPage() {
       <div className="flex gap-8">
         {/* Sidebar filters — desktop */}
         <aside className="hidden lg:block w-64 shrink-0">
-          <div className="sticky top-24">
+          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1 scrollbar-thin">
             <SearchFilters
-              communityId={communityId}
-              setCommunityId={setCommunityId}
-              weekNumber={weekNumber}
-              setWeekNumber={setWeekNumber}
+              communitySlugs={communitySlugs}
+              setCommunitySlugs={setCommunitySlugs}
+              weekNumbers={weekNumbers}
+              setWeekNumbers={setWeekNumbers}
               bedrooms={bedrooms}
               setBedrooms={setBedrooms}
+              listingTypes={listingTypes}
+              setListingTypes={setListingTypes}
+              amenities={amenities}
+              setAmenities={setAmenities}
+              amenityMode={amenityMode}
+              setAmenityMode={setAmenityMode}
               onClear={clearFilters}
+              availableFacets={availableFacets}
+              checkIn={checkIn}
+              setCheckIn={setCheckIn}
+              checkOut={checkOut}
+              setCheckOut={setCheckOut}
+              selectedYear={selectedYear}
+              setSelectedYear={setSelectedYear}
             />
           </div>
         </aside>
@@ -117,35 +224,69 @@ export function SearchPage() {
         {/* Mobile filters overlay */}
         {showMobileFilters && (
           <div className="lg:hidden fixed inset-0 z-40 bg-black/50">
-            <div className="absolute right-0 top-0 bottom-0 w-80 bg-background p-6 shadow-xl overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-semibold">Filters</h2>
+            <div
+              className="absolute inset-0"
+              onClick={() => setShowMobileFilters(false)}
+            />
+            <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-background shadow-xl flex flex-col">
+              <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+                <h2 className="font-semibold text-lg">Filters</h2>
                 <button
-                  onClick={() => setShowMobileFilters(false)}
-                  className="text-sm text-primary"
+                  onClick={() => { clearFilters(); setShowMobileFilters(false); }}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Done
+                  Clear all
                 </button>
               </div>
-              <SearchFilters
-                communityId={communityId}
-                setCommunityId={setCommunityId}
-                weekNumber={weekNumber}
-                setWeekNumber={setWeekNumber}
-                bedrooms={bedrooms}
-                setBedrooms={setBedrooms}
-                onClear={clearFilters}
-              />
+              <div className="flex-1 overflow-y-auto p-5">
+                <SearchFilters
+                  communitySlugs={communitySlugs}
+                  setCommunitySlugs={setCommunitySlugs}
+                  weekNumbers={weekNumbers}
+                  setWeekNumbers={setWeekNumbers}
+                  bedrooms={bedrooms}
+                  setBedrooms={setBedrooms}
+                  listingTypes={listingTypes}
+                  setListingTypes={setListingTypes}
+                  amenities={amenities}
+                  setAmenities={setAmenities}
+                  amenityMode={amenityMode}
+                  setAmenityMode={setAmenityMode}
+                  onClear={clearFilters}
+                  availableFacets={availableFacets}
+                  checkIn={checkIn}
+                  setCheckIn={setCheckIn}
+                  checkOut={checkOut}
+                  setCheckOut={setCheckOut}
+                  selectedYear={selectedYear}
+                  setSelectedYear={setSelectedYear}
+                />
+              </div>
+              <div className="p-4 border-t border-border bg-background shrink-0">
+                <button
+                  onClick={() => setShowMobileFilters(false)}
+                  className="w-full py-3 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Apply Filters
+                  {hasActiveFilters && (
+                    <span className="ml-1.5 opacity-80">
+                      ({properties?.length ?? "…"} results)
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {/* Results */}
         <div className="flex-1 min-w-0">
-          {viewMode === "map" ? (
+          {viewMode === "calendar" ? (
+            <CalendarView searchArgs={searchArgs} />
+          ) : viewMode === "map" ? (
             <div className="rounded-2xl overflow-hidden border border-border shadow-lg">
               <IslandMap
-                communities={communities ?? []}
+                communities={mapCommunities}
                 height="600px"
               />
             </div>
@@ -165,20 +306,29 @@ export function SearchPage() {
                 No properties found
               </h3>
               <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
-                Try adjusting your filters or search for a different community
-                or week number.
+                {!hasActiveFilters
+                  ? "Choose Buy or Rent to start browsing properties."
+                  : "Try adjusting your filters or search for a different community or date range."}
               </p>
-              <button
-                onClick={clearFilters}
-                className="mt-4 px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                Clear all filters
-              </button>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="mt-4 px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {properties.map((property) => (
-                <PropertyCard key={property._id} property={property} />
+                <PropertyCard
+                  key={property._id}
+                  property={property}
+                  mode={mode ?? undefined}
+                  checkIn={isRent ? checkIn : undefined}
+                  checkOut={isRent ? checkOut : undefined}
+                />
               ))}
             </div>
           )}

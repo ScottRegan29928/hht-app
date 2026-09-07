@@ -1,6 +1,13 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+function formatPhone(value?: string): string | undefined {
+  if (!value) return value;
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length < 10) return value;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 export const submit = mutation({
   args: {
     type: v.union(v.literal("purchase"), v.literal("rental")),
@@ -20,6 +27,7 @@ export const submit = mutation({
 
     const id = await ctx.db.insert("inquiries", {
       ...args,
+      phone: formatPhone(args.phone),
       routedTo,
       status: "new",
       createdAt: Date.now(),

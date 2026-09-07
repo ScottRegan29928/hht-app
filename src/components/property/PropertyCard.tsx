@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Bed, Bath, MapPin } from "lucide-react";
+import { Bed, Bath, MapPin, DollarSign, Moon } from "lucide-react";
 
 interface PropertyCardProps {
   property: {
@@ -12,13 +12,27 @@ interface PropertyCardProps {
     communitySlug: string;
     photoUrl?: string | null;
     isFeatured?: boolean | null;
+    nightlyRate?: number | null;
+    lowestSalePrice?: number | null;
+    saleWeekCount?: number | null;
   };
+  mode?: string; // "buy" | "rent"
+  checkIn?: string;
+  checkOut?: string;
 }
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export function PropertyCard({ property, mode, checkIn, checkOut }: PropertyCardProps) {
+  // Build link with mode context so property page knows the intent
+  const params = new URLSearchParams();
+  if (mode) params.set("mode", mode);
+  if (checkIn) params.set("checkIn", checkIn);
+  if (checkOut) params.set("checkOut", checkOut);
+  const qs = params.toString();
+  const href = `/property/${property.slug}${qs ? `?${qs}` : ""}`;
+
   return (
     <Link
-      to={`/property/${property.slug}`}
+      to={href}
       className="group block rounded-xl overflow-hidden bg-card border border-border hover:border-primary/30 transition-all duration-300 hover:shadow-xl"
     >
       {/* Image */}
@@ -38,6 +52,17 @@ export function PropertyCard({ property }: PropertyCardProps) {
         {property.isFeatured && (
           <div className="absolute top-3 left-3 px-2.5 py-1 bg-accent text-accent-foreground rounded-md text-xs font-semibold uppercase tracking-wide">
             Featured
+          </div>
+        )}
+        {/* Price badge */}
+        {mode === "rent" && property.nightlyRate && (
+          <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/70 backdrop-blur-sm text-white rounded-lg text-sm font-semibold">
+            ${property.nightlyRate}/night
+          </div>
+        )}
+        {mode === "buy" && property.lowestSalePrice && (
+          <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/70 backdrop-blur-sm text-white rounded-lg text-sm font-semibold">
+            From ${property.lowestSalePrice.toLocaleString()}
           </div>
         )}
       </div>
@@ -62,6 +87,19 @@ export function PropertyCard({ property }: PropertyCardProps) {
             {property.bathrooms === 1 ? "Bath" : "Baths"}
           </span>
         </div>
+        {/* Mode-specific info */}
+        {mode === "rent" && property.nightlyRate && (
+          <p className="mt-2 text-sm font-medium text-primary flex items-center gap-1">
+            <Moon className="w-3.5 h-3.5" />
+            ${property.nightlyRate}/night
+          </p>
+        )}
+        {mode === "buy" && property.saleWeekCount && property.saleWeekCount > 0 && (
+          <p className="mt-2 text-sm font-medium text-primary flex items-center gap-1">
+            <DollarSign className="w-3.5 h-3.5" />
+            {property.saleWeekCount} {property.saleWeekCount === 1 ? "week" : "weeks"} available
+          </p>
+        )}
       </div>
     </Link>
   );

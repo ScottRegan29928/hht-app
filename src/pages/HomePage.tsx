@@ -1,10 +1,9 @@
 import { useQuery } from "convex/react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
-import { MapPin, Bed, Search, ArrowRight, Waves } from "lucide-react";
+import { MapPin, Search, ArrowRight, Waves, Home, Calendar, Key, DollarSign } from "lucide-react";
 import { IslandMap } from "@/components/map/IslandMap";
 import { PropertyCard } from "@/components/property/PropertyCard";
-import { SearchBar } from "@/components/search/SearchBar";
 
 export function HomePage() {
   const communities = useQuery(api.communities.list);
@@ -17,28 +16,59 @@ export function HomePage() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-20 sm:pb-24">
-          <div className="max-w-3xl">
-            <div className="flex items-center gap-2 text-primary/70 mb-4">
-              <Waves className="w-5 h-5" />
-              <span className="text-sm font-medium tracking-wide uppercase">
-                Sea Pines Resort · Hilton Head Island
-              </span>
+          {/* 50/50 copy + image */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-12">
+            {/* Left — copy */}
+            <div className="lg:w-1/2 lg:shrink-0">
+              <div className="flex items-center gap-2 text-primary/70 mb-4">
+                <Waves className="w-5 h-5" />
+                <span className="text-sm font-medium tracking-wide uppercase">
+                  Sea Pines · Hilton Head Island
+                </span>
+              </div>
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] font-[family-name:var(--font-display)]">
+                Your Island
+                <br />
+                <span className="text-primary">Getaway Awaits</span>
+              </h1>
+              <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl leading-relaxed">
+                Discover luxury timeshare villas in the heart of Sea Pines.
+                Purchase a week or rent the perfect vacation home on Hilton Head
+                Island.
+              </p>
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight font-[family-name:var(--font-display)]">
-              Your Island
-              <br />
-              <span className="text-primary">Getaway Awaits</span>
-            </h1>
-            <p className="mt-5 text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Discover luxury timeshare villas in the heart of Sea Pines.
-              Purchase a week or rent the perfect vacation home on Hilton Head
-              Island.
-            </p>
+
+            {/* Right — lighthouse hero image */}
+            <div className="hidden lg:block lg:w-1/2 relative mt-8 lg:mt-0">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src="/lighthouse.jpg"
+                  alt="Harbour Town Lighthouse at sunset, Hilton Head Island"
+                  className="w-full h-[420px] object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+              </div>
+            </div>
           </div>
 
-          {/* Search bar */}
-          <div className="mt-8">
-            <SearchBar />
+          {/* ── Two entry points: Buy / Rent ── */}
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link
+              to="/search?type=buy"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-md"
+            >
+              <Key className="w-4 h-4" />
+              Buy a Timeshare Week
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              to="/search?type=rent"
+              className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition-colors"
+            >
+              <Calendar className="w-4 h-4" />
+              Rent a Villa
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
 
@@ -54,7 +84,7 @@ export function HomePage() {
             <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
               Explore Sea Pines
             </h2>
-            <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+            <p className="mt-3 text-muted-foreground max-w-2xl mx-auto whitespace-nowrap">
               Click a community on the map to browse available villas and
               timeshare weeks.
             </p>
@@ -74,7 +104,7 @@ export function HomePage() {
                 Communities
               </h2>
               <p className="mt-2 text-muted-foreground">
-                Eight premier neighborhoods in Sea Pines Resort
+                Eight premier neighborhoods in Sea Pines
               </p>
             </div>
             <Link
@@ -121,7 +151,7 @@ export function HomePage() {
                     )}
                     <div className="mt-2 flex items-center gap-1.5 text-white/60 text-xs">
                       <MapPin className="w-3.5 h-3.5" />
-                      <span>Sea Pines Resort</span>
+                      <span>Sea Pines</span>
                     </div>
                   </div>
                 </Link>
@@ -164,18 +194,19 @@ export function HomePage() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              to="/search"
+              to="/search?type=buy"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:bg-white/90 transition-colors"
             >
-              <Search className="w-4 h-4" />
-              Browse Properties
+              <Key className="w-4 h-4" />
+              Buy a Week
             </Link>
-            <a
-              href="mailto:lisafleming@lighthouserealtyhhi.com"
+            <Link
+              to="/search?type=rent"
               className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary-foreground/30 rounded-lg font-semibold hover:bg-primary-foreground/10 transition-colors"
             >
-              Contact Us
-            </a>
+              <Calendar className="w-4 h-4" />
+              Rent a Villa
+            </Link>
           </div>
         </div>
       </section>

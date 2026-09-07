@@ -3,12 +3,20 @@ import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
+
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length <= 3) return digits.length ? `(${digits}` : "";
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
 import { Send, Loader2 } from "lucide-react";
 
 interface InquiryFormProps {
   type: "purchase" | "rental";
   propertyId?: Id<"properties">;
   weekId?: Id<"weeks">;
+  weekNumber?: number;
   propertyName?: string;
   onClose?: () => void;
 }
@@ -17,6 +25,7 @@ export function InquiryForm({
   type,
   propertyId,
   weekId,
+  weekNumber,
   propertyName,
   onClose,
 }: InquiryFormProps) {
@@ -79,6 +88,18 @@ export function InquiryForm({
         )}
       </div>
 
+      {/* Pre-populated week number for purchase inquiries */}
+      {type === "purchase" && weekNumber && (
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">
+            Week
+          </label>
+          <div className="px-3 py-2.5 rounded-lg border border-primary/30 bg-primary/5 text-sm font-medium text-primary">
+            Week {weekNumber}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-foreground mb-1.5">
@@ -115,7 +136,7 @@ export function InquiryForm({
         <input
           type="tel"
           value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
           className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           placeholder="(555) 123-4567"
         />
@@ -132,7 +153,7 @@ export function InquiryForm({
           className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
           placeholder={
             type === "purchase"
-              ? "I'm interested in purchasing this week..."
+              ? "I'd like to make an offer of..."
               : "I'd like to book this property for..."
           }
         />

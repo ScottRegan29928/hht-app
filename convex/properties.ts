@@ -1,6 +1,40 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
+/** Detect amenities from amenityTags (Hostaway), featureCategories text, + community amenities. */
+function detectAmenities(
+  featureCategories: Record<string, string | undefined> | undefined,
+  communityAmenities?: string[],
+  amenityTags?: string[],
+): string[] {
+  const result: string[] = [];
+
+  // Hostaway amenityTags (proper amenity names like "Pool", "Free WiFi")
+  if (amenityTags && amenityTags.length > 0) {
+    for (const a of amenityTags) {
+      if (!result.includes(a)) result.push(a);
+    }
+  }
+
+  // Text-based amenities from featureCategories (legacy property-level)
+  if (featureCategories) {
+    const text = Object.values(featureCategories).filter(Boolean).join(" ").toLowerCase();
+    if (/\bpool\b/.test(text) && !result.some(a => a.toLowerCase() === "pool")) result.push("pool");
+    if (/hot tub|jacuzzi|\bspa\b/.test(text) && !result.some(a => a.toLowerCase().includes("hot tub"))) result.push("hot_tub");
+    if (/tennis/.test(text) && !result.some(a => a.toLowerCase().includes("tennis"))) result.push("tennis");
+    if (/grill|bbq|barbecue/.test(text) && !result.some(a => a.toLowerCase().includes("grill") || a.toLowerCase().includes("bbq"))) result.push("grill");
+  }
+
+  // Community-level amenities (stored in DB, editable from admin)
+  if (communityAmenities && communityAmenities.length > 0) {
+    for (const a of communityAmenities) {
+      if (!result.includes(a)) result.push(a);
+    }
+  }
+
+  return result;
+}
+
 // ── Public Queries ──
 
 export const list = query({
@@ -70,21 +104,27 @@ export const getBySlug = query({
 
     const community = await ctx.db.get(property.communityId);
 
-    // Get all photos
-    const photos = await ctx.db
+    // Get all photos — prefer propertyPhotos table, fall back to photoUrls field
+    const photoRecords = await ctx.db
       .query("propertyPhotos")
       .withIndex("by_property", (q) => q.eq("propertyId", property._id))
       .collect();
-    const photoUrls = await Promise.all(
-      photos
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(async (p) => {
-          if (p.storageId) {
-            return await ctx.storage.getUrl(p.storageId);
-          }
-          return p.externalUrl ?? null;
-        })
-    );
+    let photoUrls: (string | null)[];
+    if (photoRecords.length > 0) {
+      photoUrls = await Promise.all(
+        photoRecords
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map(async (p) => {
+            if (p.storageId) {
+              return await ctx.storage.getUrl(p.storageId);
+            }
+            return p.externalUrl ?? null;
+          })
+      );
+    } else {
+      // Fall back to photoUrls stored directly on the property
+      photoUrls = property.photoUrls ?? [];
+    }
 
     // Get available weeks
     const weeks = await ctx.db
@@ -96,6 +136,8 @@ export const getBySlug = query({
       ...property,
       communityName: community?.name ?? "Unknown",
       communitySlug: community?.slug ?? "",
+      communityFeatures: community?.features ?? {},
+      communityAmenities: community?.amenities ?? [],
       photos: photoUrls.filter(Boolean) as string[],
       weeks: weeks
         .filter((w) => w.status === "available")
@@ -104,20 +146,98 @@ export const getBySlug = query({
   },
 });
 
+/**
+ * Returns lightweight property + weeks data for client-side faceted filtering.
+ * With ~80 properties this is very efficient.
+ */
+export const listForFacets = query({
+  args: {},
+  handler: async (ctx) => {
+    const properties = await ctx.db
+      .query("properties")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .collect();
+
+    return Promise.all(
+      properties.filter((p) => p.isActive).map(async (p) => {
+        const community = await ctx.db.get(p.communityId);
+        const weeks = await ctx.db
+          .query("weeks")
+          .withIndex("by_property", (q) => q.eq("propertyId", p._id))
+          .collect();
+        const availableWeeks = weeks.filter((w) => w.status === "available");
+        const availableWeekNumbers = availableWeeks.map((w) => w.weekNumber);
+
+        // Check if any available week is listed for rent or sale
+        const hasRentalWeeks = availableWeeks.some(
+          (w: any) => w.listingType === "rent" || w.listingType === "both"
+        );
+        const hasSaleWeeks = availableWeeks.some(
+          (w: any) => w.listingType === "sale" || w.listingType === "both" || !w.listingType
+        );
+
+        return {
+          _id: p._id,
+          communitySlug: community?.slug ?? "",
+          bedrooms: p.bedrooms,
+          hasBookingUrl: !!p.bookingUrl,
+          hasRentalWeeks,
+          hasSaleWeeks,
+          availableWeeks: availableWeekNumbers,
+          amenities: detectAmenities(p.featureCategories as any, community?.amenities, p.amenityTags),
+        };
+      })
+    );
+  },
+});
+
 export const search = query({
   args: {
     communityId: v.optional(v.id("communities")),
+    communitySlug: v.optional(v.string()),
+    communitySlugs: v.optional(v.array(v.string())),
     weekNumber: v.optional(v.number()),
+    weekNumbers: v.optional(v.array(v.number())),
     minBedrooms: v.optional(v.number()),
+    bedroomValues: v.optional(v.array(v.number())),
     maxPrice: v.optional(v.number()),
+    listingType: v.optional(v.string()),
+    listingTypes: v.optional(v.array(v.string())),
+    amenities: v.optional(v.array(v.string())),
+    amenityMode: v.optional(v.union(v.literal("and"), v.literal("or"))),
+    checkIn: v.optional(v.string()),
+    checkOut: v.optional(v.string()),
   },
-  handler: async (ctx, { communityId, weekNumber, minBedrooms, maxPrice }) => {
+  handler: async (
+    ctx,
+    { communityId, communitySlug, communitySlugs, weekNumber, weekNumbers, minBedrooms, bedroomValues, maxPrice, listingType, listingTypes, amenities, amenityMode, checkIn, checkOut }
+  ) => {
+    // Resolve community filters — support single or multi
+    const slugsToFilter = communitySlugs?.length
+      ? communitySlugs
+      : communitySlug
+        ? [communitySlug]
+        : [];
+
+    const communityIds: Set<string> = new Set();
+    if (communityId) {
+      communityIds.add(communityId);
+    }
+    for (const slug of slugsToFilter) {
+      const comm = await ctx.db
+        .query("communities")
+        .withIndex("by_slug", (q) => q.eq("slug", slug))
+        .unique();
+      if (comm) communityIds.add(comm._id);
+    }
+
     // Start with all active properties
     let properties;
-    if (communityId) {
+    if (communityIds.size === 1) {
+      const [cid] = communityIds;
       properties = await ctx.db
         .query("properties")
-        .withIndex("by_community", (q) => q.eq("communityId", communityId))
+        .withIndex("by_community", (q) => q.eq("communityId", cid as any))
         .collect();
     } else {
       properties = await ctx.db
@@ -128,39 +248,124 @@ export const search = query({
 
     properties = properties.filter((p) => p.isActive);
 
-    if (minBedrooms) {
-      properties = properties.filter((p) => p.bedrooms >= minBedrooms);
+    // Multi-community filter
+    if (communityIds.size > 1) {
+      properties = properties.filter((p) => communityIds.has(p.communityId));
     }
 
-    // If filtering by week or price, check weeks table
-    if (weekNumber || maxPrice) {
+    // Bedroom filter — multi or single
+    const bedFilter = bedroomValues?.length ? bedroomValues : minBedrooms ? [minBedrooms] : [];
+    if (bedFilter.length > 0) {
+      const minBed = Math.min(...bedFilter);
+      properties = properties.filter((p) => p.bedrooms >= minBed);
+    }
+
+    // Amenity filter
+    if (amenities && amenities.length > 0) {
+      // Pre-resolve community slugs for location-based amenity detection
+      const commAmenityCache: Map<string, string[]> = new Map();
+      for (const p of properties) {
+        if (!commAmenityCache.has(p.communityId)) {
+          const comm = await ctx.db.get(p.communityId);
+          commAmenityCache.set(p.communityId, comm?.amenities ?? []);
+        }
+      }
+      properties = properties.filter((p) => {
+        const propAmenities = detectAmenities(p.featureCategories as any, commAmenityCache.get(p.communityId), p.amenityTags);
+        const matcher = (amenityMode ?? "and") === "or"
+          ? amenities.some((a) => propAmenities.includes(a))
+          : amenities.every((a) => propAmenities.includes(a));
+        return matcher;
+      });
+    }
+
+    // Listing type filter — multi or single
+    const typeFilter = listingTypes?.length ? listingTypes : listingType ? [listingType] : [];
+    const wantRent = typeFilter.includes("rent");
+    const wantBuy = typeFilter.includes("buy");
+
+    // Week filter — multi or single
+    const weekFilter = weekNumbers?.length
+      ? weekNumbers
+      : weekNumber
+        ? [weekNumber]
+        : [];
+
+    // If filtering by listing type, week, or price, check weeks table
+    const needWeeksFilter = weekFilter.length > 0 || maxPrice || wantRent || wantBuy;
+    if (needWeeksFilter) {
       const filtered = [];
       for (const p of properties) {
         const weeks = await ctx.db
           .query("weeks")
           .withIndex("by_property", (q) => q.eq("propertyId", p._id))
           .collect();
-        const availableWeeks = weeks.filter((w) => w.status === "available");
+        const availableWeeks = weeks.filter(
+          (w) => w.status === "available" || w.status === "pending"
+        );
 
-        let matchingWeeks = availableWeeks;
-        if (weekNumber) {
-          matchingWeeks = matchingWeeks.filter(
-            (w) => w.weekNumber === weekNumber
+        // Listing type filter — check weeks' listingType field
+        let typeFilteredWeeks = availableWeeks;
+        if (wantRent && !wantBuy) {
+          typeFilteredWeeks = typeFilteredWeeks.filter(
+            (w: any) => w.listingType === "rent" || w.listingType === "both" || !w.listingType
           );
+          // Fallback: also include if property has a bookingUrl (legacy)
+          if (typeFilteredWeeks.length === 0 && p.bookingUrl) {
+            filtered.push(p);
+            continue;
+          }
+        }
+        if (wantBuy && !wantRent) {
+          typeFilteredWeeks = typeFilteredWeeks.filter(
+            (w: any) => w.listingType === "sale" || w.listingType === "both" || !w.listingType
+          );
+          if (typeFilteredWeeks.length === 0) continue;
+        }
+        if (wantRent && wantBuy) {
+          // Either type works
+        }
+
+        if ((wantRent || wantBuy) && typeFilteredWeeks.length === 0) continue;
+
+        let matchingWeeks = typeFilteredWeeks;
+        if (weekFilter.length > 0) {
+          const weekSet = new Set(weekFilter);
+          matchingWeeks = matchingWeeks.filter((w) => weekSet.has(w.weekNumber));
         }
         if (maxPrice) {
           matchingWeeks = matchingWeeks.filter(
-            (w) => w.price && w.price <= maxPrice
+            (w: any) => (w.price && w.price <= maxPrice) || (w.rentPrice && w.rentPrice <= maxPrice)
           );
         }
-        if (matchingWeeks.length > 0) {
-          filtered.push(p);
-        }
+        if ((weekFilter.length > 0 || maxPrice) && matchingWeeks.length === 0) continue;
+
+        filtered.push(p);
       }
       properties = filtered;
     }
 
-    // Resolve community names and primary photos
+    // ── Availability filter: exclude properties booked during requested dates ──
+    if (checkIn && checkOut) {
+      const available: typeof properties = [];
+      for (const p of properties) {
+        const bookings = await ctx.db
+          .query("calendarBookings")
+          .withIndex("by_property", (q) => q.eq("propertyId", p._id))
+          .collect();
+        // Check for overlap: booking overlaps [checkIn, checkOut) if
+        // booking.startDate < checkOut AND booking.endDate > checkIn
+        const hasConflict = bookings.some(
+          (b) => b.startDate < checkOut && b.endDate > checkIn
+        );
+        if (!hasConflict) {
+          available.push(p);
+        }
+      }
+      properties = available;
+    }
+
+    // Resolve community names, primary photos, and pricing summaries
     return Promise.all(
       properties.map(async (p) => {
         const community = await ctx.db.get(p.communityId);
@@ -168,11 +373,27 @@ export const search = query({
         if (p.photoUrls && p.photoUrls.length > 0) {
           photoUrl = p.photoUrls[0];
         }
+
+        // Compute pricing summaries for card badges
+        const weeks = await ctx.db
+          .query("weeks")
+          .withIndex("by_property", (q) => q.eq("propertyId", p._id))
+          .collect();
+        const availableWeeks = weeks.filter((w) => w.status === "available");
+        const saleWeeks = availableWeeks.filter(
+          (w: any) => w.listingType === "sale" || w.listingType === "both" || !w.listingType
+        );
+        const salePrices = saleWeeks.map((w) => w.price).filter(Boolean) as number[];
+        const lowestSalePrice = salePrices.length > 0 ? Math.min(...salePrices) : null;
+
         return {
           ...p,
           communityName: community?.name ?? "Unknown",
           communitySlug: community?.slug ?? "",
           photoUrl,
+          nightlyRate: (p as any).nightlyRate ?? null,
+          lowestSalePrice,
+          saleWeekCount: saleWeeks.length,
         };
       })
     );
@@ -180,6 +401,73 @@ export const search = query({
 });
 
 // ── Admin Mutations ──
+
+export const updateLinks = mutation({
+  args: {
+    slug: v.string(),
+    bookingUrl: v.optional(v.string()),
+    calendarUrl: v.optional(v.string()),
+    ownerDocsUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, { slug, bookingUrl, calendarUrl, ownerDocsUrl }) => {
+    const property = await ctx.db
+      .query("properties")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .unique();
+    if (!property) return null;
+    const updates: Record<string, string> = {};
+    if (bookingUrl) updates.bookingUrl = bookingUrl;
+    if (calendarUrl) updates.calendarUrl = calendarUrl;
+    if (ownerDocsUrl) updates.ownerDocsUrl = ownerDocsUrl;
+    await ctx.db.patch(property._id, updates);
+    return property._id;
+  },
+});
+
+export const updateFeatureCategories = mutation({
+  args: {
+    slug: v.string(),
+    featureCategories: v.object({
+      heating_and_cooling: v.optional(v.string()),
+      kitchen_and_dining: v.optional(v.string()),
+      appliances: v.optional(v.string()),
+      interior_features: v.optional(v.string()),
+      garage_and_parking: v.optional(v.string()),
+      exterior_features: v.optional(v.string()),
+      views_and_location: v.optional(v.string()),
+      activities: v.optional(v.string()),
+      utilities: v.optional(v.string()),
+      security: v.optional(v.string()),
+      essentials: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, { slug, featureCategories }) => {
+    const property = await ctx.db
+      .query("properties")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .unique();
+    if (!property) return null;
+    await ctx.db.patch(property._id, { featureCategories });
+    return property._id;
+  },
+});
+
+export const updateCoords = mutation({
+  args: {
+    slug: v.string(),
+    latitude: v.number(),
+    longitude: v.number(),
+  },
+  handler: async (ctx, { slug, latitude, longitude }) => {
+    const property = await ctx.db
+      .query("properties")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .unique();
+    if (!property) return null;
+    await ctx.db.patch(property._id, { latitude, longitude });
+    return property._id;
+  },
+});
 
 export const seed = mutation({
   args: {
@@ -214,5 +502,167 @@ export const seed = mutation({
       ...args,
       createdAt: Date.now(),
     });
+  },
+});
+
+// ── All unique amenities (for dynamic filter options) ──
+export const allAmenities = query({
+  args: {},
+  handler: async (ctx) => {
+    const communities = await ctx.db.query("communities").collect();
+    const amenitySet = new Set<string>();
+
+    // Gather all community-level amenities
+    for (const c of communities) {
+      if (c.amenities) {
+        for (const a of c.amenities) amenitySet.add(a);
+      }
+    }
+
+    // Gather property-level amenityTags (from Hostaway sync)
+    const properties = await ctx.db
+      .query("properties")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .collect();
+    for (const p of properties) {
+      if (p.amenityTags) {
+        for (const a of p.amenityTags) amenitySet.add(a);
+      }
+      // Legacy: text-detected amenities from featureCategories
+      if (p.featureCategories) {
+        const text = Object.values(p.featureCategories).filter(Boolean).join(" ").toLowerCase();
+        if (/\bpool\b/.test(text)) amenitySet.add("pool");
+        if (/hot tub|jacuzzi|\bspa\b/.test(text)) amenitySet.add("hot_tub");
+        if (/tennis/.test(text)) amenitySet.add("tennis");
+        if (/grill|bbq|barbecue/.test(text)) amenitySet.add("grill");
+      }
+    }
+
+    return Array.from(amenitySet).sort();
+  },
+});
+
+// ── Calendar view: weeks with property + community info ──
+export const searchWeeksForCalendar = query({
+  args: {
+    communitySlugs: v.optional(v.array(v.string())),
+    weekNumbers: v.optional(v.array(v.number())),
+    bedroomValues: v.optional(v.array(v.number())),
+    listingTypes: v.optional(v.array(v.string())),
+    amenities: v.optional(v.array(v.string())),
+    amenityMode: v.optional(v.union(v.literal("and"), v.literal("or"))),
+  },
+  handler: async (ctx, args) => {
+    // Start with all active properties
+    let properties = await ctx.db
+      .query("properties")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .collect();
+    properties = properties.filter((p) => p.isActive);
+
+    // Community filter
+    if (args.communitySlugs && args.communitySlugs.length > 0) {
+      const slugSet = new Set(args.communitySlugs);
+      const comms = await ctx.db.query("communities").collect();
+      const idSet = new Set(comms.filter((c) => slugSet.has(c.slug)).map((c) => c._id));
+      properties = properties.filter((p) => idSet.has(p.communityId));
+    }
+
+    // Bedroom filter
+    if (args.bedroomValues && args.bedroomValues.length > 0) {
+      const minBed = Math.min(...args.bedroomValues);
+      properties = properties.filter((p) => p.bedrooms >= minBed);
+    }
+
+    // Amenity filter
+    if (args.amenities && args.amenities.length > 0) {
+      const commAmenityCache: Map<string, string[]> = new Map();
+      for (const p of properties) {
+        if (!commAmenityCache.has(p.communityId)) {
+          const comm = await ctx.db.get(p.communityId);
+          commAmenityCache.set(p.communityId, comm?.amenities ?? []);
+        }
+      }
+      properties = properties.filter((p) => {
+        const propAmenities = detectAmenities(p.featureCategories as any, commAmenityCache.get(p.communityId), p.amenityTags);
+        return (args.amenityMode ?? "or") === "or"
+          ? args.amenities!.some((a) => propAmenities.includes(a))
+          : args.amenities!.every((a) => propAmenities.includes(a));
+      });
+    }
+
+    // Gather all weeks for matched properties
+    const results: {
+      weekNumber: number;
+      listingType: string;
+      status: string;
+      price?: number;
+      rentPrice?: number;
+      priceLabel?: string;
+      year?: number;
+      isAnnual?: boolean;
+      propertyId: string;
+      propertyAddress: string;
+      propertySlug: string;
+      communityName: string;
+      communitySlug: string;
+      bedrooms: number;
+      photoUrl: string | null;
+    }[] = [];
+
+    const wantRent = args.listingTypes?.includes("rent");
+    const wantBuy = args.listingTypes?.includes("buy");
+
+    for (const p of properties) {
+      const community = await ctx.db.get(p.communityId);
+      const weeks = await ctx.db
+        .query("weeks")
+        .withIndex("by_property", (q) => q.eq("propertyId", p._id))
+        .collect();
+
+      let available = weeks.filter((w) => w.status === "available" || w.status === "pending");
+
+      // Listing type filter
+      if (wantRent && !wantBuy) {
+        available = available.filter(
+          (w: any) => w.listingType === "rent" || w.listingType === "both" || !w.listingType
+        );
+      }
+      if (wantBuy && !wantRent) {
+        available = available.filter(
+          (w: any) => w.listingType === "sale" || w.listingType === "both" || !w.listingType
+        );
+      }
+
+      // Week number filter
+      if (args.weekNumbers && args.weekNumbers.length > 0) {
+        const weekSet = new Set(args.weekNumbers);
+        available = available.filter((w) => weekSet.has(w.weekNumber));
+      }
+
+      const photoUrl = p.photoUrls && p.photoUrls.length > 0 ? p.photoUrls[0] : null;
+
+      for (const w of available) {
+        results.push({
+          weekNumber: w.weekNumber,
+          listingType: (w as any).listingType ?? "both",
+          status: w.status,
+          price: w.price,
+          rentPrice: (w as any).rentPrice,
+          priceLabel: w.priceLabel,
+          year: w.year,
+          isAnnual: w.isAnnual,
+          propertyId: p._id,
+          propertyAddress: p.address,
+          propertySlug: p.slug,
+          communityName: community?.name ?? "Unknown",
+          communitySlug: community?.slug ?? "",
+          bedrooms: p.bedrooms,
+          photoUrl,
+        });
+      }
+    }
+
+    return results.sort((a, b) => a.weekNumber - b.weekNumber);
   },
 });
