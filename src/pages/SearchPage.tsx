@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useSiteFlags } from "../lib/siteContext";
 import { Search, LayoutGrid, Map as MapIcon, Calendar, ListFilter } from "lucide-react";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { SearchFilters } from "@/components/search/SearchFilters";
@@ -77,7 +78,11 @@ export function SearchPage() {
     checkIn !== "" ||
     checkOut !== "";
 
-  const properties = useQuery(api.properties.search, searchArgs);
+  // Multi-site: scope results to the current hostname's site (server-enforced).
+  const { siteSlug } = useSiteFlags();
+  const scopedArgs = { ...searchArgs, siteSlug };
+
+  const properties = useQuery(api.properties.search, scopedArgs);
 
   // Track last-known filtered communities for the map to avoid flicker
   const lastMapCommunitiesRef = useRef<typeof communities>(null);

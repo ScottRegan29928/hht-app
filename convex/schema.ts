@@ -34,6 +34,39 @@ const schema = defineSchema({
     .index("by_role", ["role"])
     .index("by_email", ["email"]),
 
+  // ── Sites ──
+  // One deployment serves four hostnames. A site record decides which
+  // properties, content, theme and owner pool a request sees.
+  // Property scoping is a RULE ON COMMUNITY, never per-property tagging.
+  sites: defineTable({
+    slug: v.string(),                 // "heritage" | "mhht" | "swallowtail" | "spicebush"
+    name: v.string(),
+    domain: v.string(),               // canonical production hostname
+    altDomains: v.optional(v.array(v.string())), // preview/staging/www variants
+    tagline: v.optional(v.string()),
+    // Inventory scoping: "all" = every property; "communities" = only listed slugs
+    scopeMode: v.union(v.literal("all"), v.literal("communities")),
+    communitySlugs: v.optional(v.array(v.string())),
+    // Feature flags
+    ownerPortalEnabled: v.boolean(),  // Swallowtail + Spicebush only
+    marketplaceEnabled: v.boolean(),  // joint buy/sell/trade pool
+    rentalsEnabled: v.boolean(),
+    // Joint marketplace pool key — sites sharing a key cross-populate listings
+    marketplacePool: v.optional(v.string()),
+    // Theming
+    theme: v.optional(v.object({
+      primary: v.optional(v.string()),
+      accent: v.optional(v.string()),
+      logoStorageId: v.optional(v.id("_storage")),
+    })),
+    isActive: v.boolean(),
+    sortOrder: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_domain", ["domain"]),
+
   // ── Communities ──
   // The 8 Sea Pines communities: Swallowtail, Spicebush, Racquet Club,
   // Plantation Club, Night Heron, Port Villa, Twin Oaks, Ketch Court

@@ -207,10 +207,13 @@ export const search = query({
     amenityMode: v.optional(v.union(v.literal("and"), v.literal("or"))),
     checkIn: v.optional(v.string()),
     checkOut: v.optional(v.string()),
+    // Multi-site scoping. Enforced server-side: a site can never be coaxed
+    // into returning another site's inventory by sending different slugs.
+    siteSlug: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { communityId, communitySlug, communitySlugs, weekNumber, weekNumbers, minBedrooms, bedroomValues, maxPrice, listingType, listingTypes, amenities, amenityMode, checkIn, checkOut }
+    { communityId, communitySlug, communitySlugs, weekNumber, weekNumbers, minBedrooms, bedroomValues, maxPrice, listingType, listingTypes, amenities, amenityMode, checkIn, checkOut, siteSlug }
   ) => {
     // Resolve community filters — support single or multi
     const slugsToFilter = communitySlugs?.length
@@ -231,6 +234,33 @@ export const search = query({
       if (comm) communityIds.add(comm._id);
     }
 
+    // ── Site scoping (server-enforced) ──
+    // Resolve the site's allowed communities and intersect. Requested filters
+    // can narrow within a site's inventory but never widen beyond it.
+    let siteAllowed: Set<string> | null = null;
+    if (siteSlug) {
+      const site = await ctx.db
+        .query("sites")
+        .withIndex("by_slug", (q) => q.eq("slug", siteSlug))
+        .unique();
+      if (site && site.scopeMode === "communities") {
+        const allowedSlugs = new Set(site.communitySlugs ?? []);
+        const comms = await ctx.db.query("communities").collect();
+        siteAllowed = new Set(
+          comms.filter((c) => allowedSlugs.has(c.slug)).map((c) => c._id as string)
+        );
+        if (communityIds.size === 0) {
+          for (const id of siteAllowed) communityIds.add(id);
+        } else {
+          for (const id of [...communityIds]) {
+            if (!siteAllowed.has(id)) communityIds.delete(id);
+          }
+          // Requested communities all outside this site -> no results.
+          if (communityIds.size === 0) return [];
+        }
+      }
+    }
+
     // Start with all active properties
     let properties;
     if (communityIds.size === 1) {
@@ -247,6 +277,13 @@ export const search = query({
     }
 
     properties = properties.filter((p) => p.isActive);
+
+    // Belt-and-braces: enforce site scope even on the "all properties" branch.
+    if (siteAllowed) {
+      properties = properties.filter((p) =>
+        siteAllowed!.has(p.communityId as unknown as string)
+      );
+    }
 
     // Multi-community filter
     if (communityIds.size > 1) {

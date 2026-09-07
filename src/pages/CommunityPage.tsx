@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useSiteFlags } from "../lib/siteContext";
 import { MapPin, ArrowLeft, Home } from "lucide-react";
 import { IslandMap } from "@/components/map/IslandMap";
 import { PropertyCard } from "@/components/property/PropertyCard";
@@ -59,7 +60,11 @@ export function CommunityPage() {
     searchArgs.amenityMode = amenityMode;
   }
 
-  const properties = useQuery(api.properties.search, searchArgs);
+  // Multi-site: scope results to the current hostname's site (server-enforced).
+  const { siteSlug } = useSiteFlags();
+  const scopedArgs = { ...searchArgs, siteSlug };
+
+  const properties = useQuery(api.properties.search, scopedArgs);
 
   // Compute dynamic facets
   const availableFacets = useMemo(() => {
