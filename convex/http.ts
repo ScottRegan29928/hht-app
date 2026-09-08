@@ -123,6 +123,93 @@ http.route({
   }),
 });
 
+// ── Prerender for social crawlers ──
+//
+// Facebook, LinkedIn, Slack, iMessage, WhatsApp and X do not execute
+// JavaScript, so a shared link into this SPA previewed as the generic
+// index.html blurb whatever page was shared. Vercel routes those user-agents
+// here; humans keep getting the normal React app untouched.
+//
+// The body below carries the SAME heading and text a visitor sees, not just
+// meta tags. That matters: serving crawlers metadata that differs from the
+// real page is cloaking. convex/prerender.ts is the single resolver, and it
+// mirrors src/lib/seo.ts.
+function htmlEscape(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function metaTag(attr: "name" | "property", key: string, val?: string): string {
+  // Omit rather than emit an empty tag — a blank og:description is worse than
+  // none, because it stops the crawler falling back to anything sensible.
+  if (!val) return "";
+  return `    <meta ${attr}="${key}" content="${htmlEscape(val)}" />\n`;
+}
+
+http.route({
+  path: "/api/prerender",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const siteSlug = url.searchParams.get("site") || "mhht";
+    const path = url.searchParams.get("path") || "/";
+
+    const m = await ctx.runQuery(api.prerender.metaForPath, { siteSlug, path });
+
+    const head =
+      metaTag("name", "description", m.description) +
+      metaTag("property", "og:title", m.title) +
+      metaTag("property", "og:description", m.description) +
+      metaTag("property", "og:type", m.type) +
+      metaTag("property", "og:url", m.canonical) +
+      metaTag("property", "og:site_name", m.siteName) +
+      metaTag("property", "og:image", m.image) +
+      metaTag("property", "article:published_time", m.publishedTime) +
+      metaTag("name", "twitter:card", m.image ? "summary_large_image" : "summary") +
+      metaTag("name", "twitter:title", m.title) +
+      metaTag("name", "twitter:description", m.description) +
+      metaTag("name", "twitter:image", m.image) +
+      (m.noindex ? '    <meta name="robots" content="noindex, nofollow" />\n' : "") +
+      (m.canonical
+        ? `    <link rel="canonical" href="${htmlEscape(m.canonical)}" />\n`
+        : "");
+
+    const body = m.body.map((p) => `      <p>${htmlEscape(p)}</p>`).join("\n");
+
+    const html =
+      "<!doctype html>\n" +
+      '<html lang="en">\n' +
+      "  <head>\n" +
+      '    <meta charset="UTF-8" />\n' +
+      `    <title>${htmlEscape(m.title)}</title>\n` +
+      head +
+      "  </head>\n" +
+      "  <body>\n" +
+      `    <h1>${htmlEscape(m.heading)}</h1>\n` +
+      body +
+      "\n" +
+      // Humans should never land here, but if one does (a UA string that looks
+      // like a bot, a link pasted from a crawler log) send them to the app
+      // rather than leaving them on a bare page.
+      (m.canonical
+        ? `    <p><a href="${htmlEscape(m.canonical)}">Continue to ${htmlEscape(m.siteName)}</a></p>\n`
+        : "") +
+      "  </body>\n</html>\n";
+
+    return new Response(html, {
+      status: m.status,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=300",
+        "X-Robots-Tag": m.noindex ? "noindex, nofollow" : "all",
+      },
+    });
+  }),
+});
+
 http.route({
   path: "/api/calendar",
   method: "GET",

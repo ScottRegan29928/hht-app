@@ -128,7 +128,7 @@ export const seedSites = internalMutation({
         slug: "heritage",
         name: "Heritage Vacations",
         domain: "heritagevacations.com",
-        altDomains: ["hv.hht.lead-works.com"],
+        altDomains: ["hv.lead-works.com", "hv.hht.lead-works.com"],
         scopeMode: "all" as const,
         communitySlugs: undefined,
         ownerPortalEnabled: false,
@@ -185,6 +185,17 @@ export const seedSites = internalMutation({
       },
     ];
 
+    // Fallback share/meta copy per site, applied ONLY when a site has no
+    // seoDefaults yet. Re-seeding must never clobber what an admin typed
+    // into the SEO screen.
+    const seedSeo: Record<string, string> = {
+      
+      "heritage": "Villa rentals and timeshare resales across Sea Pines and Hilton Head Island, South Carolina. Browse availability, compare weeks and book direct.",
+      "mhht": "Hilton Head Island timeshare rentals and resales. Search villas by community, bedrooms and week, view live availability and book direct.",
+      "swallowtail": "Swallowtail villa rentals and owner resales in Sea Pines, Hilton Head Island. Search weeks, view availability and contact the owner services team.",
+      "spicebush": "Spicebush villa rentals and owner resales in Sea Pines, Hilton Head Island. Search weeks, view availability and contact the owner services team."
+};
+
     // Validate community slugs exist before writing anything.
     const communities = await ctx.db.query("communities").collect();
     const known = new Set(communities.map((c) => c.slug));
@@ -204,14 +215,28 @@ export const seedSites = internalMutation({
         .query("sites")
         .withIndex("by_slug", (q) => q.eq("slug", d.slug))
         .unique();
+      const seoDefaults = {
+        titleSuffix: ` | ${d.name}`,
+        metaDescription: seedSeo[d.slug],
+      };
       if (existing) {
         if (!dryRun) {
-          await ctx.db.patch(existing._id, { ...d, updatedAt: now });
+          // Only seed seoDefaults if the site has none — an admin's edits win.
+          const patch: Record<string, unknown> = { ...d, updatedAt: now };
+          if (!existing.seoDefaults) patch.seoDefaults = seoDefaults;
+          await ctx.db.patch(existing._id, patch);
         }
-        results.push(`update ${d.slug}`);
+        results.push(
+          `update ${d.slug}${existing.seoDefaults ? "" : " (+seoDefaults)"}`
+        );
       } else {
         if (!dryRun) {
-          await ctx.db.insert("sites", { ...d, isActive: true, createdAt: now });
+          await ctx.db.insert("sites", {
+            ...d,
+            seoDefaults,
+            isActive: true,
+            createdAt: now,
+          });
         }
         results.push(`insert ${d.slug}`);
       }
