@@ -15,6 +15,9 @@ import {
   X,
   User,
   Settings,
+  FileText,
+  Newspaper,
+  Search,
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
@@ -26,6 +29,9 @@ const navItems = [
   { label: "Weeks", path: "/management/weeks", icon: Calendar },
   { label: "Owners", path: "/management/owners", icon: Users },
   { label: "Inquiries", path: "/management/inquiries", icon: MessageSquare },
+  { label: "Pages", path: "/management/pages", icon: FileText },
+  { label: "Blog", path: "/management/blog", icon: Newspaper },
+  { label: "SEO", path: "/management/seo", icon: Search },
 ];
 
 export function AdminLayout() {

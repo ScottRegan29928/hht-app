@@ -30,6 +30,14 @@ import { OwnersPage } from "./pages/admin/OwnersPage";
 import { OwnerDetailPage } from "./pages/admin/OwnerDetailPage";
 import { UsersPage } from "./pages/admin/UsersPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
+import { ContentPage } from "./pages/ContentPage";
+import { BlogIndexPage } from "./pages/BlogIndexPage";
+import { BlogPostPage } from "./pages/BlogPostPage";
+import { AdminPagesPage } from "./pages/admin/PagesPage";
+import { AdminPageEditPage } from "./pages/admin/PageEditPage";
+import { AdminBlogPage } from "./pages/admin/BlogPage";
+import { AdminBlogEditPage } from "./pages/admin/BlogEditPage";
+import { AdminSeoPage } from "./pages/admin/SeoPage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -59,6 +67,13 @@ export default function App() {
             <Route path="inquiries" element={<AdminInquiriesPage />} />
             <Route path="owners" element={<OwnersPage />} />
             <Route path="owners/:ownerId" element={<OwnerDetailPage />} />
+            <Route path="pages" element={<AdminPagesPage />} />
+            <Route path="pages/new" element={<AdminPageEditPage />} />
+            <Route path="pages/:id" element={<AdminPageEditPage />} />
+            <Route path="blog" element={<AdminBlogPage />} />
+            <Route path="blog/new" element={<AdminBlogEditPage />} />
+            <Route path="blog/:id" element={<AdminBlogEditPage />} />
+            <Route path="seo" element={<AdminSeoPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="account" element={<AccountPage />} />
           </Route>
@@ -100,6 +115,12 @@ export default function App() {
           <Route path="/property/:slug" element={<ErrorBoundary><PropertyPage /></ErrorBoundary>} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/blog" element={<BlogIndexPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
+          {/* Catch-all for admin-authored content pages. MUST stay last —
+              it shadows any route declared after it, and it also serves
+              as the site's 404. */}
+          <Route path="/:slug" element={<ContentPage />} />
         </Routes>
       </main>
       <Footer />

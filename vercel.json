@@ -1,6 +1,194 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "heritagevacations.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=heritage"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "heritagevacations.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=heritage"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.heritagevacations.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=heritage"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.heritagevacations.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=heritage"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "myhiltonheadtimeshare.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=mhht"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "myhiltonheadtimeshare.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=mhht"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.myhiltonheadtimeshare.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=mhht"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.myhiltonheadtimeshare.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=mhht"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "swallowtailatseapines.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=swallowtail"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "swallowtailatseapines.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=swallowtail"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.swallowtailatseapines.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=swallowtail"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.swallowtailatseapines.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=swallowtail"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "spicebushatseapines.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=spicebush"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "spicebushatseapines.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=spicebush"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.spicebushatseapines.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=spicebush"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.spicebushatseapines.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=spicebush"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "hht.lead-works.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=mhht"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "hht.lead-works.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=mhht"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=mhht"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=mhht"
+    },
+    {
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }

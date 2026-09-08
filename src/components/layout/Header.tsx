@@ -2,9 +2,11 @@ import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { Menu, X, MapPin, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSiteBrand } from "@/lib/siteContext";
+import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
-const navLinks = [
+const baseNavLinks = [
   { href: "/", label: "Home" },
   { href: "/search", label: "Find a Villa" },
   { href: "/search?tab=weeks", label: "Search by Week" },
@@ -12,6 +14,18 @@ const navLinks = [
 
 export function Header() {
   const brand = useSiteBrand();
+  const { siteSlug } = useSiteFlags();
+
+  // Admin-authored pages flagged "show in menu", plus /blog once the site has
+  // at least one published post. Both are per-site.
+  const navPages = useQuery(api.content.listNavPages, { siteSlug });
+  const posts = useQuery(api.content.listPosts, { siteSlug, limit: 1 });
+
+  const navLinks = [
+    ...baseNavLinks,
+    ...(navPages ?? []).map((p) => ({ href: `/${p.slug}`, label: p.label })),
+    ...(posts && posts.length > 0 ? [{ href: "/blog", label: "News" }] : []),
+  ];
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/";

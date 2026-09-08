@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { MapPin, Phone, Mail } from "lucide-react";
-import { useSiteBrand } from "@/lib/siteContext";
+import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
 
 export function Footer() {
+  const { siteSlug } = useSiteFlags();
+  const navPages = useQuery(api.content.listNavPages, { siteSlug });
+  const posts = useQuery(api.content.listPosts, { siteSlug, limit: 1 });
+  const hasPosts = !!posts && posts.length > 0;
   const brand = useSiteBrand();
   return (
     <footer className="mt-[60px] bg-foreground text-primary-foreground/80">
@@ -45,16 +51,30 @@ export function Footer() {
                   Search by Week
                 </Link>
               </li>
-              <li>
-                <a
-                  href="https://myhiltonheadtimeshare.com/about-us/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm hover:text-primary-foreground transition-colors"
-                >
-                  About Us
-                </a>
-              </li>
+              {/* Admin-managed pages for THIS site. Replaces a hardcoded
+                  link to the old myhiltonheadtimeshare.com WordPress page,
+                  which sent Spicebush and Swallowtail visitors to another
+                  brand entirely. */}
+              {(navPages ?? []).map((pg) => (
+                <li key={pg.slug}>
+                  <Link
+                    to={`/${pg.slug}`}
+                    className="text-sm hover:text-primary-foreground transition-colors"
+                  >
+                    {pg.label}
+                  </Link>
+                </li>
+              ))}
+              {hasPosts && (
+                <li>
+                  <Link
+                    to="/blog"
+                    className="text-sm hover:text-primary-foreground transition-colors"
+                  >
+                    News &amp; Guides
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 

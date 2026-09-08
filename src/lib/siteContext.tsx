@@ -31,6 +31,12 @@ export type SiteScope = {
     paymentUrl?: string;
     paymentNote?: string;
     theme?: { primary?: string; accent?: string };
+    seoDefaults?: {
+      titleSuffix?: string;
+      metaDescription?: string;
+      ogImageUrl?: string;
+      twitterHandle?: string;
+    };
   };
   /** null means "show everything" */
   communityIds: string[] | null;

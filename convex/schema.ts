@@ -72,6 +72,14 @@ const schema = defineSchema({
       accent: v.optional(v.string()),
       logoStorageId: v.optional(v.id("_storage")),
     })),
+    // Site-wide SEO defaults. Pages and posts override these individually; a
+    // page that sets nothing inherits the whole block.
+    seoDefaults: v.optional(v.object({
+      titleSuffix: v.optional(v.string()),   // " | Swallowtail at Sea Pines"
+      metaDescription: v.optional(v.string()),
+      ogImageUrl: v.optional(v.string()),
+      twitterHandle: v.optional(v.string()),
+    })),
     isActive: v.boolean(),
     sortOrder: v.optional(v.number()),
     createdAt: v.number(),
@@ -465,6 +473,63 @@ const schema = defineSchema({
     .index("by_owner", ["ownerProfileId"])
     .index("by_kind", ["kind"])
     .index("by_status", ["status"]),
+
+  // ── Content: pages and blog posts ──
+  // Scott's MVP item 2: "All the LeadWorks Intent basic functionality for
+  // managing pages, blogs, SEO." Content is per-site (siteSlug) — the four
+  // sister sites share one backend but never share marketing copy. This is
+  // deliberately unlike marketplaceListings, which is pooled on purpose.
+  contentPages: defineTable({
+    siteSlug: v.string(),
+    slug: v.string(),                 // url path segment, unique per site
+    title: v.string(),
+    body: v.string(),                 // markdown
+    excerpt: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("published")),
+    showInNav: v.boolean(),
+    navLabel: v.optional(v.string()), // defaults to title when absent
+    sortOrder: v.optional(v.number()),
+    seo: v.optional(v.object({
+      metaTitle: v.optional(v.string()),
+      metaDescription: v.optional(v.string()),
+      ogImageUrl: v.optional(v.string()),
+      canonicalUrl: v.optional(v.string()),
+      noindex: v.optional(v.boolean()),
+    })),
+    publishedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    updatedByName: v.optional(v.string()),
+  })
+    .index("by_site_slug", ["siteSlug", "slug"])
+    .index("by_site_status", ["siteSlug", "status"])
+    .index("by_site_nav", ["siteSlug", "showInNav"]),
+
+  blogPosts: defineTable({
+    siteSlug: v.string(),
+    slug: v.string(),
+    title: v.string(),
+    excerpt: v.optional(v.string()),
+    body: v.string(),                 // markdown
+    coverImageUrl: v.optional(v.string()),
+    authorName: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    status: v.union(v.literal("draft"), v.literal("published")),
+    seo: v.optional(v.object({
+      metaTitle: v.optional(v.string()),
+      metaDescription: v.optional(v.string()),
+      ogImageUrl: v.optional(v.string()),
+      canonicalUrl: v.optional(v.string()),
+      noindex: v.optional(v.boolean()),
+    })),
+    publishedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    updatedByName: v.optional(v.string()),
+  })
+    .index("by_site_slug", ["siteSlug", "slug"])
+    .index("by_site_status", ["siteSlug", "status"])
+    .index("by_site_published", ["siteSlug", "publishedAt"]),
 
 });
 
