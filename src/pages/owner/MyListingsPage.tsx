@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useSiteFlags } from "@/lib/siteContext";
@@ -27,27 +27,77 @@ export function OwnerMyListingsPage() {
   const listings = useQuery(api.marketplace.myListings);
   const createListing = useMutation(api.marketplace.createListing);
   const setStatus = useMutation(api.marketplace.setListingStatus);
+  const updateListing = useMutation(api.marketplace.updateListing);
+  const deleteListing = useMutation(api.marketplace.deleteListing);
 
   const [showForm, setShowForm] = useState(false);
   const [kind, setKind] = useState<Kind>("for_sale");
-  const [communitySlug, setCommunitySlug] = useState("spicebush");
+  // Default the community to the portal the owner is actually in. Hardcoding
+  // "spicebush" filed Swallowtail owners' weeks under the wrong community.
+  const defaultCommunity =
+    siteSlug === "swallowtail" ? "swallowtail-at-sea-pines" : "spicebush";
+  const [communitySlug, setCommunitySlug] = useState(defaultCommunity);
   const [unitNumber, setUnitNumber] = useState("");
   const [weekLabel, setWeekLabel] = useState("");
   const [askingPrice, setAskingPrice] = useState("");
   const [desiredWeekLabel, setDesiredWeekLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Non-null while editing an existing listing; the same form serves both, so
+  // the fields and validation can never drift apart between create and edit.
+  const [editingId, setEditingId] =
+    useState<Id<"marketplaceListings"> | null>(null);
+
+  const touchedCommunity = useRef(false);
+  useEffect(() => {
+    if (!touchedCommunity.current && !editingId) {
+      setCommunitySlug(defaultCommunity);
+    }
+  }, [defaultCommunity, editingId]);
 
   const reset = () => {
+    setEditingId(null);
     setUnitNumber("");
     setWeekLabel("");
     setAskingPrice("");
     setDesiredWeekLabel("");
     setNotes("");
+    touchedCommunity.current = false;
+    setCommunitySlug(defaultCommunity);
     setShowForm(false);
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const startEdit = (l: any) => {
+    setEditingId(l._id);
+    setKind(l.kind);
+    touchedCommunity.current = true;
+    setCommunitySlug(l.communitySlug ?? defaultCommunity);
+    setUnitNumber(l.unitNumber ?? "");
+    setWeekLabel(l.weekLabel ?? "");
+    setAskingPrice(l.askingPrice ? String(l.askingPrice) : "");
+    setDesiredWeekLabel(l.desiredWeekLabel ?? "");
+    setNotes(l.notes ?? "");
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleRemove = async (listingId: Id<"marketplaceListings">) => {
+    if (
+      !window.confirm(
+        "Remove this listing permanently? To take it down but keep it for later, use Withdraw instead."
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteListing({ listingId });
+      toast.success("Listing removed");
+    } catch (err: any) {
+      toast.error(err.message || "Could not remove the listing");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (kind !== "want_to_buy" && !unitNumber.trim()) {
       toast.error("Please enter the unit number you own");
@@ -60,15 +110,40 @@ export function OwnerMyListingsPage() {
     setSubmitting(true);
     try {
       const parsedWeek = Number(weekLabel.trim());
+      const weekNumber =
+        Number.isFinite(parsedWeek) && parsedWeek > 0 ? parsedWeek : undefined;
+      const price =
+        kind === "for_sale" && askingPrice ? Number(askingPrice) : undefined;
+
+      if (editingId) {
+        await updateListing({
+          listingId: editingId,
+          kind,
+          communitySlug,
+          unitNumber: unitNumber.trim() || undefined,
+          weekLabel: weekLabel.trim(),
+          weekNumber,
+          askingPrice: price,
+          // An owner clearing the price means "Contact for price", which is
+          // different from leaving the field untouched.
+          clearPrice: kind === "for_sale" && !askingPrice,
+          desiredWeekLabel:
+            kind === "trade" ? desiredWeekLabel.trim() || "Flexible" : undefined,
+          notes: notes.trim() || undefined,
+        });
+        toast.success("Listing updated");
+        reset();
+        return;
+      }
+
       await createListing({
-        originSiteSlug: siteSlug ?? "spicebush",
+        originSiteSlug: siteSlug,
         kind,
         communitySlug,
         unitNumber: unitNumber.trim() || undefined,
         weekLabel: weekLabel.trim(),
-        weekNumber: Number.isFinite(parsedWeek) && parsedWeek > 0 ? parsedWeek : undefined,
-        askingPrice:
-          kind === "for_sale" && askingPrice ? Number(askingPrice) : undefined,
+        weekNumber,
+        askingPrice: price,
         desiredWeekLabel:
           kind === "trade" ? desiredWeekLabel.trim() || "Flexible" : undefined,
         notes: notes.trim() || undefined,
@@ -76,7 +151,7 @@ export function OwnerMyListingsPage() {
       toast.success("Listing posted to both owner portals");
       reset();
     } catch (err: any) {
-      toast.error(err.message || "Could not post the listing");
+      toast.error(err.message || "Could not save the listing");
     } finally {
       setSubmitting(false);
     }
@@ -108,7 +183,8 @@ export function OwnerMyListingsPage() {
           <p className="text-muted-foreground text-sm mt-1">
             Anything you post appears in the Swallowtail and Spicebush owner
             portals. Listings run for one year, and stay up until you close
-            them.
+            them. Each unit and week can have one listing — posting the same
+            week again updates the listing you already have.
           </p>
         </div>
         <button
@@ -122,7 +198,7 @@ export function OwnerMyListingsPage() {
 
       {showForm && (
         <form
-          onSubmit={handleCreate}
+          onSubmit={handleSubmit}
           className="bg-background border rounded-xl p-5 space-y-4"
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -148,7 +224,10 @@ export function OwnerMyListingsPage() {
               </label>
               <select
                 value={communitySlug}
-                onChange={(e) => setCommunitySlug(e.target.value)}
+                onChange={(e) => {
+                  touchedCommunity.current = true;
+                  setCommunitySlug(e.target.value);
+                }}
                 className="w-full px-3 py-2.5 rounded-lg border text-sm bg-background"
               >
                 <option value="spicebush">Spicebush</option>
@@ -251,7 +330,11 @@ export function OwnerMyListingsPage() {
             disabled={submitting}
             className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:bg-primary/90 disabled:opacity-60"
           >
-            {submitting ? "Posting…" : "Post listing"}
+            {submitting
+              ? "Saving…"
+              : editingId
+                ? "Save changes"
+                : "Post listing"}
           </button>
         </form>
       )}
@@ -287,6 +370,12 @@ export function OwnerMyListingsPage() {
                 listing={l}
                 footer={
                   <div className="flex gap-2">
+                    <button
+                      onClick={() => startEdit(l)}
+                      className="text-xs font-medium px-2.5 py-1.5 rounded border hover:bg-muted"
+                    >
+                      Edit
+                    </button>
                     {l.status === "active" ? (
                       <>
                         <button
@@ -310,6 +399,12 @@ export function OwnerMyListingsPage() {
                         Repost
                       </button>
                     )}
+                    <button
+                      onClick={() => handleRemove(l._id)}
+                      className="text-xs font-medium px-2.5 py-1.5 rounded border border-destructive/40 text-destructive hover:bg-destructive/10"
+                    >
+                      Remove
+                    </button>
                   </div>
                 }
               />

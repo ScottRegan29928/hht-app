@@ -12,10 +12,11 @@ import {
   Menu,
   X,
   Key,
+  CreditCard,
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, useEffect, useRef } from "react";
-import { useSiteBrand } from "@/lib/siteContext";
+import { useSiteBrand, useSitePayment } from "@/lib/siteContext";
 
 const navItems = [
   { label: "Dashboard", path: "/owner", icon: LayoutDashboard },
@@ -26,8 +27,18 @@ const navItems = [
   { label: "Inquiries", path: "/owner/inquiries", icon: MessageSquare },
 ];
 
+// Shown only where the resort actually takes payments — Swallowtail links out,
+// Spicebush uses Square, a resort with neither should not see the item at all.
+const paymentNavItem = {
+  label: "Make a Payment",
+  path: "/owner/payment",
+  icon: CreditCard,
+};
+
 export function OwnerLayout() {
   const brand = useSiteBrand();
+  const payment = useSitePayment();
+  const nav = payment.enabled ? [...navItems, paymentNavItem] : navItems;
   const currentUser = useQuery(api.owner.currentUser);
   const claimProfile = useMutation(api.owner.claimProfile);
   const location = useLocation();
@@ -124,7 +135,7 @@ export function OwnerLayout() {
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
-          {navItems.map(({ label, path, icon: Icon }) => {
+          {nav.map(({ label, path, icon: Icon }) => {
             const isActive =
               path === "/owner"
                 ? location.pathname === "/owner"

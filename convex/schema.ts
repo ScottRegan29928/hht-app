@@ -53,6 +53,19 @@ const schema = defineSchema({
     rentalsEnabled: v.boolean(),
     // Joint marketplace pool key — sites sharing a key cross-populate listings
     marketplacePool: v.optional(v.string()),
+
+    // Maintenance-fee payments differ per resort [scott, 2026-09-08]:
+    // Swallowtail sends owners out to secure2.irm1.net; Spicebush collects on
+    // site through Square. "none" keeps the nav item hidden entirely.
+    paymentMode: v.optional(
+      v.union(
+        v.literal("none"),
+        v.literal("external"),
+        v.literal("square_link")
+      )
+    ),
+    paymentUrl: v.optional(v.string()),
+    paymentNote: v.optional(v.string()),
     // Theming
     theme: v.optional(v.object({
       primary: v.optional(v.string()),

@@ -161,6 +161,9 @@ export const seedSites = internalMutation({
         marketplaceEnabled: true,
         rentalsEnabled: true,
         marketplacePool: "seapines-joint",
+        // Swallowtail does not take payments on the website [scott, 2026-09-08].
+        paymentMode: "external" as const,
+        paymentUrl: "https://secure2.irm1.net/owner/#/login?resort=f4",
         sortOrder: 3,
       },
       {
@@ -174,6 +177,10 @@ export const seedSites = internalMutation({
         marketplaceEnabled: true,
         rentalsEnabled: true,
         marketplacePool: "seapines-joint",
+        // Spicebush collects on site via Square [scott, 2026-09-08].
+        // paymentUrl stays empty until the client's Square link is supplied;
+        // the page then tells owners to call rather than showing a dead button.
+        paymentMode: "square_link" as const,
         sortOrder: 4,
       },
     ];

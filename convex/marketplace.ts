@@ -1,7 +1,8 @@
 import { query, mutation, internalMutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Doc, Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 
 /**
  * Owner-to-owner marketplace for the Swallowtail + Spicebush joint pool.
@@ -148,6 +149,45 @@ export const myListings = query({
 // Owner-facing writes
 // ────────────────────────────────────────────────────────────
 
+/**
+ * Normalized key for "the same unit/week". Owners must not be able to hold two
+ * listings for one week [scott, 2026-09-08] — a repost updates the original
+ * instead of stacking a second, contradictory entry beside it. This is the same
+ * failure mode the WordPress table had, where one owner's unit 575 sat in the
+ * list twice at two different prices.
+ */
+function weekKey(unitNumber?: string, weekLabel?: string): string | null {
+  const u = (unitNumber ?? "").trim().toLowerCase();
+  const w = (weekLabel ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (!u || !w) return null;
+  return `${u}::${w}`;
+}
+
+/**
+ * An owner's prior listing for this unit/week, whatever its status. Closed and
+ * expired entries match too, so reposting a week revives the original record
+ * rather than leaving a duplicate history behind.
+ */
+async function findOwnerListingForWeek(
+  ctx: MutationCtx,
+  ownerProfileId: Id<"userProfiles">,
+  unitNumber?: string,
+  weekLabel?: string,
+  excludeId?: Id<"marketplaceListings">
+) {
+  const key = weekKey(unitNumber, weekLabel);
+  if (!key) return null;
+  const mine = await ctx.db
+    .query("marketplaceListings")
+    .withIndex("by_owner", (q) => q.eq("ownerProfileId", ownerProfileId))
+    .collect();
+  for (const l of mine) {
+    if (excludeId && l._id === excludeId) continue;
+    if (weekKey(l.unitNumber, l.weekLabel) === key) return l;
+  }
+  return null;
+}
+
 export const createListing = mutation({
   args: {
     originSiteSlug: v.string(),
@@ -184,6 +224,39 @@ export const createListing = mutation({
       [profile.firstName, profile.lastName].filter(Boolean).join(" ") ??
       profile.displayName;
 
+    const existing = await findOwnerListingForWeek(
+      ctx,
+      profile._id,
+      args.unitNumber,
+      args.weekLabel
+    );
+    if (existing) {
+      // Update in place and restart the one-year clock, rather than creating a
+      // second listing for a week this owner already has listed.
+      await ctx.db.patch(existing._id, {
+        kind: args.kind,
+        status: "active",
+        originSiteSlug: args.originSiteSlug,
+        communitySlug: args.communitySlug ?? existing.communitySlug,
+        weekNumber: args.weekNumber ?? existing.weekNumber,
+        year: args.year ?? existing.year,
+        askingPrice: args.askingPrice,
+        desiredWeekLabel: args.desiredWeekLabel,
+        desiredWeekNumber: args.desiredWeekNumber,
+        desiredYear: args.desiredYear,
+        notes: args.notes,
+        contactName: contactName || existing.contactName,
+        contactEmail: args.contactEmail ?? profile.email ?? existing.contactEmail,
+        contactPhone: args.contactPhone ?? profile.phone ?? existing.contactPhone,
+        isLegacy: false,
+        postedAt: now,
+        expiresAt: now + ONE_YEAR_MS,
+        closedAt: undefined,
+        updatedAt: now,
+      });
+      return existing._id;
+    }
+
     return await ctx.db.insert("marketplaceListings", {
       pool: JOINT_POOL,
       originSiteSlug: args.originSiteSlug,
@@ -216,12 +289,27 @@ export const createListing = mutation({
 export const updateListing = mutation({
   args: {
     listingId: v.id("marketplaceListings"),
+    kind: v.optional(
+      v.union(
+        v.literal("for_sale"),
+        v.literal("want_to_buy"),
+        v.literal("trade")
+      )
+    ),
+    communitySlug: v.optional(v.string()),
+    unitNumber: v.optional(v.string()),
     weekLabel: v.optional(v.string()),
+    weekNumber: v.optional(v.number()),
+    year: v.optional(v.number()),
     askingPrice: v.optional(v.number()),
     desiredWeekLabel: v.optional(v.string()),
+    desiredWeekNumber: v.optional(v.number()),
+    desiredYear: v.optional(v.number()),
     notes: v.optional(v.string()),
+    contactName: v.optional(v.string()),
     contactEmail: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
+    clearPrice: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -231,12 +319,55 @@ export const updateListing = mutation({
     if (listing.ownerProfileId !== profile._id) {
       throw new Error("You can only edit your own listings");
     }
-    const { listingId, ...patch } = args;
+    if (args.askingPrice !== undefined && args.askingPrice < 0) {
+      throw new Error("Asking price cannot be negative");
+    }
+
+    // Editing a listing onto a unit/week the owner already has listed would
+    // recreate the duplicate this rule exists to prevent.
+    const clash = await findOwnerListingForWeek(
+      ctx,
+      profile._id,
+      args.unitNumber ?? listing.unitNumber,
+      args.weekLabel ?? listing.weekLabel,
+      listing._id
+    );
+    if (clash) {
+      throw new Error(
+        "You already have a listing for that unit and week. Edit that listing instead."
+      );
+    }
+
+    const { listingId, clearPrice, ...patch } = args;
     const clean: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [k, val] of Object.entries(patch)) {
       if (val !== undefined) clean[k] = val;
     }
+    // "Contact for price" has to be reachable from a listing that once had a
+    // number, so an explicit clear is distinct from an omitted field.
+    if (clearPrice) clean.askingPrice = undefined;
     await ctx.db.patch(listingId, clean);
+    return null;
+  },
+});
+
+/**
+ * Remove a listing outright. Distinct from "withdrawn", which keeps the record
+ * so the owner can repost it later; owners asked to be able to delete
+ * [scott, 2026-09-08]. Legacy imported rows are deletable too — an owner who
+ * never posted it themselves still owns the week.
+ */
+export const deleteListing = mutation({
+  args: { listingId: v.id("marketplaceListings") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const profile = await requireOwnerProfile(ctx);
+    const listing = await ctx.db.get(args.listingId);
+    if (!listing) return null;
+    if (listing.ownerProfileId !== profile._id) {
+      throw new Error("You can only remove your own listings");
+    }
+    await ctx.db.delete(args.listingId);
     return null;
   },
 });

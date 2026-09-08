@@ -27,6 +27,9 @@ export type SiteScope = {
     marketplaceEnabled: boolean;
     rentalsEnabled: boolean;
     marketplacePool?: string;
+    paymentMode?: "none" | "external" | "square_link";
+    paymentUrl?: string;
+    paymentNote?: string;
     theme?: { primary?: string; accent?: string };
   };
   /** null means "show everything" */
@@ -119,6 +122,25 @@ export function useSiteFlags() {
     rentalsEnabled: scope?.site.rentalsEnabled ?? true,
     siteName: scope?.site.name ?? "Hilton Head Timeshares",
     siteSlug: scope?.site.slug ?? "mhht",
+  };
+}
+
+/**
+ * Maintenance-fee payment config. Swallowtail redirects owners to its
+ * management company; Spicebush collects on site via Square [scott, 2026-09-08].
+ * `ready` is false when a mode needs a URL that has not been supplied yet, so
+ * the UI can say so instead of rendering a button that goes nowhere.
+ */
+export function useSitePayment() {
+  const { scope } = useSite();
+  const mode = scope?.site.paymentMode ?? "none";
+  const url = scope?.site.paymentUrl;
+  return {
+    mode,
+    url,
+    note: scope?.site.paymentNote,
+    enabled: mode !== "none",
+    ready: mode === "external" || mode === "square_link" ? !!url : false,
   };
 }
 
