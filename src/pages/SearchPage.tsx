@@ -142,7 +142,7 @@ export function SearchPage() {
   };
 
   // Heading based on mode
-  const heading = isBuy ? "Buy a Timeshare Week" : isRent ? "Rent a Villa" : "Find Your Villa";
+  const heading = isBuy ? "Buy a Week" : isRent ? "Find a Rental" : "Find Your Villa";
   const subtitle = isBuy
     ? "Browse available weeks with dates and pricing"
     : isRent

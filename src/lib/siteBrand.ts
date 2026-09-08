@@ -34,6 +34,8 @@ const SEA_PINES_EYEBROW = "Sea Pines · Hilton Head Island";
 
 export const SITE_BRAND: Record<string, SiteBrand> = {
   mhht: {
+    phoneDisplay: "843.363.5699",
+    phoneHref: "tel:8433635699",
     wordmarkTop: "Hilton Head",
     wordmarkBottom: "Timeshares",
     eyebrow: SEA_PINES_EYEBROW,
@@ -63,6 +65,8 @@ export const SITE_BRAND: Record<string, SiteBrand> = {
     phoneHref: "tel:8433635699",
   },
   swallowtail: {
+    phoneDisplay: "843.363.5699",
+    phoneHref: "tel:8433635699",
     wordmarkTop: "Swallowtail",
     wordmarkBottom: "at Sea Pines",
     eyebrow: SEA_PINES_EYEBROW,
@@ -75,6 +79,8 @@ export const SITE_BRAND: Record<string, SiteBrand> = {
     legalName: "Swallowtail at Sea Pines",
   },
   spicebush: {
+    phoneDisplay: "843.363.5699",
+    phoneHref: "tel:8433635699",
     wordmarkTop: "Spicebush",
     wordmarkBottom: "at Sea Pines",
     eyebrow: SEA_PINES_EYEBROW,

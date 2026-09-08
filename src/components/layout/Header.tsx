@@ -37,9 +37,10 @@ export function Header() {
   // normal solid header.
   const heritage = siteSlug === "heritage";
   const overlay = heritage && isHome;
-  // On Heritage the logo is white on every page (transparent hero header, or
-  // the dark solid bar on inner pages), so treat both as "light on dark".
-  const lightOnDark = heritage || overlay;
+  // Scott supplied the full-color logo (2026-09-08), so the solid inner-page
+  // header goes back to the normal light bar with the color lockup. Only the
+  // transparent hero overlay is light-on-dark, and it uses the white logo.
+  const lightOnDark = overlay;
 
   return (
     <header
@@ -47,11 +48,7 @@ export function Header() {
         "z-50 transition-all duration-300",
         overlay
           ? "absolute inset-x-0 top-0 bg-transparent"
-          : heritage
-            // Heritage's logo is white-only, so its solid header has to be
-            // dark or the mark disappears. Other sites keep the light bar.
-            ? "sticky top-0 bg-[#0c2b3e] border-b border-white/10"
-            : isHome
+          : isHome
               ? "sticky top-0 bg-white/80 backdrop-blur-xl border-b border-border/50"
               : "sticky top-0 bg-white border-b border-border"
       )}
@@ -64,7 +61,11 @@ export function Header() {
                 still use the generic pin-and-wordmark. */}
             {heritage ? (
               <img
-                src="/brand/hv/logo-horz-white.png"
+                src={
+                  overlay
+                    ? "/brand/hv/logo-horz-white.png"
+                    : "/brand/hv/logo-horz-color.png"
+                }
                 alt={brand.legalName}
                 width={180}
                 height={55}

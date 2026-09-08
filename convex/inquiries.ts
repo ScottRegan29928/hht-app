@@ -43,13 +43,11 @@ export const submit = mutation({
     message: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Determine routing
-    // General contact-form enquiries go to the same Club Group address as
-    // rentals until Scott confirms a dedicated inbox for them.
-    const routedTo =
-      args.type === "purchase"
-        ? "lisafleming@lighthouserealtyhhi.com"
-        : "asutton@cglhhi.com";
+    // Routing: "For now send all submissions to asutton" [scott, 2026-09-08].
+    // This deliberately includes purchase inquiries, which previously went to
+    // lisafleming@lighthouserealtyhhi.com. Restore the per-type split when the
+    // client confirms the real destinations.
+    const routedTo = "asutton@cglhhi.com";
 
     const id = await ctx.db.insert("inquiries", {
       ...args,
