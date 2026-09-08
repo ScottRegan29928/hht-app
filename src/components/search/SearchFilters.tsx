@@ -4,6 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import { SlidersHorizontal, X, Check, ChevronDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getNext52Weeks, formatWeekRange } from "@/lib/weekCalendar";
+import { useSiteFlags } from "@/lib/siteContext";
 
 export interface AvailableFacets {
   communities: Set<string>;
@@ -174,8 +175,9 @@ export function SearchFilters({
   selectedYear,
   setSelectedYear,
 }: SearchFiltersProps) {
-  const communities = useQuery(api.communities.list);
-  const allAmenities = useQuery(api.properties.allAmenities);
+  const { siteSlug } = useSiteFlags();
+  const communities = useQuery(api.communities.list, { siteSlug });
+  const allAmenities = useQuery(api.properties.allAmenities, { siteSlug });
 
   const mode = listingTypes.length === 1 ? listingTypes[0] : null; // "buy" | "rent" | null
   const isBuy = mode === "buy";

@@ -1,7 +1,8 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 import type { ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { brandForSlug } from "./siteBrand";
 
 /**
  * Resolves "which of the four sister sites am I?" from the browser hostname
@@ -84,6 +85,12 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   const hostname = resolveHostname();
   const scope = useQuery(api.sites.scopeForHostname, { hostname }) as SiteScope;
 
+  // Keep the browser tab title on the resolved site rather than the build's
+  // static index.html title, which would otherwise say "Hilton Head" on all four.
+  useEffect(() => {
+    if (scope?.site?.name) document.title = scope.site.name;
+  }, [scope?.site?.name]);
+
   return (
     <SiteContext.Provider
       value={{ scope: scope ?? null, loading: scope === undefined }}
@@ -113,4 +120,10 @@ export function useSiteFlags() {
     siteName: scope?.site.name ?? "Hilton Head Timeshares",
     siteSlug: scope?.site.slug ?? "mhht",
   };
+}
+
+/** Convenience: brand copy (wordmark, hero, footer) for the current site. */
+export function useSiteBrand() {
+  const { scope } = useSite();
+  return brandForSlug(scope?.site.slug);
 }

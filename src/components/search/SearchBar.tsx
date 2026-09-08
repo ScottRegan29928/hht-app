@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Search, MapPin, Calendar, Bed, Tag, Sparkles, Check, ChevronDown } from "lucide-react";
+import { useSiteFlags } from "@/lib/siteContext";
 
 interface MultiSelectProps {
   icon: React.ReactNode;
@@ -137,7 +138,8 @@ function SingleSelect({ icon, placeholder, options, selected, onChange, classNam
 
 export function SearchBar() {
   const navigate = useNavigate();
-  const communities = useQuery(api.communities.list);
+  const { siteSlug } = useSiteFlags();
+  const communities = useQuery(api.communities.list, { siteSlug });
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
   const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
   const [selectedBedrooms, setSelectedBedrooms] = useState<string[]>([]);
@@ -167,7 +169,7 @@ export function SearchBar() {
     { value: "rent", label: "Rent" },
     { value: "buy", label: "Buy" },
   ];
-  const allAmenities = useQuery(api.properties.allAmenities);
+  const allAmenities = useQuery(api.properties.allAmenities, { siteSlug });
   const amenityLabelMap: Record<string, string> = {
     pool: "Swimming Pool", hot_tub: "Hot Tub", tennis: "Tennis Court",
     grill: "Grill Area", near_harbour_town: "Near Harbour Town",

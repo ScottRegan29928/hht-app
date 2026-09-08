@@ -4,11 +4,15 @@ import { api } from "../../convex/_generated/api";
 import { MapPin, Search, ArrowRight, Waves, Home, Calendar, Key, DollarSign } from "lucide-react";
 import { IslandMap } from "@/components/map/IslandMap";
 import { PropertyCard } from "@/components/property/PropertyCard";
+import { useSiteFlags, useSiteBrand } from "@/lib/siteContext";
 
 export function HomePage() {
-  const communities = useQuery(api.communities.list);
+  const { siteSlug } = useSiteFlags();
+  const brand = useSiteBrand();
+  const communities = useQuery(api.communities.list, { siteSlug });
   const featuredProperties = useQuery(api.properties.list, {
     onlyFeatured: true,
+    siteSlug,
   });
 
   return (
@@ -23,18 +27,16 @@ export function HomePage() {
               <div className="flex items-center gap-2 text-primary/70 mb-4">
                 <Waves className="w-5 h-5" />
                 <span className="text-sm font-medium tracking-wide uppercase">
-                  Sea Pines · Hilton Head Island
+                  {brand.eyebrow}
                 </span>
               </div>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] font-[family-name:var(--font-display)]">
-                Your Island
+                {brand.headlineTop}
                 <br />
-                <span className="text-primary">Getaway Awaits</span>
+                <span className="text-primary">{brand.headlineAccent}</span>
               </h1>
               <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl leading-relaxed">
-                Discover luxury timeshare villas in the heart of Sea Pines.
-                Purchase a week or rent the perfect vacation home on Hilton Head
-                Island.
+                {brand.intro}
               </p>
             </div>
 

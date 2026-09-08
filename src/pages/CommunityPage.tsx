@@ -15,8 +15,9 @@ export function CommunityPage() {
   const community = useQuery(api.communities.getBySlug, {
     slug: slug ?? "",
   });
-  const allCommunities = useQuery(api.communities.list);
-  const facetData = useQuery(api.properties.listForFacets);
+  const { siteSlug } = useSiteFlags();
+  const allCommunities = useQuery(api.communities.list, { siteSlug });
+  const facetData = useQuery(api.properties.listForFacets, { siteSlug });
 
   // Filter state — community pre-selected to current page
   const [communitySlugs, setCommunitySlugs] = useState<string[]>(slug ? [slug] : []);
@@ -61,7 +62,6 @@ export function CommunityPage() {
   }
 
   // Multi-site: scope results to the current hostname's site (server-enforced).
-  const { siteSlug } = useSiteFlags();
   const scopedArgs = { ...searchArgs, siteSlug };
 
   const properties = useQuery(api.properties.search, scopedArgs);

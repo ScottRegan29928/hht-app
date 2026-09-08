@@ -1,15 +1,23 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { allowedCommunityIds } from "./sites";
 
 // ── Public Queries ──
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const communities = await ctx.db
+  args: { siteSlug: v.optional(v.string()) },
+  handler: async (ctx, { siteSlug }) => {
+    let communities = await ctx.db
       .query("communities")
       .withIndex("by_sortOrder")
       .collect();
+    // Site scoping (server-enforced): a scoped site only ever sees its own
+    // communities, so nav, dropdowns and homepage grids can't leak a sister
+    // site's inventory.
+    const allowed = await allowedCommunityIds(ctx, siteSlug);
+    if (allowed) {
+      communities = communities.filter((c) => allowed.has(c._id as string));
+    }
     // Resolve hero images and compute bed/bath ranges from properties
     return Promise.all(
       communities.map(async (c) => {

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Calendar, Home, DollarSign, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
+import { useSiteFlags } from "@/lib/siteContext";
 
 interface CalendarViewProps {
   searchArgs: Record<string, unknown>;
@@ -35,7 +36,11 @@ const MONTHS = [
 ];
 
 export function CalendarView({ searchArgs }: CalendarViewProps) {
-  const calendarWeeks = useQuery(api.properties.searchWeeksForCalendar, searchArgs);
+  const { siteSlug } = useSiteFlags();
+  const calendarWeeks = useQuery(api.properties.searchWeeksForCalendar, {
+    ...searchArgs,
+    siteSlug,
+  });
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
 

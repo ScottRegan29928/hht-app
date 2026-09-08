@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { allowedCommunityIds } from "./sites";
 import { query, mutation } from "./_generated/server";
 
 /** Detect amenities from amenityTags (Hostaway), featureCategories text, + community amenities. */
@@ -42,8 +43,9 @@ export const list = query({
     communityId: v.optional(v.id("communities")),
     onlyActive: v.optional(v.boolean()),
     onlyFeatured: v.optional(v.boolean()),
+    siteSlug: v.optional(v.string()),
   },
-  handler: async (ctx, { communityId, onlyActive = true, onlyFeatured }) => {
+  handler: async (ctx, { communityId, onlyActive = true, onlyFeatured, siteSlug }) => {
     let q;
     if (communityId) {
       q = ctx.db
@@ -54,6 +56,14 @@ export const list = query({
     }
 
     let properties = await q.collect();
+
+    // Site scoping (server-enforced).
+    const allowedList = await allowedCommunityIds(ctx, siteSlug);
+    if (allowedList) {
+      properties = properties.filter((p) =>
+        allowedList.has(p.communityId as string)
+      );
+    }
 
     if (onlyActive) {
       properties = properties.filter((p) => p.isActive);
@@ -151,12 +161,21 @@ export const getBySlug = query({
  * With ~80 properties this is very efficient.
  */
 export const listForFacets = query({
-  args: {},
-  handler: async (ctx) => {
-    const properties = await ctx.db
+  args: { siteSlug: v.optional(v.string()) },
+  handler: async (ctx, { siteSlug }) => {
+    let properties = await ctx.db
       .query("properties")
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
+
+    // Site scoping (server-enforced): facet counts must describe only the
+    // inventory this site can actually show.
+    const allowedFacets = await allowedCommunityIds(ctx, siteSlug);
+    if (allowedFacets) {
+      properties = properties.filter((p) =>
+        allowedFacets.has(p.communityId as string)
+      );
+    }
 
     return Promise.all(
       properties.filter((p) => p.isActive).map(async (p) => {
@@ -544,9 +563,13 @@ export const seed = mutation({
 
 // ── All unique amenities (for dynamic filter options) ──
 export const allAmenities = query({
-  args: {},
-  handler: async (ctx) => {
-    const communities = await ctx.db.query("communities").collect();
+  args: { siteSlug: v.optional(v.string()) },
+  handler: async (ctx, { siteSlug }) => {
+    const allowedAmen = await allowedCommunityIds(ctx, siteSlug);
+    let communities = await ctx.db.query("communities").collect();
+    if (allowedAmen) {
+      communities = communities.filter((c) => allowedAmen.has(c._id as string));
+    }
     const amenitySet = new Set<string>();
 
     // Gather all community-level amenities
@@ -557,10 +580,15 @@ export const allAmenities = query({
     }
 
     // Gather property-level amenityTags (from Hostaway sync)
-    const properties = await ctx.db
+    let properties = await ctx.db
       .query("properties")
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
+    if (allowedAmen) {
+      properties = properties.filter((p) =>
+        allowedAmen.has(p.communityId as string)
+      );
+    }
     for (const p of properties) {
       if (p.amenityTags) {
         for (const a of p.amenityTags) amenitySet.add(a);
@@ -588,6 +616,7 @@ export const searchWeeksForCalendar = query({
     listingTypes: v.optional(v.array(v.string())),
     amenities: v.optional(v.array(v.string())),
     amenityMode: v.optional(v.union(v.literal("and"), v.literal("or"))),
+    siteSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Start with all active properties
@@ -596,6 +625,14 @@ export const searchWeeksForCalendar = query({
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
     properties = properties.filter((p) => p.isActive);
+
+    // Site scoping (server-enforced).
+    const allowedCal = await allowedCommunityIds(ctx, args.siteSlug);
+    if (allowedCal) {
+      properties = properties.filter((p) =>
+        allowedCal.has(p.communityId as string)
+      );
+    }
 
     // Community filter
     if (args.communitySlugs && args.communitySlugs.length > 0) {

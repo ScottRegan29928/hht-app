@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { Menu, X, MapPin, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSiteBrand } from "@/lib/siteContext";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -10,6 +11,7 @@ const navLinks = [
 ];
 
 export function Header() {
+  const brand = useSiteBrand();
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/";
@@ -32,10 +34,10 @@ export function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-semibold tracking-tight text-foreground leading-none font-[family-name:var(--font-display)]">
-                Hilton Head
+                {brand.wordmarkTop}
               </span>
               <span className="text-xs tracking-widest uppercase text-muted-foreground font-medium">
-                Timeshares
+                {brand.wordmarkBottom}
               </span>
             </div>
           </Link>

@@ -47,8 +47,9 @@ export function SearchPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const communities = useQuery(api.communities.list);
-  const facetData = useQuery(api.properties.listForFacets);
+  const { siteSlug } = useSiteFlags();
+  const communities = useQuery(api.communities.list, { siteSlug });
+  const facetData = useQuery(api.properties.listForFacets, { siteSlug });
 
   const mode = listingTypes.length === 1 ? listingTypes[0] : null;
   const isBuy = mode === "buy";
@@ -79,7 +80,6 @@ export function SearchPage() {
     checkOut !== "";
 
   // Multi-site: scope results to the current hostname's site (server-enforced).
-  const { siteSlug } = useSiteFlags();
   const scopedArgs = { ...searchArgs, siteSlug };
 
   const properties = useQuery(api.properties.search, scopedArgs);

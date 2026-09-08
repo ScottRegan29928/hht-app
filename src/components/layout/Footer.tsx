@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail } from "lucide-react";
+import { useSiteBrand } from "@/lib/siteContext";
 
 export function Footer() {
+  const brand = useSiteBrand();
   return (
     <footer className="mt-[60px] bg-foreground text-primary-foreground/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -13,12 +15,11 @@ export function Footer() {
                 <MapPin className="w-4 h-4 text-primary-foreground" />
               </div>
               <span className="text-lg font-semibold text-primary-foreground font-[family-name:var(--font-display)]">
-                Hilton Head Timeshares
+                {brand.legalName}
               </span>
             </div>
             <p className="text-sm leading-relaxed text-primary-foreground/60">
-              Luxury timeshare rentals and sales at Sea Pines on Hilton Head
-              Island, South Carolina. Your island getaway awaits.
+              {brand.footerBlurb}
             </p>
           </div>
 
@@ -97,7 +98,7 @@ export function Footer() {
 
         <div className="mt-10 pt-8 border-t border-primary-foreground/10 text-center">
           <p className="text-xs text-primary-foreground/40">
-            © {new Date().getFullYear()} Hilton Head Timeshares. All rights
+            © {new Date().getFullYear()} {brand.legalName}. All rights
             reserved.
           </p>
         </div>

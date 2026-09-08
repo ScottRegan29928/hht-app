@@ -212,3 +212,29 @@ export const seedSites = internalMutation({
     return { dryRun: !!dryRun, results };
   },
 });
+
+/**
+ * Server-side scoping primitive shared by every public listing query.
+ *
+ * Returns the set of community IDs a site may show, or null for "all".
+ * Callers must treat null and empty-set differently: null means unscoped,
+ * an empty set means the site is scoped to nothing and should return no rows.
+ */
+export async function allowedCommunityIds(
+  ctx: { db: any },
+  siteSlug?: string
+): Promise<Set<string> | null> {
+  if (!siteSlug) return null;
+  const site = await ctx.db
+    .query("sites")
+    .withIndex("by_slug", (q: any) => q.eq("slug", siteSlug))
+    .unique();
+  if (!site || site.scopeMode === "all") return null;
+  const slugs = new Set(site.communitySlugs ?? []);
+  const communities = await ctx.db.query("communities").collect();
+  return new Set(
+    communities
+      .filter((c: any) => slugs.has(c.slug))
+      .map((c: any) => c._id as string)
+  );
+}
