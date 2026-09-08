@@ -140,6 +140,21 @@
       "has": [
         {
           "type": "host",
+          "value": "swallowtail.lead-works.com"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(facebookexternalhit|facebookcatalog|Facebot|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|WhatsApp|TelegramBot|Discordbot|Pinterest|redditbot|Applebot|SkypeUriPreview|vkShare|Embedly|quora link preview|outbrain|nuzzel|Iframely|Google-InspectionTool|Mastodon|Bluesky).*"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/prerender?site=swallowtail&path=/$1"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "has": [
+        {
+          "type": "host",
           "value": "swallowtail.hht.lead-works.com"
         },
         {
@@ -171,6 +186,21 @@
         {
           "type": "host",
           "value": "www.spicebushatseapines.com"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(facebookexternalhit|facebookcatalog|Facebot|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|WhatsApp|TelegramBot|Discordbot|Pinterest|redditbot|Applebot|SkypeUriPreview|vkShare|Embedly|quora link preview|outbrain|nuzzel|Iframely|Google-InspectionTool|Mastodon|Bluesky).*"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/prerender?site=spicebush&path=/$1"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "spicebush.lead-works.com"
         },
         {
           "type": "header",
@@ -391,6 +421,26 @@
       "has": [
         {
           "type": "host",
+          "value": "swallowtail.lead-works.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=swallowtail"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "swallowtail.lead-works.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=swallowtail"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
           "value": "swallowtail.hht.lead-works.com"
         }
       ],
@@ -442,6 +492,26 @@
         {
           "type": "host",
           "value": "www.spicebushatseapines.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=spicebush"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "spicebush.lead-works.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=spicebush"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "spicebush.lead-works.com"
         }
       ],
       "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=spicebush"
