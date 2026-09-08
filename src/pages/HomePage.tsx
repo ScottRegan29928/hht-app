@@ -5,6 +5,7 @@ import { MapPin, Search, ArrowRight, Waves, Home, Calendar, Key, DollarSign } fr
 import { IslandMap } from "@/components/map/IslandMap";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { useSiteFlags, useSiteBrand } from "@/lib/siteContext";
+import { HeritageHero } from "@/components/home/HeritageHero";
 
 export function HomePage() {
   const { siteSlug } = useSiteFlags();
@@ -17,67 +18,74 @@ export function HomePage() {
 
   return (
     <div>
-      {/* ── Hero ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-20 sm:pb-24">
-          {/* 50/50 copy + image */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-12">
-            {/* Left — copy */}
-            <div className="lg:w-1/2 lg:shrink-0">
-              <div className="flex items-center gap-2 text-primary/70 mb-4">
-                <Waves className="w-5 h-5" />
-                <span className="text-sm font-medium tracking-wide uppercase">
-                  {brand.eyebrow}
-                </span>
+      {/* ── Hero ──
+          Heritage gets the measured recreation of heritagevacations.com.
+          The other three sites keep the shared hero until their own
+          front ends are designed (Scott's ordering: hv, hht, then Sea Pines). */}
+      {siteSlug === "heritage" ? (
+        <HeritageHero />
+      ) : (
+        <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-20 sm:pb-24">
+            {/* 50/50 copy + image */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:gap-12">
+              {/* Left — copy */}
+              <div className="lg:w-1/2 lg:shrink-0">
+                <div className="flex items-center gap-2 text-primary/70 mb-4">
+                  <Waves className="w-5 h-5" />
+                  <span className="text-sm font-medium tracking-wide uppercase">
+                    {brand.eyebrow}
+                  </span>
+                </div>
+                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] font-[family-name:var(--font-display)]">
+                  {brand.headlineTop}
+                  <br />
+                  <span className="text-primary">{brand.headlineAccent}</span>
+                </h1>
+                <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl leading-relaxed">
+                  {brand.intro}
+                </p>
               </div>
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] font-[family-name:var(--font-display)]">
-                {brand.headlineTop}
-                <br />
-                <span className="text-primary">{brand.headlineAccent}</span>
-              </h1>
-              <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl leading-relaxed">
-                {brand.intro}
-              </p>
+
+              {/* Right — lighthouse hero image */}
+              <div className="hidden lg:block lg:w-1/2 relative mt-8 lg:mt-0">
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                  <img
+                    src="/lighthouse.jpg"
+                    alt="Harbour Town Lighthouse at sunset, Hilton Head Island"
+                    className="w-full h-[420px] object-cover object-center"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                </div>
+              </div>
             </div>
 
-            {/* Right — lighthouse hero image */}
-            <div className="hidden lg:block lg:w-1/2 relative mt-8 lg:mt-0">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img
-                  src="/lighthouse.jpg"
-                  alt="Harbour Town Lighthouse at sunset, Hilton Head Island"
-                  className="w-full h-[420px] object-cover object-center"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-              </div>
+            {/* ── Two entry points: Buy / Rent ── */}
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                to="/search?type=buy"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-md"
+              >
+                <Key className="w-4 h-4" />
+                Buy a Timeshare Week
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/search?type=rent"
+                className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition-colors"
+              >
+                <Calendar className="w-4 h-4" />
+                Rent a Villa
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
 
-          {/* ── Two entry points: Buy / Rent ── */}
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Link
-              to="/search?type=buy"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-md"
-            >
-              <Key className="w-4 h-4" />
-              Buy a Timeshare Week
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              to="/search?type=rent"
-              className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition-colors"
-            >
-              <Calendar className="w-4 h-4" />
-              Rent a Villa
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Decorative shapes */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
-      </section>
+          {/* Decorative shapes */}
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
+        </section>
+      )}
 
       {/* ── Interactive Map ── */}
       <section className="py-16 sm:py-20 bg-card">
@@ -86,7 +94,7 @@ export function HomePage() {
             <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
               Explore Sea Pines
             </h2>
-            <p className="mt-3 text-muted-foreground max-w-2xl mx-auto whitespace-nowrap">
+            <p className="mt-3 text-muted-foreground max-w-2xl mx-auto lg:whitespace-nowrap">
               Click a community on the map to browse available villas and
               timeshare weeks.
             </p>
