@@ -6,6 +6,7 @@ import { IslandMap } from "@/components/map/IslandMap";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { useSiteFlags, useSiteBrand } from "@/lib/siteContext";
 import { HeritageHero } from "@/components/home/HeritageHero";
+import { HeritageFilterTiles } from "@/components/home/HeritageFilterTiles";
 
 export function HomePage() {
   const { siteSlug } = useSiteFlags();
@@ -75,7 +76,7 @@ export function HomePage() {
                 className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition-colors"
               >
                 <Calendar className="w-4 h-4" />
-                Rent a Villa
+                Find a Rental
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -86,6 +87,9 @@ export function HomePage() {
           <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
         </section>
       )}
+
+      {/* ── Amenity shortcut tiles (Heritage only) ── */}
+      {siteSlug === "heritage" && <HeritageFilterTiles />}
 
       {/* ── Interactive Map ── */}
       <section className="py-16 sm:py-20 bg-card">
@@ -193,33 +197,37 @@ export function HomePage() {
       )}
 
       {/* ── CTA Section ── */}
-      <section className="py-16 sm:py-20 bg-primary text-primary-foreground">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
-            Ready to Own Your Piece of Paradise?
-          </h2>
-          <p className="mt-4 text-lg text-primary-foreground/80 max-w-2xl mx-auto">
-            Whether you're looking to purchase a timeshare week or rent a
-            beautiful villa, we're here to help you find the perfect fit.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/search?type=buy"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:bg-white/90 transition-colors"
-            >
-              <Key className="w-4 h-4" />
-              Buy a Week
-            </Link>
-            <Link
-              to="/search?type=rent"
-              className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary-foreground/30 rounded-lg font-semibold hover:bg-primary-foreground/10 transition-colors"
-            >
-              <Calendar className="w-4 h-4" />
-              Rent a Villa
-            </Link>
+      {/* Removed on Heritage per Scott, 2026-09-08. */}
+      {siteSlug !== "heritage" && (
+        <section className="py-16 sm:py-20 bg-primary text-primary-foreground">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
+              Ready to Own Your Piece of Paradise?
+            </h2>
+            <p className="mt-4 text-lg text-primary-foreground/80 max-w-2xl mx-auto">
+              Whether you're looking to rent a beautiful villa or purchase a
+              timeshare week, we're here to help you find the perfect fit.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                to="/search?type=rent"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:bg-white/90 transition-colors"
+              >
+                <Calendar className="w-4 h-4" />
+                Find a Rental
+              </Link>
+              <Link
+                to="/search?type=buy"
+                className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary-foreground/30 rounded-lg font-semibold hover:bg-primary-foreground/10 transition-colors"
+              >
+                <Key className="w-4 h-4" />
+                Buy a Week
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
     </div>
   );
 }

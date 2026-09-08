@@ -4,6 +4,14 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { brandForSlug } from "./siteBrand";
 
+/** Per-site favicons. Only sites with supplied artwork appear here. */
+const SITE_FAVICONS: Record<string, { icon: string; apple?: string }> = {
+  heritage: {
+    icon: "/brand/hv/favicon-32.png",
+    apple: "/brand/hv/apple-touch-icon.png",
+  },
+};
+
 /**
  * Resolves "which of the four sister sites am I?" from the browser hostname
  * and makes it available app-wide.
@@ -99,6 +107,27 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (scope?.site?.name) document.title = scope.site.name;
   }, [scope?.site?.name]);
+
+  // Per-site favicon. All four sites are served from one build and therefore
+  // one index.html, so the icon has to be swapped at runtime; sites without
+  // their own icon keep the default from index.html.
+  const slug = scope?.site?.slug;
+  useEffect(() => {
+    const icon = slug ? SITE_FAVICONS[slug] : undefined;
+    if (!icon) return;
+    const set = (rel: string, href: string, type?: string) => {
+      let el = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+      if (!el) {
+        el = document.createElement("link");
+        el.rel = rel;
+        document.head.appendChild(el);
+      }
+      if (type) el.type = type;
+      el.href = href;
+    };
+    set("icon", icon.icon, "image/png");
+    if (icon.apple) set("apple-touch-icon", icon.apple);
+  }, [slug]);
 
   return (
     <SiteContext.Provider

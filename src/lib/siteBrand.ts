@@ -25,6 +25,9 @@ export type SiteBrand = {
   footerBlurb: string;
   /** Legal name in the footer copyright */
   legalName: string;
+  /** Public phone number, shown in the nav. Only sites that have one set it. */
+  phoneDisplay?: string;
+  phoneHref?: string;
 };
 
 const SEA_PINES_EYEBROW = "Sea Pines · Hilton Head Island";
@@ -53,6 +56,11 @@ export const SITE_BRAND: Record<string, SiteBrand> = {
     footerBlurb:
       "Vacation rentals and timeshare sales across Sea Pines on Hilton Head Island.",
     legalName: "Heritage Vacations",
+    // Only Heritage has a confirmed public number [scott, 2026-09-08]. The
+    // other three stay blank until Scott gives their numbers rather than
+    // inheriting Heritage's.
+    phoneDisplay: "843.363.5699",
+    phoneHref: "tel:8433635699",
   },
   swallowtail: {
     wordmarkTop: "Swallowtail",

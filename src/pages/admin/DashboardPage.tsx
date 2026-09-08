@@ -167,7 +167,7 @@ export function AdminDashboardPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{inq.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {inq.type === "purchase" ? "Purchase" : "Rental"} ·{" "}
+                      {inq.type === "purchase" ? "Purchase" : inq.type === "general" ? "Contact" : "Rental"} ·{" "}
                       {new Date(inq.createdAt).toLocaleDateString()}
                     </p>
                   </div>

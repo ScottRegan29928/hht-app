@@ -287,7 +287,11 @@ const schema = defineSchema({
 
   // ── Inquiries ──
   inquiries: defineTable({
-    type: v.union(v.literal("purchase"), v.literal("rental")),
+    // "general" backs the site-wide Contact form [scott, 2026-09-08]; it has
+    // no property attached, unlike purchase/rental which come off a listing.
+    type: v.union(v.literal("purchase"), v.literal("rental"), v.literal("general")),
+    // Which of the four sister sites the enquiry came from.
+    siteSlug: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
     weekId: v.optional(v.id("weeks")),
     // Contact info
@@ -479,6 +483,18 @@ const schema = defineSchema({
   // managing pages, blogs, SEO." Content is per-site (siteSlug) — the four
   // sister sites share one backend but never share marketing copy. This is
   // deliberately unlike marketplaceListings, which is pooled on purpose.
+  // ── Newsletter ──
+  // Backs the "Subscribe to Our Newsletter" block in the Heritage footer.
+  // Scoped per site: a Spicebush signup is not a Heritage signup.
+  newsletterSubscribers: defineTable({
+    siteSlug: v.string(),
+    email: v.string(),
+    createdAt: v.number(),
+    unsubscribedAt: v.optional(v.number()),
+  })
+    .index("by_site", ["siteSlug"])
+    .index("by_site_email", ["siteSlug", "email"]),
+
   contentPages: defineTable({
     siteSlug: v.string(),
     slug: v.string(),                 // url path segment, unique per site

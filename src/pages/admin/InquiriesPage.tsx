@@ -8,7 +8,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 export function AdminInquiriesPage() {
   const inquiries = useQuery(api.admin.listInquiries);
   const updateStatus = useMutation(api.admin.updateInquiryStatus);
-  const [filterType, setFilterType] = useState<"all" | "purchase" | "rental">("all");
+  const [filterType, setFilterType] = useState<"all" | "purchase" | "rental" | "general">("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "new" | "contacted" | "closed">("all");
 
   if (inquiries === undefined) {
@@ -57,6 +57,7 @@ export function AdminInquiriesPage() {
         >
           <option value="all">All Types</option>
           <option value="purchase">Purchase</option>
+          <option value="general">Contact</option>
           <option value="rental">Rental</option>
         </select>
         <select
@@ -89,7 +90,9 @@ export function AdminInquiriesPage() {
                       className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
                         inq.type === "purchase"
                           ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                          : inq.type === "general"
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                       }`}
                     >
                       {inq.type}

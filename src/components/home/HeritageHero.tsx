@@ -12,8 +12,8 @@ import { Link } from "react-router-dom";
  * eyeballed, so don't "tidy" them into round numbers:
  *   section height  900px
  *   scrim           rgba(0,0,0,0.4) flat
- *   container       800px centered (live site: content starts at x=320 of 1440)
- *   copy column     458px
+ *   container       matches the site header, so hero copy aligns with the logo
+ *   copy column     640px for the headline, 458px for the paragraph
  *   h1              Bodoni Moda 400, 32px / 38.4px, shadow 2px 2px 5px #014e6c
  *   body            Quicksand 400, 17px / 20.4px, shadow 2px 2px 3px #014e6c
  *   button          #968751, 1px solid #fff, radius 0, padding 17px 40px
@@ -74,14 +74,15 @@ export function HeritageHero() {
 
       {/* Copy */}
       <div className="relative h-full flex items-center">
-        <div className="w-full max-w-[800px] mx-auto px-6 lg:px-0">
-          <div className="max-w-[458px]">
+        {/* Same container as the Header, so the hero copy lines up with the
+            logo above it [scott, 2026-09-08]. */}
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[640px]">
             <h1
-              className="text-white text-[26px] leading-[1.2] sm:text-[32px] sm:leading-[38.4px]"
+              className="text-white text-[26px] leading-[1.2] sm:text-[32px] sm:leading-[38.4px] lg:whitespace-nowrap"
               style={{ fontFamily: '"Bodoni Moda", ui-serif, Georgia, serif', fontWeight: 400, textShadow: SHADOW_H1 }}
             >
-              Extraordinary Vacation
-              <br className="hidden sm:inline" /> Rentals
+              Extraordinary Vacation Rentals
               <br />
               in Hilton Head Island&rsquo;s
               <br />
@@ -89,7 +90,7 @@ export function HeritageHero() {
             </h1>
 
             <p
-              className="mt-5 text-white text-[16px] leading-[1.25] sm:text-[17px] sm:leading-[20.4px]"
+              className="mt-5 max-w-[458px] text-white text-[16px] leading-[1.25] sm:text-[17px] sm:leading-[20.4px]"
               style={{ fontFamily: "Quicksand, ui-sans-serif, system-ui, sans-serif", fontWeight: 400, textShadow: SHADOW_BODY }}
             >
               Discover Sea Pines&rsquo; most coveted vacation rentals on Hilton Head

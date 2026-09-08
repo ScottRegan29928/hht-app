@@ -3,8 +3,17 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
+import { HeritageFooter } from "./HeritageFooter";
 
 export function Footer() {
+  const { siteSlug } = useSiteFlags();
+  // Heritage has its own footer recreated from heritagevacations.com; the
+  // other three keep the shared one.
+  if (siteSlug === "heritage") return <HeritageFooter />;
+  return <SharedFooter />;
+}
+
+function SharedFooter() {
   const { siteSlug } = useSiteFlags();
   const navPages = useQuery(api.content.listNavPages, { siteSlug });
   const posts = useQuery(api.content.listPosts, { siteSlug, limit: 1 });

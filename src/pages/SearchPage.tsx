@@ -147,7 +147,7 @@ export function SearchPage() {
     ? "Browse available weeks with dates and pricing"
     : isRent
       ? "Pick your dates and find the perfect vacation rental"
-      : "Choose Buy or Rent to get started";
+      : "Choose Rent or Buy to get started";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -312,7 +312,7 @@ export function SearchPage() {
               </h3>
               <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
                 {!hasActiveFilters
-                  ? "Choose Buy or Rent to start browsing properties."
+                  ? "Choose Rent or Buy to start browsing properties."
                   : "Try adjusting your filters or search for a different community or date range."}
               </p>
               {hasActiveFilters && (

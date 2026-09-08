@@ -246,18 +246,6 @@ export function SearchFilters({
             I Want To…
           </label>
           <div className="flex gap-2">
-            {showBuy && (
-              <button
-                onClick={() => {
-                  setListingTypes(["buy"]);
-                  setCheckIn("");
-                  setCheckOut("");
-                }}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors border bg-background border-input hover:bg-muted text-muted-foreground"
-              >
-                Buy
-              </button>
-            )}
             {showRent && (
               <button
                 onClick={() => {
@@ -270,6 +258,18 @@ export function SearchFilters({
                 Rent
               </button>
             )}
+            {showBuy && (
+              <button
+                onClick={() => {
+                  setListingTypes(["buy"]);
+                  setCheckIn("");
+                  setCheckOut("");
+                }}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors border bg-background border-input hover:bg-muted text-muted-foreground"
+              >
+                Buy
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -279,7 +279,7 @@ export function SearchFilters({
         <div className="flex flex-col items-center gap-2 py-8 text-center border border-dashed border-border rounded-xl bg-muted/20">
           <Lock className="w-6 h-6 text-muted-foreground/40" />
           <p className="text-sm text-muted-foreground font-medium">
-            Choose <strong>Buy</strong> or <strong>Rent</strong> to see filters
+            Choose <strong>Rent</strong> or <strong>Buy</strong> to see filters
           </p>
         </div>
       )}
