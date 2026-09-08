@@ -22,6 +22,8 @@ import { OwnerDashboardPage } from "./pages/owner/DashboardPage";
 import { OwnerPropertiesPage } from "./pages/owner/PropertiesPage";
 // PropertyDetailPage removed — all week actions are inline on PropertiesPage
 import { OwnerInquiriesPage } from "./pages/owner/InquiriesPage";
+import { OwnerMarketplacePage } from "./pages/owner/MarketplacePage";
+import { OwnerMyListingsPage } from "./pages/owner/MyListingsPage";
 import { AccountPage } from "./pages/admin/AccountPage";
 import { OwnersPage } from "./pages/admin/OwnersPage";
 import { OwnerDetailPage } from "./pages/admin/OwnerDetailPage";
@@ -76,6 +78,8 @@ export default function App() {
             <Route path="properties" element={<OwnerPropertiesPage />} />
             {/* PropertyDetailPage removed — inline on PropertiesPage */}
             <Route path="inquiries" element={<OwnerInquiriesPage />} />
+            <Route path="marketplace" element={<OwnerMarketplacePage />} />
+            <Route path="listings" element={<OwnerMyListingsPage />} />
           </Route>
         </Routes>
         <Toaster position="bottom-right" richColors />

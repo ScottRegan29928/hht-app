@@ -25,4 +25,14 @@ crons.interval(
   { daysAhead: 180, limit: 40 }
 );
 
+// Age out owner marketplace listings once a day. The WordPress portals
+// expired listings after one year; reads already hide stale rows, so this
+// only keeps the stored status honest for the admin view.
+crons.interval(
+  "expire-marketplace-listings",
+  { hours: 24 },
+  internal.marketplace.expireStaleListings,
+  {}
+);
+
 export default crons;

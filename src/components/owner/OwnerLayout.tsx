@@ -5,6 +5,8 @@ import {
   LayoutDashboard,
   Home as HomeIcon,
   MessageSquare,
+  Store,
+  Tag,
   LogOut,
   ChevronLeft,
   Menu,
@@ -13,14 +15,19 @@ import {
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, useEffect, useRef } from "react";
+import { useSiteBrand } from "@/lib/siteContext";
 
 const navItems = [
   { label: "Dashboard", path: "/owner", icon: LayoutDashboard },
   { label: "My Weeks", path: "/owner/properties", icon: HomeIcon },
+  // Joint Swallowtail + Spicebush pool — same listings from either portal.
+  { label: "Marketplace", path: "/owner/marketplace", icon: Store },
+  { label: "My Listings", path: "/owner/listings", icon: Tag },
   { label: "Inquiries", path: "/owner/inquiries", icon: MessageSquare },
 ];
 
 export function OwnerLayout() {
+  const brand = useSiteBrand();
   const currentUser = useQuery(api.owner.currentUser);
   const claimProfile = useMutation(api.owner.claimProfile);
   const location = useLocation();
@@ -102,7 +109,7 @@ export function OwnerLayout() {
               <Key className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <div className="text-sm font-bold">HHT Owner</div>
+              <div className="text-sm font-bold">{brand.wordmarkTop}</div>
               <div className="text-[10px] text-primary-foreground/50 uppercase tracking-wider">
                 Owner Portal
               </div>

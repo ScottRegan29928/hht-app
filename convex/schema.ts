@@ -393,6 +393,66 @@ const schema = defineSchema({
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
 
+  // ── Owner marketplace (Swallowtail + Spicebush joint pool) ──
+  // Owner-to-owner resale and trade. This NEVER touches HostAway: HostAway
+  // holds company-owned rental inventory, while everything here is a week
+  // already sold to a person. The two processes run in tandem and never meet.
+  //
+  // Listings are pooled, not per-site: a Swallowtail owner's listing appears
+  // in the Spicebush portal and vice versa ("joint listings"). Query by
+  // `pool`, never by the origin site, or cross-population silently breaks.
+  marketplaceListings: defineTable({
+    pool: v.string(),                 // "seapines-joint"
+    originSiteSlug: v.string(),       // where it was posted, for attribution only
+    kind: v.union(
+      v.literal("for_sale"),          // owner selling a week they hold
+      v.literal("want_to_buy"),       // owner looking to buy a week
+      v.literal("trade")              // one-time swap, not a permanent trade
+    ),
+    status: v.union(
+      v.literal("active"),
+      v.literal("closed"),            // deal done
+      v.literal("withdrawn"),         // owner pulled it
+      v.literal("expired")            // aged past one year
+    ),
+
+    // Author. Legacy rows imported from the WordPress tables have no account
+    // yet, so ownerProfileId is optional and contact fields carry the details.
+    ownerProfileId: v.optional(v.id("userProfiles")),
+    isLegacy: v.optional(v.boolean()),
+
+    // The week in question
+    communitySlug: v.optional(v.string()),   // spicebush | swallowtail-at-sea-pines
+    unitNumber: v.optional(v.string()),
+    weekLabel: v.optional(v.string()),       // free text: real rows say "23 & 24", "Flexible"
+    weekNumber: v.optional(v.number()),      // parsed when unambiguous, for filtering
+    year: v.optional(v.number()),
+
+    // for_sale
+    askingPrice: v.optional(v.number()),     // owner sets their own price, no approval
+    // trade
+    desiredWeekLabel: v.optional(v.string()),
+    desiredWeekNumber: v.optional(v.number()),
+    desiredYear: v.optional(v.number()),
+
+    notes: v.optional(v.string()),
+
+    // Contact shown to other owners inside the gated portal
+    contactName: v.optional(v.string()),
+    contactEmail: v.optional(v.string()),
+    contactPhone: v.optional(v.string()),
+
+    postedAt: v.number(),
+    expiresAt: v.number(),            // postedAt + 1 year, matching the WordPress rule
+    closedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_pool_status", ["pool", "status"])
+    .index("by_owner", ["ownerProfileId"])
+    .index("by_kind", ["kind"])
+    .index("by_status", ["status"]),
+
 });
 
 export default schema;
