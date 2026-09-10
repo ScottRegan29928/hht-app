@@ -38,6 +38,7 @@ import { AdminPageEditPage } from "./pages/admin/PageEditPage";
 import { AdminBlogPage } from "./pages/admin/BlogPage";
 import { AdminBlogEditPage } from "./pages/admin/BlogEditPage";
 import { AdminSeoPage } from "./pages/admin/SeoPage";
+import { AdminStorePage } from "./pages/admin/StorePage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="blog/new" element={<AdminBlogEditPage />} />
             <Route path="blog/:id" element={<AdminBlogEditPage />} />
             <Route path="seo" element={<AdminSeoPage />} />
+            <Route path="store" element={<AdminStorePage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="account" element={<AccountPage />} />
           </Route>

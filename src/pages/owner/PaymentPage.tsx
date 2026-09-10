@@ -14,6 +14,8 @@
  * broken payment button on a fee page costs the client real calls.
  */
 import { ExternalLink, CreditCard, Phone } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { useSitePayment, useSiteFlags, useSiteBrand } from "@/lib/siteContext";
 
 export function OwnerPaymentPage() {
@@ -21,12 +23,73 @@ export function OwnerPaymentPage() {
   const { siteName } = useSiteFlags();
   const brand = useSiteBrand();
 
+  // What this owner actually owes, from the Store module. Independent of any
+  // processor: a fee recorded as paid by check shows as paid here too.
+  const charges = useQuery(api.store.myCharges, {});
+  const totals = useQuery(api.store.myChargeTotals, {});
+  const money = (cents: number) =>
+    cents === 0
+      ? "Free"
+      : `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+
   return (
     <div className="max-w-2xl">
       <h1 className="text-3xl font-bold tracking-tight">Make a Payment</h1>
       <p className="mt-2 text-muted-foreground">
         Annual maintenance fees for {siteName}.
       </p>
+
+      {charges && charges.length > 0 && (
+        <div className="mt-8 overflow-hidden rounded-lg border">
+          <div className="flex items-baseline justify-between border-b bg-muted/40 px-5 py-3">
+            <h2 className="font-semibold">Your fees</h2>
+            {totals && totals.dueCount > 0 && (
+              <span className="text-sm">
+                <span className="text-muted-foreground">Balance due </span>
+                <span className="font-semibold">{totals.dueLabel}</span>
+              </span>
+            )}
+          </div>
+          <table className="w-full text-sm">
+            <tbody>
+              {charges.map((c: any) => (
+                <tr key={c._id} className="border-b last:border-0">
+                  <td className="px-5 py-3">
+                    <span className="font-medium">{c.itemName}</span>
+                    {c.weekLabel && (
+                      <span className="block text-xs text-muted-foreground">
+                        {c.weekLabel}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-right font-medium whitespace-nowrap">
+                    {money(c.amountCents)}
+                  </td>
+                  <td className="px-5 py-3 text-right whitespace-nowrap">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        c.status === "paid"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : c.status === "due"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {c.status === "paid" && c.paymentMethod === "free"
+                        ? "included"
+                        : c.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="border-t bg-muted/20 px-5 py-3 text-xs text-muted-foreground">
+            Paid by check or over the phone? Staff record it here, so this list
+            is the full picture either way.
+          </p>
+        </div>
+      )}
 
       {!payment.enabled && (
         <div className="mt-8 rounded-lg border bg-muted/30 p-6">

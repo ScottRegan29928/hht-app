@@ -18,6 +18,7 @@ import {
   FileText,
   Newspaper,
   Search,
+  DollarSign,
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
@@ -32,6 +33,7 @@ const navItems = [
   { label: "Pages", path: "/management/pages", icon: FileText },
   { label: "Blog", path: "/management/blog", icon: Newspaper },
   { label: "SEO", path: "/management/seo", icon: Search },
+  { label: "Store", path: "/management/store", icon: DollarSign },
 ];
 
 export function AdminLayout() {

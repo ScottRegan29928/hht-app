@@ -525,6 +525,65 @@ const schema = defineSchema({
     .index("by_site_status", ["siteSlug", "status"])
     .index("by_site_nav", ["siteSlug", "showInNav"]),
 
+  // ── Store: maintenance fees ──
+  // Scott's store scope is maintenance fees only [scott, 2026-09-08], and the
+  // store exists independently of any payment processor [scott, 2026-09-10]:
+  // a $0 item is a valid item, and a fee can be recorded as paid by check
+  // without Square being connected at all.
+  storeItems: defineTable({
+    siteSlug: v.string(),
+    name: v.string(),                 // "2027 Annual Maintenance Fee"
+    description: v.optional(v.string()),
+    priceCents: v.number(),           // 0 is allowed and means free
+    feeYear: v.optional(v.number()),  // the year the fee covers
+    // Optional targeting: a fee can apply to one community only.
+    communityId: v.optional(v.id("communities")),
+    isActive: v.boolean(),
+    sortOrder: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    updatedByName: v.optional(v.string()),
+  })
+    .index("by_site", ["siteSlug"])
+    .index("by_site_active", ["siteSlug", "isActive"]),
+
+  storeCharges: defineTable({
+    siteSlug: v.string(),
+    itemId: v.optional(v.id("storeItems")),   // kept for reporting; may be removed later
+    itemName: v.string(),                     // snapshot, so history survives item edits
+    ownerProfileId: v.id("userProfiles"),
+    weekId: v.optional(v.id("weeks")),        // which unit/week the fee covers
+    weekLabel: v.optional(v.string()),        // snapshot for display
+    amountCents: v.number(),
+    feeYear: v.optional(v.number()),
+    status: v.union(
+      v.literal("due"),
+      v.literal("paid"),
+      v.literal("waived"),
+      v.literal("refunded")
+    ),
+    // How it was settled. "external" = paid on the management company portal,
+    // "manual" = check/phone recorded by staff, "square" = card on site.
+    paymentMethod: v.optional(
+      v.union(
+        v.literal("square"),
+        v.literal("manual"),
+        v.literal("external"),
+        v.literal("free")
+      )
+    ),
+    paymentRef: v.optional(v.string()),
+    dueDate: v.optional(v.string()),          // ISO date
+    paidAt: v.optional(v.number()),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    updatedByName: v.optional(v.string()),
+  })
+    .index("by_site", ["siteSlug"])
+    .index("by_owner", ["ownerProfileId"])
+    .index("by_site_status", ["siteSlug", "status"]),
+
   blogPosts: defineTable({
     siteSlug: v.string(),
     slug: v.string(),
