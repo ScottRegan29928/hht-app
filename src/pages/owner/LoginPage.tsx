@@ -106,6 +106,14 @@ export function OwnerLoginPage() {
           </p>
         </div>
 
+        {mode !== "signIn" && (
+          <p className="text-sm text-muted-foreground mb-4">
+            {mode === "reset"
+              ? "Enter your email and we'll send a one-time code. You'll use it to choose a new password."
+              : "Enter the 8-digit code from the email, then pick a new password. The code isn't your password."}
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1.5">Email</label>
