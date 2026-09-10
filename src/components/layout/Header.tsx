@@ -58,9 +58,22 @@ export function Header() {
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
+        {/* When the search pill is present the desktop layout becomes:
+            full-height logo pinned left, and nav + pill stacked and centered
+            as one group so the nav sits centered over the pill [scott, 2026-09-10]. */}
+        <div className={cn(headerSearch && "md:relative")}>
+        <div className={cn(
+          "flex items-center justify-between h-16 sm:h-20",
+          headerSearch && "md:justify-center"
+        )}>
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link
+            to="/"
+            className={cn(
+              "flex items-center gap-2.5 group",
+              headerSearch && "md:absolute md:left-0 md:inset-y-0 md:z-10"
+            )}
+          >
             {/* Heritage has a real supplied logo lockup; the other three
                 still use the generic pin-and-wordmark. */}
             {heritage ? (
@@ -79,7 +92,11 @@ export function Header() {
               <img
                 src={lightOnDark ? brand.logo.white : brand.logo.color}
                 alt={brand.legalName}
-                className={brand.logo.className ?? "h-[44px] sm:h-[55px] w-auto"}
+                className={cn(
+                  brand.logo.className ?? "h-[44px] sm:h-[55px] w-auto",
+                  // md: comes after sm: in the cascade, so this wins.
+                  headerSearch && "md:h-full md:py-2 w-auto object-contain"
+                )}
               />
             ) : (
             <div className={cn(
@@ -193,6 +210,7 @@ export function Header() {
             <HeaderSearchBar dark={lightOnDark} />
           </div>
         )}
+        </div>
 
         {/* Mobile nav */}
         {mobileOpen && (
