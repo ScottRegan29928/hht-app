@@ -11,6 +11,8 @@ import { HeritageFilterTiles } from "@/components/home/HeritageFilterTiles";
 export function HomePage() {
   const { siteSlug } = useSiteFlags();
   const brand = useSiteBrand();
+  // mhht has no hero banner — the property map is the hero [scott, 2026-09-10].
+  const isMapHero = siteSlug === "mhht";
   const communities = useQuery(api.communities.list, { siteSlug });
   const featuredProperties = useQuery(api.properties.list, {
     onlyFeatured: true,
@@ -25,7 +27,7 @@ export function HomePage() {
           front ends are designed (Scott's ordering: hv, hht, then Sea Pines). */}
       {siteSlug === "heritage" ? (
         <HeritageHero />
-      ) : (
+      ) : siteSlug === "mhht" ? null : (
         <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-20 sm:pb-24">
             {/* 50/50 copy + image */}
@@ -91,16 +93,45 @@ export function HomePage() {
       {/* ── Amenity shortcut tiles (Heritage only) ── */}
       {siteSlug === "heritage" && <HeritageFilterTiles />}
 
-      {/* ── Interactive Map ── */}
-      <section className="py-16 sm:py-20 bg-card">
+      {/* ── Interactive Map ──
+          On mhht this replaces the hero banner entirely, so it carries the
+          headline and intro copy [scott, 2026-09-10]. */}
+      <section
+        className={
+          isMapHero
+            ? "pt-10 pb-16 sm:pt-14 sm:pb-20 bg-card"
+            : "py-16 sm:py-20 bg-card"
+        }
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
-              Explore Sea Pines
-            </h2>
-            <p className="mt-3 text-muted-foreground max-w-2xl mx-auto lg:whitespace-nowrap">
-              Click a community on the map to browse available villas and
-              timeshare weeks.
+            {isMapHero ? (
+              <h1 className="text-4xl sm:text-5xl font-bold font-[family-name:var(--font-display)]">
+                {brand.headlineTop} {brand.headlineAccent}
+              </h1>
+            ) : (
+              <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
+                Explore Sea Pines
+              </h2>
+            )}
+            <p
+              className={
+                isMapHero
+                  ? "mt-4 text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed"
+                  : "mt-3 text-muted-foreground max-w-2xl mx-auto lg:whitespace-nowrap"
+              }
+            >
+              {isMapHero ? (
+                <>
+                  {brand.intro} Click a community on the map to browse
+                  available villas and timeshare weeks.
+                </>
+              ) : (
+                <>
+                  Click a community on the map to browse available villas and
+                  timeshare weeks.
+                </>
+              )}
             </p>
           </div>
           <div className="rounded-2xl overflow-hidden border border-border shadow-lg">

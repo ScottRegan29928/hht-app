@@ -28,12 +28,24 @@ export type SiteBrand = {
   /** Public phone number, shown in the nav. Only sites that have one set it. */
   phoneDisplay?: string;
   phoneHref?: string;
+  /**
+   * Supplied logo lockup. Sites without one fall back to the generic
+   * pin-and-wordmark. `white` is used on dark surfaces (hero overlay, footer),
+   * `color` on light ones (solid header).
+   */
+  logo?: { color: string; white: string; className?: string };
 };
 
 const SEA_PINES_EYEBROW = "Sea Pines · Hilton Head Island";
 
 export const SITE_BRAND: Record<string, SiteBrand> = {
   mhht: {
+    // The Club Group operates My Hilton Head Timeshares [scott, 2026-09-10].
+    logo: {
+      color: "/brand/cgl/logo-color.png",
+      white: "/brand/cgl/logo-white.png",
+      className: "h-[48px] sm:h-[60px] w-auto",
+    },
     phoneDisplay: "843.363.5699",
     phoneHref: "tel:8433635699",
     wordmarkTop: "Hilton Head",

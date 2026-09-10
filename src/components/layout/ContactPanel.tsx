@@ -97,13 +97,18 @@ export function ContactPanel({ open, onClose }: Props) {
         }`}
       />
 
+      {/* Clipping wrapper. Without it the closed panel sits off the right
+          edge at translate-x-full and creates a page-wide horizontal
+          scrollbar (2x viewport width on mobile). Fixed + inset-0 keeps it
+          out of flow, so it cannot affect the sticky header. */}
+      <div className="pointer-events-none fixed inset-0 z-[61] overflow-hidden">
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Contact us"
-        className={`fixed right-0 top-0 z-[61] h-full w-full max-w-[420px] bg-white shadow-2xl transition-transform duration-300 ease-out motion-reduce:transition-none ${
-          open ? "translate-x-0" : "translate-x-full"
+        className={`absolute right-0 top-0 h-full w-full max-w-[420px] bg-white shadow-2xl transition-transform duration-300 ease-out motion-reduce:transition-none ${
+          open ? "pointer-events-auto translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col overflow-y-auto">
@@ -206,6 +211,7 @@ export function ContactPanel({ open, onClose }: Props) {
             </form>
           )}
         </div>
+      </div>
       </div>
     </>
   );

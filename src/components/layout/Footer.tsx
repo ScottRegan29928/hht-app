@@ -20,11 +20,18 @@ function SharedFooter() {
   const hasPosts = !!posts && posts.length > 0;
   const brand = useSiteBrand();
   return (
-    <footer className="mt-[60px] bg-foreground text-primary-foreground/80">
+    <footer className="bg-foreground text-primary-foreground/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* Brand */}
           <div>
+            {brand.logo ? (
+              <img
+                src={brand.logo.white}
+                alt={brand.legalName}
+                className="h-[68px] w-auto mb-4"
+              />
+            ) : (
             <div className="flex items-center gap-2.5 mb-4">
               <div className="w-8 h-8 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
                 <MapPin className="w-4 h-4 text-primary-foreground" />
@@ -33,6 +40,7 @@ function SharedFooter() {
                 {brand.legalName}
               </span>
             </div>
+            )}
             <p className="text-sm leading-relaxed text-primary-foreground/60">
               {brand.footerBlurb}
             </p>
@@ -46,18 +54,18 @@ function SharedFooter() {
             <ul className="space-y-2.5">
               <li>
                 <Link
-                  to="/search"
+                  to="/search?type=rent"
                   className="text-sm hover:text-primary-foreground transition-colors"
                 >
-                  Find a Villa
+                  Find a Rental
                 </Link>
               </li>
               <li>
                 <Link
-                  to="/search?tab=weeks"
+                  to="/search?type=buy"
                   className="text-sm hover:text-primary-foreground transition-colors"
                 >
-                  Search by Week
+                  Buy a Week
                 </Link>
               </li>
               {/* Admin-managed pages for THIS site. Replaces a hardcoded

@@ -226,13 +226,18 @@ export const search = query({
     amenityMode: v.optional(v.union(v.literal("and"), v.literal("or"))),
     checkIn: v.optional(v.string()),
     checkOut: v.optional(v.string()),
+    // Free-text query from the header search bar — matches property name,
+    // address or community name [scott, 2026-09-10].
+    q: v.optional(v.string()),
+    // Party size from the header search bar's "Who" field.
+    minSleeps: v.optional(v.number()),
     // Multi-site scoping. Enforced server-side: a site can never be coaxed
     // into returning another site's inventory by sending different slugs.
     siteSlug: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { communityId, communitySlug, communitySlugs, weekNumber, weekNumbers, minBedrooms, bedroomValues, maxPrice, listingType, listingTypes, amenities, amenityMode, checkIn, checkOut, siteSlug }
+    { communityId, communitySlug, communitySlugs, weekNumber, weekNumbers, minBedrooms, bedroomValues, maxPrice, listingType, listingTypes, amenities, amenityMode, checkIn, checkOut, q, minSleeps, siteSlug }
   ) => {
     // Resolve community filters — support single or multi
     const slugsToFilter = communitySlugs?.length
@@ -307,6 +312,38 @@ export const search = query({
     // Multi-community filter
     if (communityIds.size > 1) {
       properties = properties.filter((p) => communityIds.has(p.communityId));
+    }
+
+    // Guest-count filter. `sleeps` is populated for every property from the
+    // HostAway sync; a property missing it is excluded rather than guessed at.
+    if (minSleeps && minSleeps > 0) {
+      properties = properties.filter((p) => (p.sleeps ?? 0) >= minSleeps);
+    }
+
+    // Free-text filter — property name, address, or community name.
+    const term = q?.trim().toLowerCase();
+    if (term) {
+      const commNameCache: Map<string, string> = new Map();
+      for (const p of properties) {
+        if (!commNameCache.has(p.communityId)) {
+          const comm = await ctx.db.get(p.communityId);
+          commNameCache.set(p.communityId, (comm?.name ?? "").toLowerCase());
+        }
+      }
+      properties = properties.filter((p) => {
+        // `as any`: the generated union for `properties` doesn't surface these
+        // optional fields, the same pre-existing typing quirk that affects
+        // admin.ts and booking.ts. The fields exist at runtime.
+        const prop = p as any;
+        const haystack = [
+          prop.name ?? "",
+          prop.address ?? "",
+          commNameCache.get(p.communityId) ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return term.split(/\s+/).every((word) => haystack.includes(word));
+      });
     }
 
     // Bedroom filter — multi or single

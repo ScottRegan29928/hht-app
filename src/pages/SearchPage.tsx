@@ -43,6 +43,9 @@ export function SearchPage() {
   const [checkOut, setCheckOut] = useState(searchParams.get("checkOut") ?? "");
   // Buy-mode year
   const [selectedYear, setSelectedYear] = useState(searchParams.get("year") ?? "");
+  // Header search bar: free text + party size [scott, 2026-09-10]
+  const [q, setQ] = useState(searchParams.get("q") ?? "");
+  const [guests, setGuests] = useState(searchParams.get("guests") ?? "");
 
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -69,6 +72,8 @@ export function SearchPage() {
   }
   if (isRent && checkIn) searchArgs.checkIn = checkIn;
   if (isRent && checkOut) searchArgs.checkOut = checkOut;
+  if (q.trim()) searchArgs.q = q.trim();
+  if (guests) searchArgs.minSleeps = Number(guests);
 
   const hasActiveFilters =
     communitySlugs.length > 0 ||
@@ -77,7 +82,9 @@ export function SearchPage() {
     listingTypes.length > 0 ||
     amenities.length > 0 ||
     checkIn !== "" ||
-    checkOut !== "";
+    checkOut !== "" ||
+    q.trim() !== "" ||
+    guests !== "";
 
   // Multi-site: scope results to the current hostname's site (server-enforced).
   const scopedArgs = { ...searchArgs, siteSlug };
@@ -126,8 +133,10 @@ export function SearchPage() {
     if (checkIn) params.set("checkIn", checkIn);
     if (checkOut) params.set("checkOut", checkOut);
     if (selectedYear) params.set("year", selectedYear);
+    if (q.trim()) params.set("q", q.trim());
+    if (guests) params.set("guests", guests);
     setSearchParams(params, { replace: true });
-  }, [communitySlugs, weekNumbers, bedrooms, listingTypes, amenities, amenityMode, checkIn, checkOut, selectedYear, setSearchParams]);
+  }, [communitySlugs, weekNumbers, bedrooms, listingTypes, amenities, amenityMode, checkIn, checkOut, selectedYear, q, guests, setSearchParams]);
 
   const clearFilters = () => {
     setCommunitySlugs([]);
@@ -139,6 +148,8 @@ export function SearchPage() {
     setCheckIn("");
     setCheckOut("");
     setSelectedYear("");
+    setQ("");
+    setGuests("");
   };
 
   // Heading based on mode

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Menu, X, MapPin, Search, Phone } from "lucide-react";
 import { ContactPanel } from "./ContactPanel";
 import { cn } from "@/lib/utils";
+import { HeaderSearchBar } from "@/components/search/HeaderSearchBar";
 import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -36,6 +37,9 @@ export function Header() {
   // rather than as a bar above it. Homepage only — inner pages keep the
   // normal solid header.
   const heritage = siteSlug === "heritage";
+  // mhht carries an Airbnb-style search pill under the nav [scott, 2026-09-10],
+  // which makes the "Search Properties" button redundant there.
+  const headerSearch = siteSlug === "mhht";
   const overlay = heritage && isHome;
   // Scott supplied the full-color logo (2026-09-08), so the solid inner-page
   // header goes back to the normal light bar with the color lockup. Only the
@@ -71,6 +75,12 @@ export function Header() {
                 height={55}
                 className="h-[44px] sm:h-[55px] w-auto"
               />
+            ) : brand.logo ? (
+              <img
+                src={lightOnDark ? brand.logo.white : brand.logo.color}
+                alt={brand.legalName}
+                className={brand.logo.className ?? "h-[44px] sm:h-[55px] w-auto"}
+              />
             ) : (
             <div className={cn(
               "w-9 h-9 rounded-lg flex items-center justify-center",
@@ -79,7 +89,7 @@ export function Header() {
               <MapPin className={cn("w-5 h-5", overlay ? "text-white" : "text-primary-foreground")} />
             </div>
             )}
-            {!heritage && (
+            {!heritage && !brand.logo && (
             <div className="flex flex-col">
               <span className={cn(
                 "text-lg font-semibold tracking-tight leading-none font-[family-name:var(--font-display)]",
@@ -145,6 +155,7 @@ export function Header() {
                 {brand.phoneDisplay}
               </a>
             )}
+            {!headerSearch && (
             <Link
               to="/search"
               className={cn(
@@ -157,6 +168,7 @@ export function Header() {
               <Search className="w-4 h-4" />
               Search Properties
             </Link>
+            )}
           </nav>
 
           {/* Mobile menu button */}
@@ -174,6 +186,13 @@ export function Header() {
             )}
           </button>
         </div>
+
+        {/* Airbnb-style search pill — its own row under the nav. */}
+        {headerSearch && (
+          <div className="flex justify-center pb-3 sm:pb-4">
+            <HeaderSearchBar dark={lightOnDark} />
+          </div>
+        )}
 
         {/* Mobile nav */}
         {mobileOpen && (
