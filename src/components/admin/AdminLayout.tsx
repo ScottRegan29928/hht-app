@@ -72,7 +72,7 @@ export function AdminLayout() {
               : "Your account does not have admin privileges."}
           </p>
           <Link
-            to="/management/login"
+            to="/adminlogin"
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
           >
             Sign In
@@ -94,7 +94,7 @@ export function AdminLayout() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/management/login");
+    navigate("/adminlogin");
   };
 
   // Build nav items — add Users page for super admins

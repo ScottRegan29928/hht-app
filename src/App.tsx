@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { Header } from "./components/layout/Header";
@@ -49,7 +49,11 @@ function ScrollToTop() {
 
 export default function App() {
   const location = useLocation();
-  const isAdmin = location.pathname.startsWith("/management");
+  // /adminlogin must be in the admin branch too, or it renders inside the
+  // public site shell instead of the login card [scott, 2026-09-10].
+  const isAdmin =
+    location.pathname.startsWith("/management") ||
+    location.pathname === "/adminlogin";
   const isOwner = location.pathname.startsWith("/owner");
 
   if (isAdmin) {
@@ -57,7 +61,13 @@ export default function App() {
       <>
         <ScrollToTop />
         <Routes>
-          <Route path="/management/login" element={<AdminLoginPage />} />
+          {/* Admin sign-in lives at /adminlogin [scott, 2026-09-10]; the old
+              path is kept as a redirect so saved links keep working. */}
+          <Route path="/adminlogin" element={<AdminLoginPage />} />
+          <Route
+            path="/management/login"
+            element={<Navigate to="/adminlogin" replace />}
+          />
           <Route path="/management" element={<AdminLayout />}>
             <Route index element={<AdminDashboardPage />} />
             <Route path="properties" element={<AdminPropertiesPage />} />
