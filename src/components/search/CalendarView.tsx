@@ -35,12 +35,32 @@ const MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
+/**
+ * Args searchWeeksForCalendar accepts. SearchPage's filter object is shared by
+ * several queries, so it is whitelisted here rather than spread blindly: an
+ * arg the validator doesn't declare throws and blanks the view [scott, 2026-09-10].
+ */
+const CALENDAR_ARG_KEYS = [
+  "communitySlugs",
+  "weekNumbers",
+  "bedroomValues",
+  "listingTypes",
+  "amenities",
+  "amenityMode",
+  "q",
+  "minSleeps",
+] as const;
+
 export function CalendarView({ searchArgs }: CalendarViewProps) {
   const { siteSlug } = useSiteFlags();
-  const calendarWeeks = useQuery(api.properties.searchWeeksForCalendar, {
-    ...searchArgs,
-    siteSlug,
-  });
+  const calendarArgs: Record<string, unknown> = { siteSlug };
+  for (const k of CALENDAR_ARG_KEYS) {
+    if (searchArgs[k] !== undefined) calendarArgs[k] = searchArgs[k];
+  }
+  const calendarWeeks = useQuery(
+    api.properties.searchWeeksForCalendar,
+    calendarArgs as any
+  );
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
 

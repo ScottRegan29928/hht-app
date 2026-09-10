@@ -87,6 +87,21 @@
   color: oklch(0.50 0.015 250);
 }
 
+/* Mapbox focuses the popup's first link when the popup opens, which drew a
+   browser focus box around "View community" [scott, 2026-09-10]. Drop the box
+   but keep a non-boxy underline for keyboard users so focus stays visible. */
+.mapboxgl-popup-content a:focus,
+.mapboxgl-popup-content button:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.mapboxgl-popup-content a:focus-visible {
+  outline: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;

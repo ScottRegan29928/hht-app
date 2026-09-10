@@ -653,6 +653,14 @@ export const searchWeeksForCalendar = query({
     listingTypes: v.optional(v.array(v.string())),
     amenities: v.optional(v.array(v.string())),
     amenityMode: v.optional(v.union(v.literal("and"), v.literal("or"))),
+    // These come along from SearchPage's shared filter state. They must be
+    // declared even where they don't apply: an undeclared arg is an
+    // ArgumentValidationError, which blanked the calendar view [scott, 2026-09-10].
+    q: v.optional(v.string()),
+    minSleeps: v.optional(v.number()),
+    // Nightly dates deliberately ignored here — this view is week-based.
+    checkIn: v.optional(v.string()),
+    checkOut: v.optional(v.string()),
     siteSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -683,6 +691,36 @@ export const searchWeeksForCalendar = query({
     if (args.bedroomValues && args.bedroomValues.length > 0) {
       const minBed = Math.min(...args.bedroomValues);
       properties = properties.filter((p) => p.bedrooms >= minBed);
+    }
+
+    // Guest-count filter — same rule as properties.search.
+    if (args.minSleeps && args.minSleeps > 0) {
+      properties = properties.filter(
+        (p) => ((p as any).sleeps ?? 0) >= args.minSleeps!
+      );
+    }
+
+    // Free-text filter — property name, address, or community name.
+    const calTerm = args.q?.trim().toLowerCase();
+    if (calTerm) {
+      const nameCache: Map<string, string> = new Map();
+      for (const p of properties) {
+        if (!nameCache.has(p.communityId)) {
+          const comm = await ctx.db.get(p.communityId);
+          nameCache.set(p.communityId, (comm?.name ?? "").toLowerCase());
+        }
+      }
+      const words = calTerm.split(/\s+/).filter(Boolean);
+      properties = properties.filter((p) => {
+        const hay = [
+          (p as any).name ?? "",
+          (p as any).address ?? "",
+          nameCache.get(p.communityId) ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return words.every((w) => hay.includes(w));
+      });
     }
 
     // Amenity filter

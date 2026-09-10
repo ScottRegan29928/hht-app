@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
+import { useSiteFlags } from "@/lib/siteContext";
 import { cn } from "@/lib/utils";
 
 /**
  * Airbnb-style search pill for the site header [scott, 2026-09-10].
  *
- * Three segments: Where ("Search Properties"), When (check-in / check-out)
+ * Three segments: Where (community dropdown), When (check-in / check-out)
  * and Who (# of guests). Submitting navigates to /search with the matching
  * query params, which SearchPage already round-trips into the Convex query.
  *
@@ -16,7 +19,15 @@ import { cn } from "@/lib/utils";
  */
 export function HeaderSearchBar({ dark = false }: { dark?: boolean }) {
   const navigate = useNavigate();
-  const [q, setQ] = useState("");
+  const { siteSlug } = useSiteFlags();
+  // Where is a dropdown of this site's communities, alphabetical [scott, 2026-09-10].
+  // communities.list is already site-scoped server-side, so a scoped site can
+  // never list a sister site's communities here.
+  const communities = useQuery(api.communities.list, { siteSlug });
+  const communityOptions = [...(communities ?? [])]
+    .map((c) => ({ value: c.slug, label: c.name }))
+    .sort((a, b) => a.label.localeCompare(b.label, "en"));
+  const [community, setCommunity] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState("");
@@ -32,7 +43,8 @@ export function HeaderSearchBar({ dark = false }: { dark?: boolean }) {
     const params = new URLSearchParams();
     // Dates only make sense for rentals, so a dated search is a rental search.
     params.set("type", checkIn || checkOut ? "rent" : "rent");
-    if (q.trim()) params.set("q", q.trim());
+    // SearchPage round-trips `community` as a comma-joined slug list.
+    if (community) params.set("community", community);
     if (checkIn) params.set("checkIn", checkIn);
     if (checkOut) params.set("checkOut", checkOut);
     if (guests) params.set("guests", guests);
@@ -55,14 +67,19 @@ export function HeaderSearchBar({ dark = false }: { dark?: boolean }) {
     >
       {/* Where */}
       <Segment label="Where" dark={dark} className="sm:flex-[1.4]">
-        <input
-          type="text"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search Properties"
-          aria-label="Search properties by name, address or community"
-          className={fieldClass(dark)}
-        />
+        <select
+          value={community}
+          onChange={(e) => setCommunity(e.target.value)}
+          aria-label="Community"
+          className={cn(fieldClass(dark), "cursor-pointer bg-transparent")}
+        >
+          <option value="">Search Properties</option>
+          {communityOptions.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
       </Segment>
 
       <Divider dark={dark} />
