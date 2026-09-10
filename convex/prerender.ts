@@ -113,15 +113,31 @@ export const metaForPath = query({
     const seg = path.split("/").filter(Boolean);
 
     // ── Home ──
+    // The seeded home record in Pages wins over the site-level SEO defaults,
+    // so editing it in the backend actually changes what crawlers and social
+    // scrapers see [scott, 2026-09-10].
     if (seg.length === 0) {
+      const home = await ctx.db
+        .query("contentPages")
+        .withIndex("by_site_slug", (q) =>
+          q.eq("siteSlug", args.siteSlug).eq("slug", "home")
+        )
+        .first();
+      const homeSeo = home?.isHome && home.status === "published" ? home : null;
+      const title =
+        clean(homeSeo?.seo?.metaTitle) ?? clean(homeSeo?.title) ?? siteName;
+      const description =
+        clean(homeSeo?.seo?.metaDescription) ??
+        clean(defaults?.metaDescription) ??
+        site?.tagline;
       return {
         ...base,
-        title: siteName,
-        description: clean(defaults?.metaDescription) ?? site?.tagline,
-        heading: siteName,
-        body: [site?.tagline, clean(defaults?.metaDescription)].filter(
-          (x): x is string => !!x
-        ),
+        image: clean(homeSeo?.seo?.ogImageUrl) ?? base.image,
+        noindex: homeSeo?.seo?.noindex ?? false,
+        title,
+        description,
+        heading: clean(homeSeo?.title) ?? siteName,
+        body: [site?.tagline, description].filter((x): x is string => !!x),
       };
     }
 

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation, type QueryCtx, type MutationCtx } from "./_generated/server";
+import { query, mutation, type QueryCtx, type MutationCtx, internalMutation } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
@@ -58,6 +58,8 @@ export function normalizeSlug(input: string): string {
  * these, or it would shadow the real route and be unreachable.
  */
 const RESERVED_SLUGS = new Set([
+  // "home" belongs to the seeded home-page record; the live URL is "/".
+  "home",
   "search",
   "property",
   "community",
@@ -96,6 +98,9 @@ export const getPage = query({
       )
       .first();
     if (!page || page.status !== "published") return null;
+    // The home record renders at "/" through the designed homepage, not as a
+    // content page at "/home".
+    if (page.isHome) return null;
     return page;
   },
 });
@@ -245,6 +250,20 @@ export const savePage = mutation({
     const title = args.title.trim();
     if (!title) throw new Error("Title is required");
 
+    // The home record keeps its slug and stays out of the nav; only its
+    // title and SEO are editable [scott, 2026-09-10].
+    const editing = args.pageId ? await ctx.db.get(args.pageId) : null;
+    if (editing?.isHome) {
+      await ctx.db.patch(editing._id, {
+        title,
+        status: args.status,
+        seo: args.seo,
+        updatedAt: Date.now(),
+        updatedByName: profile.displayName,
+      });
+      return { pageId: editing._id, slug: "home" };
+    }
+
     const slug = normalizeSlug(args.slug || title);
     if (!slug) throw new Error("Could not build a url from that title — set a slug manually");
     if (RESERVED_SLUGS.has(slug)) {
@@ -309,6 +328,7 @@ export const deletePage = mutation({
     await requireAdminProfile(ctx);
     const page = await ctx.db.get(args.pageId);
     if (!page) return { deleted: false };
+    if (page.isHome) throw new Error("The home page cannot be deleted.");
     await ctx.db.delete(args.pageId);
     return { deleted: true };
   },
@@ -527,5 +547,74 @@ export const sitemapData = query({
       properties,
       communities: communities.map((c) => ({ slug: c.slug })),
     };
+  },
+});
+
+// ─────────────────────── home page (title + SEO only) ───────────────────────
+
+/**
+ * The home page's editable fields. The homepage layout itself is designed in
+ * code, so this record deliberately carries title/SEO only — there is no
+ * markdown body in play, and the admin editor hides the body for it rather
+ * than showing a field that does nothing [scott, 2026-09-10].
+ */
+export const getHomeMeta = query({
+  args: { siteSlug: v.string() },
+  returns: v.union(v.any(), v.null()),
+  handler: async (ctx, args) => {
+    const page = await ctx.db
+      .query("contentPages")
+      .withIndex("by_site_slug", (q) =>
+        q.eq("siteSlug", args.siteSlug).eq("slug", "home")
+      )
+      .first();
+    if (!page || !page.isHome || page.status !== "published") return null;
+    return { title: page.title, seo: page.seo ?? {} };
+  },
+});
+
+/**
+ * Creates the missing home-page record for every active site. Idempotent, so
+ * it is safe to re-run after adding a site.
+ */
+export const seedHomePages = internalMutation({
+  args: {},
+  returns: v.object({ created: v.array(v.string()), existing: v.array(v.string()) }),
+  handler: async (ctx) => {
+    const sites = await ctx.db.query("sites").collect();
+    const created: string[] = [];
+    const existing: string[] = [];
+
+    for (const site of sites) {
+      const found = await ctx.db
+        .query("contentPages")
+        .withIndex("by_site_slug", (q) =>
+          q.eq("siteSlug", site.slug).eq("slug", "home")
+        )
+        .first();
+      if (found) {
+        if (!found.isHome) await ctx.db.patch(found._id, { isHome: true });
+        existing.push(site.slug);
+        continue;
+      }
+      await ctx.db.insert("contentPages", {
+        siteSlug: site.slug,
+        slug: "home",
+        isHome: true,
+        title: site.name,
+        body: "",
+        status: "published",
+        showInNav: false,
+        sortOrder: 0,
+        seo: {
+          metaTitle: site.name,
+          metaDescription: site.seoDefaults?.metaDescription ?? site.tagline,
+          ogImageUrl: site.seoDefaults?.ogImageUrl,
+        },
+        createdAt: Date.now(),
+      });
+      created.push(site.slug);
+    }
+    return { created, existing };
   },
 });

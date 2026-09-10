@@ -71,6 +71,9 @@ export function AdminPageEditPage() {
     setSeo(existing.seo ?? {});
   }, [existing, isNew]);
 
+  // The home page's layout is designed in code, so its editor shows only the
+  // fields that actually change the live page: title and SEO [scott, 2026-09-10].
+  const isHome = !!existing?.isHome;
   const effectiveSlug = slug || slugify(title);
 
   const handleSave = async () => {
@@ -146,7 +149,7 @@ export function AdminPageEditPage() {
           {isNew ? "New page" : title || "Untitled page"}
         </h1>
         <div className="flex items-center gap-2">
-          {!isNew && (
+          {!isNew && !isHome && (
             <button
               onClick={handleDelete}
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg border text-red-600 hover:bg-red-50 transition-colors"
@@ -164,6 +167,21 @@ export function AdminPageEditPage() {
           </button>
         </div>
       </div>
+
+      {isHome && (
+        <div className="mb-6 rounded-xl border bg-muted/30 p-5">
+          <p className="text-sm">
+            This is the site's home page, live at <span className="font-mono">/</span>.
+            Its layout &mdash; hero, map, featured villas &mdash; is designed in
+            code, so there is no content to edit here.
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            What you set below does change the live site: the title shown in the
+            browser tab and in Google results, and the description and image used
+            when the home page is shared on Facebook or LinkedIn.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -188,6 +206,7 @@ export function AdminPageEditPage() {
           />
         </div>
 
+        {!isHome && (
         <div>
           <label className="block text-sm font-medium mb-1.5">Page URL</label>
           <div className="flex items-center gap-2">
@@ -208,7 +227,9 @@ export function AdminPageEditPage() {
             </p>
           )}
         </div>
+        )}
 
+        {!isHome && (
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-sm font-medium">Content</label>
@@ -251,7 +272,9 @@ export function AdminPageEditPage() {
             </>
           )}
         </div>
+        )}
 
+        {!isHome && (
         <div className="border rounded-xl p-5 space-y-4 bg-muted/20">
           <h3 className="font-semibold">Navigation</h3>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -296,12 +319,17 @@ export function AdminPageEditPage() {
             </div>
           )}
         </div>
+        )}
 
         <SeoFieldset
           value={seo}
           onChange={setSeo}
           fallbackTitle={title}
-          fallbackDescription="Defaults to the first lines of the content"
+          fallbackDescription={
+            isHome
+              ? "Defaults to the site tagline"
+              : "Defaults to the first lines of the content"
+          }
         />
       </div>
     </div>

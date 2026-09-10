@@ -498,6 +498,10 @@ const schema = defineSchema({
   contentPages: defineTable({
     siteSlug: v.string(),
     slug: v.string(),                 // url path segment, unique per site
+    // The site's home page. One per site, seeded, not creatable or deletable.
+    // Its layout is designed in code, so only the title/SEO fields apply
+    // [scott, 2026-09-10].
+    isHome: v.optional(v.boolean()),
     title: v.string(),
     body: v.string(),                 // markdown
     excerpt: v.optional(v.string()),

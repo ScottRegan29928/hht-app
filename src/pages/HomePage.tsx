@@ -7,9 +7,21 @@ import { PropertyCard } from "@/components/property/PropertyCard";
 import { useSiteFlags, useSiteBrand } from "@/lib/siteContext";
 import { HeritageHero } from "@/components/home/HeritageHero";
 import { HeritageFilterTiles } from "@/components/home/HeritageFilterTiles";
+import { useSeo } from "../lib/seo";
 
 export function HomePage() {
   const { siteSlug } = useSiteFlags();
+
+  // Title/description/OG for "/" come from the Home record in Pages, so the
+  // backend edit is what the browser tab and share previews show.
+  const homeMeta = useQuery(api.content.getHomeMeta, { siteSlug });
+  useSeo({
+    title: homeMeta?.seo?.metaTitle ?? homeMeta?.title,
+    description: homeMeta?.seo?.metaDescription,
+    ogImageUrl: homeMeta?.seo?.ogImageUrl,
+    canonicalUrl: homeMeta?.seo?.canonicalUrl,
+    noindex: homeMeta?.seo?.noindex,
+  });
   const brand = useSiteBrand();
   // mhht has no hero banner — the property map is the hero [scott, 2026-09-10].
   const isMapHero = siteSlug === "mhht";

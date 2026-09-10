@@ -76,16 +76,21 @@ export function AdminPagesPage() {
                     >
                       {p.title}
                     </Link>
+                    {p.isHome && (
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary align-middle">
+                        Home
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {siteName(p.siteSlug)}
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
-                      /{p.slug}
+                      {p.isHome ? "/" : `/${p.slug}`}
                       {p.status === "published" && siteDomain(p.siteSlug) && (
                         <a
-                          href={`https://${siteDomain(p.siteSlug)}/${p.slug}`}
+                          href={`https://${siteDomain(p.siteSlug)}/${p.isHome ? "" : p.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary"
