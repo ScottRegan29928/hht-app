@@ -230,6 +230,70 @@ export const adminGetPage = query({
   },
 });
 
+/**
+ * Editable home-page copy/images. Mirrors the `homeContent` shape in
+ * schema.ts. Every field is optional so an unset field falls back to the
+ * design default in src/lib/homeContent.ts rather than rendering empty.
+ */
+const HOME_CONTENT = v.object({
+  hero: v.optional(
+    v.object({
+      eyebrow: v.optional(v.string()),
+      headlineLines: v.optional(v.array(v.string())),
+      intro: v.optional(v.string()),
+      primaryLabel: v.optional(v.string()),
+      primaryHref: v.optional(v.string()),
+      secondaryLabel: v.optional(v.string()),
+      secondaryHref: v.optional(v.string()),
+      images: v.optional(v.array(v.string())),
+    })
+  ),
+  tiles: v.optional(
+    v.object({
+      heading: v.optional(v.string()),
+      subheading: v.optional(v.string()),
+      items: v.optional(
+        v.array(
+          v.object({
+            label: v.string(),
+            imageUrl: v.optional(v.string()),
+            href: v.optional(v.string()),
+          })
+        )
+      ),
+    })
+  ),
+  map: v.optional(
+    v.object({
+      heading: v.optional(v.string()),
+      intro: v.optional(v.string()),
+    })
+  ),
+  communities: v.optional(
+    v.object({
+      heading: v.optional(v.string()),
+      subheading: v.optional(v.string()),
+    })
+  ),
+  featured: v.optional(
+    v.object({
+      heading: v.optional(v.string()),
+      subheading: v.optional(v.string()),
+    })
+  ),
+  closing: v.optional(
+    v.object({
+      enabled: v.optional(v.boolean()),
+      heading: v.optional(v.string()),
+      body: v.optional(v.string()),
+      primaryLabel: v.optional(v.string()),
+      primaryHref: v.optional(v.string()),
+      secondaryLabel: v.optional(v.string()),
+      secondaryHref: v.optional(v.string()),
+    })
+  ),
+});
+
 export const savePage = mutation({
   args: {
     pageId: v.optional(v.id("contentPages")),
@@ -243,6 +307,7 @@ export const savePage = mutation({
     navLabel: v.optional(v.string()),
     sortOrder: v.optional(v.number()),
     seo: v.optional(SEO_FIELDS),
+    homeContent: v.optional(HOME_CONTENT),
   },
   returns: v.object({ pageId: v.id("contentPages"), slug: v.string() }),
   handler: async (ctx, args) => {
@@ -250,14 +315,16 @@ export const savePage = mutation({
     const title = args.title.trim();
     if (!title) throw new Error("Title is required");
 
-    // The home record keeps its slug and stays out of the nav; only its
-    // title and SEO are editable [scott, 2026-09-10].
+    // The home record keeps its slug and stays out of the nav. Its layout is
+    // code, but its copy and images are editable through homeContent
+    // [scott, 2026-09-11].
     const editing = args.pageId ? await ctx.db.get(args.pageId) : null;
     if (editing?.isHome) {
       await ctx.db.patch(editing._id, {
         title,
         status: args.status,
         seo: args.seo,
+        homeContent: args.homeContent ?? editing.homeContent,
         updatedAt: Date.now(),
         updatedByName: profile.displayName,
       });
@@ -569,7 +636,11 @@ export const getHomeMeta = query({
       )
       .first();
     if (!page || !page.isHome || page.status !== "published") return null;
-    return { title: page.title, seo: page.seo ?? {} };
+    return {
+      title: page.title,
+      seo: page.seo ?? {},
+      homeContent: page.homeContent ?? null,
+    };
   },
 });
 

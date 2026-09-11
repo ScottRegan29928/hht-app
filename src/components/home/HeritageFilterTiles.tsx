@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import type { HomeContent } from "@/lib/homeContent";
 
 /**
  * "Pursue the Extraordinary" — the amenity shortcut tiles from
@@ -11,52 +12,18 @@ import { Link } from "react-router-dom";
  * Note the live site's heading reads "Persue the Extraordinary". That's a
  * typo, so it is spelled correctly here.
  *
+ * Tile labels, images and links are editable in the backend; the defaults
+ * (including the amenity links) live in src/lib/homeContent.ts.
+ *
  * Amenity keys are a mix of normalized community-level keys (water_views,
  * pool, tennis, on_golf_course) and raw HostAway tags (Waterview, Oceanview…).
  * Water Views needs the raw tags OR-ed in or it matches only 3 of 82
  * properties instead of 37 — the search page defaults amenityMode to "or".
  */
 
-type Tile = {
-  label: string;
-  image: string;
-  alt: string;
-  amenities: string[];
-};
-
-const TILES: Tile[] = [
-  {
-    label: "Water Views",
-    image: "/tiles/hv/water.jpg",
-    alt: "A tidal lagoon and marsh grass under a blue sky at Sea Pines",
-    amenities: ["water_views", "Waterview", "Oceanview", "Waterfront", "Lakeview"],
-  },
-  {
-    label: "Swimming Pool",
-    image: "/tiles/hv/swimming-pool.jpg",
-    alt: "A resort swimming pool ringed by loungers and palms",
-    amenities: ["pool"],
-  },
-  {
-    label: "Tennis Courts",
-    image: "/tiles/hv/tennis.jpg",
-    alt: "A tennis court surrounded by palmettos and live oaks",
-    amenities: ["tennis"],
-  },
-  {
-    label: "On Golf Course",
-    image: "/tiles/hv/golf.jpg",
-    alt: "A villa balcony looking out over the golf course and lagoon",
-    amenities: ["on_golf_course", "Golfcoursefront", "Golfcourseview"],
-  },
-];
-
-function tileHref(t: Tile) {
-  // Rent leads buy everywhere [scott, 2026-09-08].
-  return `/search?type=rent&amenities=${encodeURIComponent(t.amenities.join(","))}`;
-}
-
-export function HeritageFilterTiles() {
+export function HeritageFilterTiles({ content }: { content: HomeContent }) {
+  const { heading, subheading, items } = content.tiles;
+  if (items.length === 0) return null;
   return (
     <section className="py-16 sm:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -65,26 +32,26 @@ export function HeritageFilterTiles() {
             className="text-[28px] sm:text-[34px] leading-tight text-[#014e6c]"
             style={{ fontFamily: '"Bodoni Moda", ui-serif, Georgia, serif', fontWeight: 400 }}
           >
-            Pursue the Extraordinary
+            {heading}
           </h2>
           <p
             className="mt-3 text-[14px] sm:text-[16px] font-bold uppercase tracking-wide text-[#014e6c]"
             style={{ fontFamily: "Montserrat, Quicksand, ui-sans-serif, system-ui, sans-serif" }}
           >
-            Uncover unforgettable experiences that awaken the spirit and uplift the soul.
+            {subheading}
           </p>
         </div>
 
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {TILES.map((t) => (
+          {items.map((t) => (
             <Link
               key={t.label}
-              to={tileHref(t)}
+              to={t.href}
               className="group relative block overflow-hidden aspect-[279/239] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#968751] focus-visible:ring-offset-2"
             >
               <img
-                src={t.image}
-                alt={t.alt}
+                src={t.imageUrl}
+                alt={t.label}
                 loading="lazy"
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
               />

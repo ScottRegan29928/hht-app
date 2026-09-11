@@ -8,6 +8,7 @@ import { useSiteFlags, useSiteBrand } from "@/lib/siteContext";
 import { HeritageHero } from "@/components/home/HeritageHero";
 import { HeritageFilterTiles } from "@/components/home/HeritageFilterTiles";
 import { useSeo } from "../lib/seo";
+import { resolveHomeContent } from "@/lib/homeContent";
 
 export function HomePage() {
   const { siteSlug } = useSiteFlags();
@@ -23,6 +24,9 @@ export function HomePage() {
     noindex: homeMeta?.seo?.noindex,
   });
   const brand = useSiteBrand();
+  // Copy and images come from the Home record in Pages, falling back to the
+  // designed defaults for anything unset [scott, 2026-09-11].
+  const content = resolveHomeContent(siteSlug, homeMeta?.homeContent);
   // mhht has no hero banner — the property map is the hero [scott, 2026-09-10].
   const isMapHero = siteSlug === "mhht";
   const communities = useQuery(api.communities.list, { siteSlug });
@@ -38,7 +42,7 @@ export function HomePage() {
           The other three sites keep the shared hero until their own
           front ends are designed (Scott's ordering: hv, hht, then Sea Pines). */}
       {siteSlug === "heritage" ? (
-        <HeritageHero />
+        <HeritageHero content={content} />
       ) : siteSlug === "mhht" ? null : (
         <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-20 sm:pb-24">
@@ -49,16 +53,32 @@ export function HomePage() {
                 <div className="flex items-center gap-2 text-primary/70 mb-4">
                   <Waves className="w-5 h-5" />
                   <span className="text-sm font-medium tracking-wide uppercase">
-                    {brand.eyebrow}
+                    {content.hero.eyebrow || brand.eyebrow}
                   </span>
                 </div>
                 <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] font-[family-name:var(--font-display)]">
-                  {brand.headlineTop}
-                  <br />
-                  <span className="text-primary">{brand.headlineAccent}</span>
+                  {content.hero.headlineLines.length > 0 ? (
+                    content.hero.headlineLines.map((line, i) => (
+                      <span key={i}>
+                        {i > 0 && <br />}
+                        {i === content.hero.headlineLines.length - 1 &&
+                        content.hero.headlineLines.length > 1 ? (
+                          <span className="text-primary">{line}</span>
+                        ) : (
+                          line
+                        )}
+                      </span>
+                    ))
+                  ) : (
+                    <>
+                      {brand.headlineTop}
+                      <br />
+                      <span className="text-primary">{brand.headlineAccent}</span>
+                    </>
+                  )}
                 </h1>
                 <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl leading-relaxed">
-                  {brand.intro}
+                  {content.hero.intro || brand.intro}
                 </p>
               </div>
 
@@ -66,8 +86,12 @@ export function HomePage() {
               <div className="hidden lg:block lg:w-1/2 relative mt-8 lg:mt-0">
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                   <img
-                    src="/lighthouse.jpg"
-                    alt="Harbour Town Lighthouse at sunset, Hilton Head Island"
+                    src={content.hero.images[0] ?? "/lighthouse.jpg"}
+                    alt={
+                      content.hero.images[0]
+                        ? ""
+                        : "Harbour Town Lighthouse at sunset, Hilton Head Island"
+                    }
                     className="w-full h-[420px] object-cover object-center"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
@@ -78,19 +102,19 @@ export function HomePage() {
             {/* ── Two entry points: Buy / Rent ── */}
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
-                to="/search?type=buy"
+                to={content.hero.primaryHref}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-md"
               >
-                <Key className="w-4 h-4" />
-                Buy a Timeshare Week
+                <Calendar className="w-4 h-4" />
+                {content.hero.primaryLabel}
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                to="/search?type=rent"
+                to={content.hero.secondaryHref}
                 className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition-colors"
               >
-                <Calendar className="w-4 h-4" />
-                Find a Rental
+                <Key className="w-4 h-4" />
+                {content.hero.secondaryLabel}
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -103,7 +127,7 @@ export function HomePage() {
       )}
 
       {/* ── Amenity shortcut tiles (Heritage only) ── */}
-      {siteSlug === "heritage" && <HeritageFilterTiles />}
+      {siteSlug === "heritage" && <HeritageFilterTiles content={content} />}
 
       {/* ── Interactive Map ──
           On mhht this replaces the hero banner entirely, so it carries the
@@ -119,11 +143,11 @@ export function HomePage() {
           <div className="text-center mb-10">
             {isMapHero ? (
               <h1 className="text-4xl sm:text-5xl font-bold font-[family-name:var(--font-display)]">
-                {brand.headlineTop} {brand.headlineAccent}
+                {content.map.heading}
               </h1>
             ) : (
               <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
-                Explore Sea Pines
+                {content.map.heading}
               </h2>
             )}
             <p
@@ -133,17 +157,7 @@ export function HomePage() {
                   : "mt-3 text-muted-foreground max-w-2xl mx-auto lg:whitespace-nowrap"
               }
             >
-              {isMapHero ? (
-                <>
-                  {brand.intro} Click a community on the map to browse
-                  available villas and timeshare weeks.
-                </>
-              ) : (
-                <>
-                  Click a community on the map to browse available villas and
-                  timeshare weeks.
-                </>
-              )}
+              {content.map.intro}
             </p>
           </div>
           <div className="rounded-2xl overflow-hidden border border-border shadow-lg">
@@ -158,10 +172,10 @@ export function HomePage() {
           <div className="flex items-end justify-between mb-10">
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
-                Communities
+                {content.communities.heading}
               </h2>
               <p className="mt-2 text-muted-foreground">
-                Eight premier neighborhoods in Sea Pines
+                {content.communities.subheading}
               </p>
             </div>
             <Link
@@ -224,10 +238,10 @@ export function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">
               <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
-                Featured Villas
+                {content.featured.heading}
               </h2>
               <p className="mt-2 text-muted-foreground">
-                Handpicked properties available now
+                {content.featured.subheading}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -239,32 +253,31 @@ export function HomePage() {
         </section>
       )}
 
-      {/* ── CTA Section ── */}
-      {/* Removed on Heritage per Scott, 2026-09-08. */}
-      {siteSlug !== "heritage" && (
+      {/* ── CTA Section ──
+          Off by default on Heritage [scott, 2026-09-08]; now a backend toggle. */}
+      {content.closing.enabled && (
         <section className="py-16 sm:py-20 bg-primary text-primary-foreground">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
-              Ready to Own Your Piece of Paradise?
+              {content.closing.heading}
             </h2>
             <p className="mt-4 text-lg text-primary-foreground/80 max-w-2xl mx-auto">
-              Whether you're looking to rent a beautiful villa or purchase a
-              timeshare week, we're here to help you find the perfect fit.
+              {content.closing.body}
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                to="/search?type=rent"
+                to={content.closing.primaryHref}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:bg-white/90 transition-colors"
               >
                 <Calendar className="w-4 h-4" />
-                Find a Rental
+                {content.closing.primaryLabel}
               </Link>
               <Link
-                to="/search?type=buy"
+                to={content.closing.secondaryHref}
                 className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary-foreground/30 rounded-lg font-semibold hover:bg-primary-foreground/10 transition-colors"
               >
                 <Key className="w-4 h-4" />
-                Buy a Week
+                {content.closing.secondaryLabel}
               </Link>
             </div>
           </div>

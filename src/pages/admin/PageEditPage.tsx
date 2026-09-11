@@ -10,6 +10,8 @@ import {
   type SeoValue,
 } from "@/components/admin/ContentControls";
 import { Markdown } from "@/lib/markdown";
+import { HomeContentEditor } from "@/components/admin/HomeContentEditor";
+import { resolveHomeContent, type HomeContent } from "@/lib/homeContent";
 import { toast } from "sonner";
 import { ArrowLeft, Trash2, Eye, Pencil } from "lucide-react";
 
@@ -45,6 +47,7 @@ export function AdminPageEditPage() {
   const [navLabel, setNavLabel] = useState("");
   const [sortOrder, setSortOrder] = useState("");
   const [seo, setSeo] = useState<SeoValue>({});
+  const [homeContent, setHomeContent] = useState<HomeContent | null>(null);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -69,6 +72,11 @@ export function AdminPageEditPage() {
       existing.sortOrder === undefined ? "" : String(existing.sortOrder)
     );
     setSeo(existing.seo ?? {});
+    if (existing.isHome) {
+      setHomeContent(
+        resolveHomeContent(existing.siteSlug, (existing as any).homeContent)
+      );
+    }
   }, [existing, isNew]);
 
   // The home page's layout is designed in code, so its editor shows only the
@@ -88,6 +96,7 @@ export function AdminPageEditPage() {
         siteSlug,
         slug: effectiveSlug,
         title,
+        homeContent: isHome && homeContent ? homeContent : undefined,
         body,
         status,
         showInNav,
@@ -172,13 +181,12 @@ export function AdminPageEditPage() {
         <div className="mb-6 rounded-xl border bg-muted/30 p-5">
           <p className="text-sm">
             This is the site's home page, live at <span className="font-mono">/</span>.
-            Its layout &mdash; hero, map, featured villas &mdash; is designed in
-            code, so there is no content to edit here.
+            Its layout is fixed by the design, but all of its copy, images,
+            buttons and section headings are yours to edit below.
           </p>
           <p className="text-sm text-muted-foreground mt-2">
-            What you set below does change the live site: the title shown in the
-            browser tab and in Google results, and the description and image used
-            when the home page is shared on Facebook or LinkedIn.
+            Leave any field empty to fall back to the designed default &mdash;
+            the faded text in each box shows what that default is.
           </p>
         </div>
       )}
@@ -272,6 +280,14 @@ export function AdminPageEditPage() {
             </>
           )}
         </div>
+        )}
+
+        {isHome && homeContent && (
+          <HomeContentEditor
+            siteSlug={siteSlug}
+            value={homeContent}
+            onChange={setHomeContent}
+          />
         )}
 
         {!isHome && (

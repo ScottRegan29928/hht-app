@@ -502,6 +502,71 @@ const schema = defineSchema({
     // Its layout is designed in code, so only the title/SEO fields apply
     // [scott, 2026-09-10].
     isHome: v.optional(v.boolean()),
+    // Editable copy and images for the code-designed home page layout
+    // [scott, 2026-09-11 — "I need page editing functionality in this backend"].
+    // Every field is optional: anything left unset falls back to the design
+    // defaults in src/lib/homeContent.ts, so an empty record renders exactly
+    // as the hand-built page did.
+    homeContent: v.optional(
+      v.object({
+        hero: v.optional(
+          v.object({
+            eyebrow: v.optional(v.string()),
+            headlineLines: v.optional(v.array(v.string())),
+            intro: v.optional(v.string()),
+            primaryLabel: v.optional(v.string()),
+            primaryHref: v.optional(v.string()),
+            secondaryLabel: v.optional(v.string()),
+            secondaryHref: v.optional(v.string()),
+            images: v.optional(v.array(v.string())),
+          })
+        ),
+        tiles: v.optional(
+          v.object({
+            heading: v.optional(v.string()),
+            subheading: v.optional(v.string()),
+            items: v.optional(
+              v.array(
+                v.object({
+                  label: v.string(),
+                  imageUrl: v.optional(v.string()),
+                  href: v.optional(v.string()),
+                })
+              )
+            ),
+          })
+        ),
+        map: v.optional(
+          v.object({
+            heading: v.optional(v.string()),
+            intro: v.optional(v.string()),
+          })
+        ),
+        communities: v.optional(
+          v.object({
+            heading: v.optional(v.string()),
+            subheading: v.optional(v.string()),
+          })
+        ),
+        featured: v.optional(
+          v.object({
+            heading: v.optional(v.string()),
+            subheading: v.optional(v.string()),
+          })
+        ),
+        closing: v.optional(
+          v.object({
+            enabled: v.optional(v.boolean()),
+            heading: v.optional(v.string()),
+            body: v.optional(v.string()),
+            primaryLabel: v.optional(v.string()),
+            primaryHref: v.optional(v.string()),
+            secondaryLabel: v.optional(v.string()),
+            secondaryHref: v.optional(v.string()),
+          })
+        ),
+      })
+    ),
     title: v.string(),
     body: v.string(),                 // markdown
     excerpt: v.optional(v.string()),

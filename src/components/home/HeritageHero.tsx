@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import type { HomeContent } from "@/lib/homeContent";
 
 /**
  * Heritage Vacations hero banner.
@@ -19,30 +20,41 @@ import { Link } from "react-router-dom";
  *   button          #968751, 1px solid #fff, radius 0, padding 17px 40px
  */
 
-const SLIDES = [
-  { src: "/hero/hv/slide1-lighthouse.jpg", alt: "The Harbour Town lighthouse against a blue sky" },
-  { src: "/hero/hv/slide2-bedroom.jpg", alt: "A villa bedroom with a coastal quilt and a view to the marsh" },
-  { src: "/hero/hv/slide3-beach.jpg", alt: "Sea oats on the dunes above the beach at Hilton Head Island" },
-  { src: "/hero/hv/slide4-pool.jpg", alt: "A resort swimming pool framed by palms and live oaks" },
-  { src: "/hero/hv/slide5-golf.jpg", alt: "A villa balcony overlooking the golf course and lagoon" },
-  { src: "/hero/hv/slide6-villa.jpg", alt: "A Plantation Club villa on a bright Sea Pines morning" },
-];
+/**
+ * Alt text for the shipped slides. Images are editable from the backend, so a
+ * replaced image falls back to a generic description rather than inheriting a
+ * caption that no longer matches the picture.
+ */
+const SLIDE_ALTS: Record<string, string> = {
+  "/hero/hv/slide1-lighthouse.jpg": "The Harbour Town lighthouse against a blue sky",
+  "/hero/hv/slide2-bedroom.jpg": "A villa bedroom with a coastal quilt and a view to the marsh",
+  "/hero/hv/slide3-beach.jpg": "Sea oats on the dunes above the beach at Hilton Head Island",
+  "/hero/hv/slide4-pool.jpg": "A resort swimming pool framed by palms and live oaks",
+  "/hero/hv/slide5-golf.jpg": "A villa balcony overlooking the golf course and lagoon",
+  "/hero/hv/slide6-villa.jpg": "A Plantation Club villa on a bright Sea Pines morning",
+};
 
 const SLIDE_MS = 6000;
 const SHADOW_H1 = "2px 2px 5px #014e6c";
 const SHADOW_BODY = "2px 2px 3px #014e6c";
 const GOLD = "#968751";
 
-export function HeritageHero() {
+export function HeritageHero({ content }: { content: HomeContent }) {
+  const hero = content.hero;
+  const slides = hero.images.map((src) => ({
+    src,
+    alt: SLIDE_ALTS[src] ?? "Heritage Vacations at Sea Pines, Hilton Head Island",
+  }));
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     // Respect a user's reduced-motion preference: hold on the first slide.
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % SLIDES.length), SLIDE_MS);
+    if (slides.length < 2) return;
+    const t = setInterval(() => setIndex((i) => (i + 1) % slides.length), SLIDE_MS);
     return () => clearInterval(t);
-  }, []);
+  }, [slides.length]);
 
   return (
     <section
@@ -50,7 +62,7 @@ export function HeritageHero() {
       aria-label="Heritage Vacations"
     >
       {/* Slides — cross-faded. The first is eager so the hero paints immediately. */}
-      {SLIDES.map((s, i) => (
+      {slides.map((s, i) => (
         <img
           key={s.src}
           src={s.src}
@@ -82,26 +94,25 @@ export function HeritageHero() {
               className="text-white text-[26px] leading-[1.2] sm:text-[32px] sm:leading-[38.4px] lg:whitespace-nowrap"
               style={{ fontFamily: '"Bodoni Moda", ui-serif, Georgia, serif', fontWeight: 400, textShadow: SHADOW_H1 }}
             >
-              Extraordinary Vacation Rentals
-              <br />
-              in Hilton Head Island&rsquo;s
-              <br />
-              Luxurious Sea Pines Community
+              {hero.headlineLines.map((line, i) => (
+                <span key={i}>
+                  {i > 0 && <br />}
+                  {line}
+                </span>
+              ))}
             </h1>
 
             <p
               className="mt-5 max-w-[458px] text-white text-[16px] leading-[1.25] sm:text-[17px] sm:leading-[20.4px]"
               style={{ fontFamily: "Quicksand, ui-sans-serif, system-ui, sans-serif", fontWeight: 400, textShadow: SHADOW_BODY }}
             >
-              Discover Sea Pines&rsquo; most coveted vacation rentals on Hilton Head
-              Island. From the iconic Harbour Town lighthouse to championship golf
-              and sugar-sand beaches, your perfect coastal retreat awaits you.
+              {hero.intro}
             </p>
 
             {/* Two CTAs per Scott: rentals first, sales second. */}
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
-                to="/search?type=rent"
+                to={hero.primaryHref}
                 className="inline-flex items-center justify-center border border-white text-white transition-opacity hover:opacity-90"
                 style={{
                   backgroundColor: GOLD,
@@ -112,10 +123,10 @@ export function HeritageHero() {
                   borderRadius: 0,
                 }}
               >
-                Find Your Perfect Rental
+                {hero.primaryLabel}
               </Link>
               <Link
-                to="/search?type=buy"
+                to={hero.secondaryHref}
                 className="inline-flex items-center justify-center border border-white text-white bg-white/10 backdrop-blur-[2px] transition-colors hover:bg-white/20"
                 style={{
                   fontFamily: "Quicksand, ui-sans-serif, system-ui, sans-serif",
@@ -125,7 +136,7 @@ export function HeritageHero() {
                   borderRadius: 0,
                 }}
               >
-                Buy a Week
+                {hero.secondaryLabel}
               </Link>
             </div>
           </div>
@@ -133,19 +144,21 @@ export function HeritageHero() {
       </div>
 
       {/* Slide dots */}
+      {slides.length > 1 && (
       <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2">
-        {SLIDES.map((s, i) => (
+        {slides.map((s, i) => (
           <button
             key={s.src}
             type="button"
             onClick={() => setIndex(i)}
-            aria-label={`Show slide ${i + 1} of ${SLIDES.length}`}
+            aria-label={`Show slide ${i + 1} of ${slides.length}`}
             aria-current={i === index}
             className="h-2 w-2 rounded-full border border-white/70 transition-colors"
             style={{ backgroundColor: i === index ? "#ffffff" : "transparent" }}
           />
         ))}
       </div>
+      )}
     </section>
   );
 }
