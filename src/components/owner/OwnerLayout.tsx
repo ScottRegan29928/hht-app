@@ -116,7 +116,7 @@ export function OwnerLayout() {
             Please sign in with your owner account to continue.
           </p>
           <Link
-            to="/owner/login"
+            to="/ownerlogin"
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
           >
             Sign In
@@ -131,7 +131,7 @@ export function OwnerLayout() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/owner/login");
+    navigate("/ownerlogin");
   };
 
   return (

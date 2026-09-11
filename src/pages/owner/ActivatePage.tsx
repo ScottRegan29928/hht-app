@@ -109,7 +109,7 @@ export function OwnerActivatePage() {
           Owner accounts are set up by The Club Group. If you have an invitation
           email, open the link in it to choose your password.
         </p>
-        <Link to="/owner/login" className="text-sm text-primary hover:underline">
+        <Link to="/ownerlogin" className="text-sm text-primary hover:underline">
           Already have access? Sign in
         </Link>
       </div>
@@ -140,7 +140,7 @@ export function OwnerActivatePage() {
           Ask The Club Group to send a new invitation, or sign in if you already
           set a password.
         </p>
-        <Link to="/owner/login" className="text-sm text-primary hover:underline">
+        <Link to="/ownerlogin" className="text-sm text-primary hover:underline">
           Go to sign in
         </Link>
       </div>

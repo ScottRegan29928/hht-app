@@ -61,6 +61,8 @@ export default function App() {
   const isAdmin =
     location.pathname.startsWith("/management") ||
     location.pathname === "/adminlogin";
+  // Covers /owner/*, /ownerlogin and /owneractivate — all of which must render
+  // in the portal shell, not the public site shell.
   const isOwner = location.pathname.startsWith("/owner");
 
   if (isAdmin) {
@@ -107,8 +109,19 @@ export default function App() {
       <>
         <ScrollToTop />
         <Routes>
-          <Route path="/owner/login" element={<OwnerLoginPage />} />
+          {/* Owner sign-in lives at /ownerlogin [scott, 2026-09-11], matching
+              /adminlogin. The old path stays as a redirect so links already in
+              owners' bookmarks and inboxes keep working. */}
+          <Route path="/ownerlogin" element={<OwnerLoginPage />} />
+          <Route
+            path="/owner/login"
+            element={<Navigate to="/ownerlogin" replace />}
+          />
           <Route path="/owner/activate" element={<OwnerActivatePage />} />
+          <Route
+            path="/owneractivate"
+            element={<OwnerActivatePage />}
+          />
           <Route path="/owner" element={<OwnerLayout />}>
             <Route index element={<OwnerDashboardPage />} />
             <Route path="properties" element={<OwnerPropertiesPage />} />
