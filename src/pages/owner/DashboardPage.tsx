@@ -7,12 +7,19 @@ import {
   Clock,
   ArrowRight,
   Tag,
-  Home,
+  FileText,
+  Users,
+  Info,
+  MessageSquarePlus,
+  Store,
 } from "lucide-react";
+import { useSiteFlags } from "@/lib/siteContext";
 
 export function OwnerDashboardPage() {
   const stats = useQuery(api.owner.dashboardStats);
   const requests = useQuery(api.owner.listSaleRequests);
+  const { siteSlug, siteName } = useSiteFlags();
+  const portal = useQuery(api.ownerPortal.overview, { siteSlug });
 
   if (stats === undefined) {
     return (
@@ -29,9 +36,11 @@ export function OwnerDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">
+          {portal?.viewerName ? `Welcome back, ${portal.viewerName}` : "Owner Portal"}
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Your property overview at a glance
+          Your ownership at {siteName}, all in one place.
         </p>
       </div>
 
@@ -98,6 +107,45 @@ export function OwnerDashboardPage() {
         </Link>
       </div>
 
+      {/* Association shortcuts — the content that used to be ten accordions */}
+      <div>
+        <h2 className="font-semibold mb-3">Your association</h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <TileLink
+            to="/owner/documents"
+            icon={FileText}
+            title="Documents"
+            sub={
+              portal?.documentCount
+                ? `${portal.documentCount} files`
+                : "Deeds, newsletters, minutes"
+            }
+          />
+          <TileLink
+            to="/owner/board"
+            icon={Users}
+            title="Board"
+            sub={
+              portal?.board?.length
+                ? `${portal.board.length} directors`
+                : "Your elected directors"
+            }
+          />
+          <TileLink
+            to="/owner/resort"
+            icon={Info}
+            title="Resort Info"
+            sub="Check-in, rentals, storms"
+          />
+          <TileLink
+            to="/owner/comment-card"
+            icon={MessageSquarePlus}
+            title="Comment Card"
+            sub="Tell us about your stay"
+          />
+        </div>
+      </div>
+
       {/* Recent sale requests */}
       {recentRequests.length > 0 && (
         <div className="bg-background rounded-xl border">
@@ -129,6 +177,29 @@ export function OwnerDashboardPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function TileLink({
+  to,
+  icon: Icon,
+  title,
+  sub,
+}: {
+  to: string;
+  icon: any;
+  title: string;
+  sub: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="bg-background rounded-xl border p-4 hover:border-primary/30 hover:shadow-sm transition-all"
+    >
+      <Icon className="w-4.5 h-4.5 text-muted-foreground mb-2.5" />
+      <div className="font-medium text-sm">{title}</div>
+      <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>
+    </Link>
   );
 }
 

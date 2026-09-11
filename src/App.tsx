@@ -25,6 +25,11 @@ import { OwnerInquiriesPage } from "./pages/owner/InquiriesPage";
 import { OwnerMarketplacePage } from "./pages/owner/MarketplacePage";
 import { OwnerMyListingsPage } from "./pages/owner/MyListingsPage";
 import { OwnerPaymentPage } from "./pages/owner/PaymentPage";
+import { OwnerDocumentsPage } from "./pages/owner/DocumentsPage";
+import { OwnerBoardPage } from "./pages/owner/BoardPage";
+import { OwnerResortInfoPage } from "./pages/owner/ResortInfoPage";
+import { OwnerCommentCardPage } from "./pages/owner/CommentCardPage";
+import { OwnerActivatePage } from "./pages/owner/ActivatePage";
 import { AccountPage } from "./pages/admin/AccountPage";
 import { OwnersPage } from "./pages/admin/OwnersPage";
 import { OwnerDetailPage } from "./pages/admin/OwnerDetailPage";
@@ -39,6 +44,7 @@ import { AdminBlogPage } from "./pages/admin/BlogPage";
 import { AdminBlogEditPage } from "./pages/admin/BlogEditPage";
 import { AdminSeoPage } from "./pages/admin/SeoPage";
 import { AdminStorePage } from "./pages/admin/StorePage";
+import { AdminOwnerPortalPage } from "./pages/admin/OwnerPortalPage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -86,6 +92,7 @@ export default function App() {
             <Route path="blog/:id" element={<AdminBlogEditPage />} />
             <Route path="seo" element={<AdminSeoPage />} />
             <Route path="store" element={<AdminStorePage />} />
+            <Route path="owner-portal" element={<AdminOwnerPortalPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="account" element={<AccountPage />} />
           </Route>
@@ -101,6 +108,7 @@ export default function App() {
         <ScrollToTop />
         <Routes>
           <Route path="/owner/login" element={<OwnerLoginPage />} />
+          <Route path="/owner/activate" element={<OwnerActivatePage />} />
           <Route path="/owner" element={<OwnerLayout />}>
             <Route index element={<OwnerDashboardPage />} />
             <Route path="properties" element={<OwnerPropertiesPage />} />
@@ -109,6 +117,10 @@ export default function App() {
             <Route path="marketplace" element={<OwnerMarketplacePage />} />
             <Route path="listings" element={<OwnerMyListingsPage />} />
             <Route path="payment" element={<OwnerPaymentPage />} />
+            <Route path="documents" element={<OwnerDocumentsPage />} />
+            <Route path="board" element={<OwnerBoardPage />} />
+            <Route path="resort" element={<OwnerResortInfoPage />} />
+            <Route path="comment-card" element={<OwnerCommentCardPage />} />
           </Route>
         </Routes>
         <Toaster position="bottom-right" richColors />

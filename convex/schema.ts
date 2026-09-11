@@ -289,7 +289,13 @@ const schema = defineSchema({
   inquiries: defineTable({
     // "general" backs the site-wide Contact form [scott, 2026-09-08]; it has
     // no property attached, unlike purchase/rental which come off a listing.
-    type: v.union(v.literal("purchase"), v.literal("rental"), v.literal("general")),
+    type: v.union(
+      v.literal("purchase"),
+      v.literal("rental"),
+      v.literal("general"),
+      // Owner-portal comment card; routed to the resort regime managers.
+      v.literal("comment_card")
+    ),
     // Which of the four sister sites the enquiry came from.
     siteSlug: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
@@ -674,6 +680,109 @@ const schema = defineSchema({
     .index("by_site_slug", ["siteSlug", "slug"])
     .index("by_site_status", ["siteSlug", "status"])
     .index("by_site_published", ["siteSlug", "publishedAt"]),
+
+  // ── Owner portal: parity with the legacy WordPress /owners/ pages ──
+  // Inventoried from the live Swallowtail + Spicebush portals 2026-09-11.
+  // Everything an owner reads in the portal is admin-editable data, not code,
+  // so The Club Group maintains it without us.
+
+  // An owner profile with no auth account can never sign in: the portal has no
+  // self-registration [scott, 2026-09-08] and a password reset on a
+  // non-existent account does nothing. Invites are how an owner first gets in.
+  ownerInvites: defineTable({
+    profileId: v.id("userProfiles"),
+    email: v.string(),
+    siteSlug: v.string(),             // which portal the email points at
+    // Only the hash is stored; the raw token exists solely in the email link.
+    tokenHash: v.string(),
+    expiresAt: v.number(),
+    sentAt: v.number(),
+    sentCount: v.number(),            // re-sending replaces the token
+    acceptedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_token", ["tokenHash"])
+    .index("by_profile", ["profileId"])
+    .index("by_email", ["email"]),
+
+  ownerDocuments: defineTable({
+    siteSlug: v.string(),
+    category: v.union(
+      v.literal("association"),       // master deed, bylaws, HOA resales
+      v.literal("newsletter"),
+      v.literal("minutes"),           // board + annual meeting minutes
+      v.literal("stay"),              // check-in, late arrival, activities, calendar
+      v.literal("form")               // volunteer form, trade agreement, comment card
+    ),
+    title: v.string(),
+    // Mirrored into Convex storage so the new sites don't hotlink WordPress
+    // uploads that disappear at cutover. externalUrl is the fallback.
+    storageId: v.optional(v.id("_storage")),
+    externalUrl: v.optional(v.string()),
+    // Sort key for archives: newest first. Not a publish date.
+    documentDate: v.optional(v.number()),
+    sortOrder: v.optional(v.number()),
+    published: v.boolean(),
+    legacySourceUrl: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_site_category", ["siteSlug", "category"])
+    .index("by_site", ["siteSlug"]),
+
+  boardMembers: defineTable({
+    siteSlug: v.string(),
+    name: v.string(),
+    title: v.optional(v.string()),          // President, Treasurer, ...
+    // Spicebush lists units, Swallowtail lists weeks. Free text either way.
+    holdings: v.optional(v.string()),
+    termStart: v.optional(v.number()),
+    termEnd: v.optional(v.number()),
+    termNote: v.optional(v.string()),       // "(Second)" = second term
+    email: v.optional(v.string()),
+    sortOrder: v.optional(v.number()),
+    published: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  }).index("by_site", ["siteSlug"]),
+
+  // The static copy blocks of the portal, per resort. One row per site.
+  ownerPortalSettings: defineTable({
+    siteSlug: v.string(),
+    // Seasonal association-voting banner
+    votingEnabled: v.boolean(),
+    votingLabel: v.optional(v.string()),
+    votingUrl: v.optional(v.string()),
+    // "Weeks for Rent" — renting beyond your own week goes through reservations
+    rentContactName: v.optional(v.string()),
+    rentContactPhones: v.optional(v.array(v.string())),
+    rentIntro: v.optional(v.string()),
+    // HOA-owned weeks for sale: owner discount, AMF waiver, referral bonus
+    hoaSalesIntro: v.optional(v.string()),
+    hoaSalesContactName: v.optional(v.string()),
+    hoaSalesContactPhone: v.optional(v.string()),
+    hoaSalesContactEmail: v.optional(v.string()),
+    // Comment card / regime managers
+    regimeManagers: v.optional(v.array(v.object({
+      name: v.string(),
+      email: v.optional(v.string()),
+    }))),
+    regimePhone: v.optional(v.string()),
+    regimeFax: v.optional(v.string()),
+    regimeEmail: v.optional(v.string()),    // where comment cards are routed
+    commentCardIntro: v.optional(v.string()),
+    // Hurricane / weather links
+    weatherIntro: v.optional(v.string()),
+    weatherLinks: v.optional(v.array(v.object({
+      label: v.string(),
+      url: v.string(),
+    }))),
+    // Trade paperwork stays manual [scott, 2026-09-08]: $75 fee, signed form.
+    tradeFeeNote: v.optional(v.string()),
+    updatedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_site", ["siteSlug"]),
 
 });
 

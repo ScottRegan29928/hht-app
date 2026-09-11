@@ -19,6 +19,7 @@ import {
   Newspaper,
   Search,
   DollarSign,
+  KeyRound,
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
@@ -34,6 +35,8 @@ const navItems = [
   { label: "Blog", path: "/management/blog", icon: Newspaper },
   { label: "SEO", path: "/management/seo", icon: Search },
   { label: "Store", path: "/management/store", icon: DollarSign },
+  // Swallowtail + Spicebush only; the two sites with owner portals.
+  { label: "Owner Portal", path: "/management/owner-portal", icon: KeyRound },
 ];
 
 export function AdminLayout() {

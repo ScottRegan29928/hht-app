@@ -2,7 +2,16 @@ import { action } from "./_generated/server";
 import { v } from "convex/values";
 
 const FROM_EMAIL = "Hilton Head Timeshares <noreply@lead-works.com>";
-const PORTAL_URL = "https://hht.leadworksstaging.com/owner";
+
+/**
+ * NOTE: `sendWelcomeEmail` below is RETIRED and no longer called from the UI.
+ * It pointed owners at a dead staging host and told them to click a "Sign Up"
+ * button that does not exist, since owner self-registration is deliberately
+ * off. Portal access now goes through convex/ownerInvites.ts (one-time
+ * activation link). Kept only so old references do not break; delete once the
+ * client confirms nothing external calls it.
+ */
+const PORTAL_URL = "https://hht.lead-works.com/owner";
 
 export const sendWelcomeEmail = action({
   args: {

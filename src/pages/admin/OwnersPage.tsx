@@ -30,7 +30,7 @@ export function OwnersPage() {
   const createOwner = useMutation(api.admin.createOwner);
   const deleteOwner = useMutation(api.admin.deleteOwner);
   const resetPassword = useMutation(api.admin.resetOwnerPassword);
-  const sendWelcomeEmail = useAction(api.email.sendWelcomeEmail);
+  const sendInvite = useAction(api.ownerInvites.sendInvite);
   const sendResetEmail = useAction(api.email.sendPasswordResetEmail);
   const [actionMsg, setActionMsg] = useState<{ id: string; type: "success" | "error"; text: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -89,17 +89,21 @@ export function OwnersPage() {
     setSaving(false);
   };
 
-  const handleSendWelcome = async (owner: any) => {
+  const handleSendInvite = async (owner: any) => {
     const email = owner.email;
     if (!email) return;
     try {
       setActionMsg({ id: owner._id, type: "success", text: "Sending…" });
-      await sendWelcomeEmail({ to: email, firstName: owner.firstName || undefined });
-      setActionMsg({ id: owner._id, type: "success", text: `Welcome email sent to ${email}` });
+      const res = await sendInvite({ profileId: owner._id });
+      setActionMsg({
+        id: owner._id,
+        type: "success",
+        text: `Invitation sent to ${res.email}`,
+      });
       setTimeout(() => setActionMsg(null), 5000);
     } catch (e: any) {
       setActionMsg({ id: owner._id, type: "error", text: e.message || "Failed to send" });
-      setTimeout(() => setActionMsg(null), 5000);
+      setTimeout(() => setActionMsg(null), 7000);
     }
   };
 
@@ -385,12 +389,12 @@ export function OwnersPage() {
                 <div className="flex flex-col items-end gap-2 shrink-0">
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleSendWelcome(owner); }}
+                      onClick={(e) => { e.stopPropagation(); handleSendInvite(owner); }}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted/50 transition-colors"
-                      title="Send welcome letter"
+                      title="Send portal invitation"
                     >
                       <Send className="w-3.5 h-3.5 text-blue-500" />
-                      <span className="hidden sm:inline">Welcome</span>
+                      <span className="hidden sm:inline">Invite</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleResetPassword(owner); }}

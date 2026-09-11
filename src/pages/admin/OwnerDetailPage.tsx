@@ -35,7 +35,7 @@ export function OwnerDetailPage() {
   const updateOwner = useMutation(api.admin.updateOwner);
   const deleteOwner = useMutation(api.admin.deleteOwner);
   const resetPassword = useMutation(api.admin.resetOwnerPassword);
-  const sendWelcomeEmail = useAction(api.email.sendWelcomeEmail);
+  const sendInvite = useAction(api.ownerInvites.sendInvite);
   const sendResetEmail = useAction(api.email.sendPasswordResetEmail);
 
   const [form, setForm] = useState({
@@ -134,17 +134,23 @@ export function OwnerDetailPage() {
     }
   };
 
-  const handleSendWelcome = async () => {
+  // Replaces the old "welcome letter", which pointed at a dead staging host and
+  // told owners to click a Sign Up button that does not exist. This sends a
+  // one-time activation link instead.
+  const handleSendInvite = async () => {
     const email = owner?.email;
     if (!email) return;
     try {
-      setActionMsg({ type: "success", text: "Sending welcome email…" });
-      await sendWelcomeEmail({ to: email, firstName: owner?.firstName || undefined });
-      setActionMsg({ type: "success", text: `Welcome email sent to ${email}` });
-      setTimeout(() => setActionMsg(null), 5000);
-    } catch (e: any) {
-      setActionMsg({ type: "error", text: e.message || "Failed to send email" });
+      setActionMsg({ type: "success", text: "Sending invitation…" });
+      const res = await sendInvite({ profileId: ownerId as Id<"userProfiles"> });
+      setActionMsg({
+        type: "success",
+        text: `Invitation sent to ${res.email} for the ${res.siteSlug} portal`,
+      });
       setTimeout(() => setActionMsg(null), 6000);
+    } catch (e: any) {
+      setActionMsg({ type: "error", text: e.message || "Failed to send invitation" });
+      setTimeout(() => setActionMsg(null), 8000);
     }
   };
 
@@ -319,11 +325,17 @@ export function OwnerDetailPage() {
         <h2 className="font-semibold text-lg">Actions</h2>
         <div className="flex flex-wrap gap-3">
           <button
-            onClick={handleSendWelcome}
-            className="inline-flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+            onClick={handleSendInvite}
+            disabled={owner.isLinked}
+            title={
+              owner.isLinked
+                ? "This owner already has portal access"
+                : "Emails a one-time link to choose a password"
+            }
+            className="inline-flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-medium hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-4 h-4 text-blue-500" />
-            Send Welcome Letter
+            Send Portal Invitation
           </button>
           <button
             onClick={handleResetPassword}
@@ -337,7 +349,7 @@ export function OwnerDetailPage() {
         </div>
         {!owner.isLinked && (
           <p className="text-xs text-muted-foreground">
-            This owner hasn't registered yet. Send a welcome letter so they can create their account.
+            This owner has no portal access yet. Send a portal invitation and they can choose a password.
           </p>
         )}
       </div>

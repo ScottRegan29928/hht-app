@@ -13,18 +13,46 @@ import {
   X,
   Key,
   CreditCard,
+  FileText,
+  Users,
+  Info,
+  MessageSquarePlus,
+  Vote,
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, useEffect, useRef } from "react";
-import { useSiteBrand, useSitePayment } from "@/lib/siteContext";
+import { useSiteBrand, useSitePayment, useSiteFlags } from "@/lib/siteContext";
 
-const navItems = [
-  { label: "Dashboard", path: "/owner", icon: LayoutDashboard },
-  { label: "My Weeks", path: "/owner/properties", icon: HomeIcon },
-  // Joint Swallowtail + Spicebush pool — same listings from either portal.
-  { label: "Marketplace", path: "/owner/marketplace", icon: Store },
-  { label: "My Listings", path: "/owner/listings", icon: Tag },
-  { label: "Inquiries", path: "/owner/inquiries", icon: MessageSquare },
+// Grouped so the portal reads as three jobs — your ownership, the resale
+// marketplace, and the association — instead of one flat list of nine links.
+const navGroups: {
+  heading?: string;
+  items: { label: string; path: string; icon: any }[];
+}[] = [
+  {
+    items: [
+      { label: "Dashboard", path: "/owner", icon: LayoutDashboard },
+      { label: "My Weeks", path: "/owner/properties", icon: HomeIcon },
+    ],
+  },
+  {
+    heading: "Buy, sell & trade",
+    items: [
+      // Joint Swallowtail + Spicebush pool — same listings from either portal.
+      { label: "Marketplace", path: "/owner/marketplace", icon: Store },
+      { label: "My Listings", path: "/owner/listings", icon: Tag },
+      { label: "Inquiries", path: "/owner/inquiries", icon: MessageSquare },
+    ],
+  },
+  {
+    heading: "Your association",
+    items: [
+      { label: "Documents", path: "/owner/documents", icon: FileText },
+      { label: "Board", path: "/owner/board", icon: Users },
+      { label: "Resort Info", path: "/owner/resort", icon: Info },
+      { label: "Comment Card", path: "/owner/comment-card", icon: MessageSquarePlus },
+    ],
+  },
 ];
 
 // Shown only where the resort actually takes payments — Swallowtail links out,
@@ -38,8 +66,19 @@ const paymentNavItem = {
 export function OwnerLayout() {
   const brand = useSiteBrand();
   const payment = useSitePayment();
-  const nav = payment.enabled ? [...navItems, paymentNavItem] : navItems;
+  const { siteSlug } = useSiteFlags();
+  const groups = payment.enabled
+    ? [...navGroups, { items: [paymentNavItem] }]
+    : navGroups;
   const currentUser = useQuery(api.owner.currentUser);
+  // Seasonal association-voting banner, managed in /management/owner-portal.
+  // Skipped until the owner is resolved: ownerPortal.getSettings is gated and
+  // throws for anonymous callers, which surfaced as a console error on the
+  // signed-out /owner/* routes.
+  const portal = useQuery(
+    api.ownerPortal.getSettings,
+    currentUser ? { siteSlug } : "skip"
+  );
   const claimProfile = useMutation(api.owner.claimProfile);
   const location = useLocation();
   const navigate = useNavigate();
@@ -116,9 +155,17 @@ export function OwnerLayout() {
       >
         <div className="p-5 flex items-center justify-between border-b border-white/10">
           <Link to="/owner" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Key className="w-5 h-5 text-primary-foreground" />
-            </div>
+            {brand.logo?.white ? (
+              <img
+                src={brand.logo.white}
+                alt=""
+                className="h-9 w-auto object-contain"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+                <Key className="w-5 h-5 text-primary-foreground" />
+              </div>
+            )}
             <div>
               <div className="text-sm font-bold">{brand.wordmarkTop}</div>
               <div className="text-[10px] text-primary-foreground/50 uppercase tracking-wider">
@@ -134,31 +181,40 @@ export function OwnerLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
-          {nav.map(({ label, path, icon: Icon }) => {
-            const isActive =
-              path === "/owner"
-                ? location.pathname === "/owner"
-                : location.pathname.startsWith(path);
-            return (
-              <Link
-                key={path}
-                to={path}
-                onClick={() => setSidebarOpen(false)}
-                className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                  ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/5"
-                  }
-                `}
-              >
-                <Icon className="w-4.5 h-4.5" />
-                {label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
+          {groups.map((group, gi) => (
+            <div key={group.heading ?? `group-${gi}`} className="space-y-1">
+              {group.heading && (
+                <div className="px-3 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/35">
+                  {group.heading}
+                </div>
+              )}
+              {group.items.map(({ label, path, icon: Icon }) => {
+                const isActive =
+                  path === "/owner"
+                    ? location.pathname === "/owner"
+                    : location.pathname.startsWith(path);
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`
+                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                      ${
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/5"
+                      }
+                    `}
+                  >
+                    <Icon className="w-4.5 h-4.5" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="p-3 border-t border-white/10 space-y-1">
@@ -195,6 +251,20 @@ export function OwnerLayout() {
         </header>
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
+          {portal?.votingEnabled && portal.votingUrl && (
+            <a
+              href={portal.votingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 mb-5 px-4 py-3 rounded-xl bg-primary text-primary-foreground hover:opacity-95 transition-opacity"
+            >
+              <Vote className="w-5 h-5 shrink-0" />
+              <span className="text-sm font-semibold">
+                {portal.votingLabel ?? "Association voting is open"}
+              </span>
+              <span className="ml-auto text-sm underline">Cast your vote</span>
+            </a>
+          )}
           <Outlet />
         </main>
       </div>
