@@ -17,6 +17,8 @@ export const getAllProperties = internalQuery({
       // drop: without it every property sorts equal and each run re-syncs
       // the same first N properties forever.
       hostawayLastSyncAt: (p as any).hostawayLastSyncAt as number | undefined,
+      // Required by hostawayApi.syncPhotos to skip unchanged photo sets.
+      photoUrls: (p as any).photoUrls as string[] | undefined,
     }));
   },
 });
@@ -140,5 +142,19 @@ export const upsertCalendarBookings = internalMutation({
     }
 
     return { deleted: hostawayBookings.length, inserted };
+  },
+});
+
+/** Maintenance: replace a property's photoUrls with the current Hostaway set.
+ *  Hostaway rotates its S3 objects, so stored URLs go 403 ("broken image") even
+ *  though the listing still has photos. Re-point them instead of deleting. */
+export const setPhotoUrls = internalMutation({
+  args: { propertyId: v.id("properties"), photoUrls: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.propertyId, {
+      photoUrls: args.photoUrls,
+      updatedAt: Date.now(),
+    });
+    return { propertyId: args.propertyId, count: args.photoUrls.length };
   },
 });

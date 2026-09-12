@@ -307,3 +307,51 @@ export const syncCalendar = internalAction({
     return summary;
   },
 });
+
+/**
+ * Refresh every property's photo URLs from HostAway.
+ *
+ * HostAway rotates its S3 objects: a photo that is replaced in HostAway keeps
+ * living in our `photoUrls` while the object itself starts returning 403, which
+ * shows up on the site as a broken image. Nothing else re-pulls photos (the
+ * 30-minute cron is calendar-only), so 118 URLs across 30 rentals had died by
+ * 2026-09-12. One /listings call carries listingImages for the whole account.
+ */
+export const syncPhotos = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const token = await getToken(ctx);
+    const res = await fetch(`${HOSTAWAY_API}/listings?limit=100`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      throw new Error(`HostAway listings failed: ${res.status}`);
+    }
+    const body = await res.json();
+    const byId = new Map<number, string[]>();
+    for (const l of body.result ?? []) {
+      const urls = (l.listingImages ?? [])
+        .map((i: { url?: string }) => i.url)
+        .filter((u: string | undefined): u is string => Boolean(u));
+      if (urls.length) byId.set(Number(l.id), urls);
+    }
+
+    const props = await ctx.runQuery(internal.hostawaySync.getAllProperties, {});
+    let updated = 0;
+    for (const p of props) {
+      if (!p.hostawayId) continue;
+      const fresh = byId.get(Number(p.hostawayId));
+      if (!fresh) continue;
+      const cur = p.photoUrls ?? [];
+      const same =
+        cur.length === fresh.length && cur.every((u, i) => u === fresh[i]);
+      if (same) continue;
+      await ctx.runMutation(internal.hostawaySync.setPhotoUrls, {
+        propertyId: p._id,
+        photoUrls: fresh,
+      });
+      updated++;
+    }
+    return { listings: byId.size, properties: props.length, updated };
+  },
+});

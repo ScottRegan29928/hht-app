@@ -424,6 +424,33 @@ const schema = defineSchema({
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
 
+  // ── Marketplace match alerts ──
+  // When someone posts a want_to_buy or trade listing naming a week, any owner
+  // holding that week is told — in the portal and by email [scott, 2026-09-12].
+  // One row per (owner, listing) so a match is never announced twice, and the
+  // row is what the bell reads; email is a side effect of creating it.
+  marketplaceMatches: defineTable({
+    ownerProfileId: v.id("userProfiles"),
+    listingId: v.id("marketplaceListings"),
+    // Denormalized so the portal can render the alert even if the listing is
+    // later withdrawn, and so we can tell the owner which of their weeks hit.
+    kind: v.union(v.literal("want_to_buy"), v.literal("trade")),
+    weekNumber: v.number(),
+    year: v.optional(v.number()),
+    unitNumber: v.optional(v.string()),
+    communitySlug: v.optional(v.string()),
+    readAt: v.optional(v.number()),
+    dismissedAt: v.optional(v.number()),
+    emailedAt: v.optional(v.number()),
+    emailError: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerProfileId"])
+    .index("by_owner_unread", ["ownerProfileId", "dismissedAt"])
+    .index("by_listing", ["listingId"])
+    // Guards against duplicate alerts when a listing is edited and re-saved.
+    .index("by_owner_listing", ["ownerProfileId", "listingId"]),
+
   // ── Owner marketplace (Swallowtail + Spicebush joint pool) ──
   // Owner-to-owner resale and trade. This NEVER touches HostAway: HostAway
   // holds company-owned rental inventory, while everything here is a week
@@ -457,6 +484,10 @@ const schema = defineSchema({
     unitNumber: v.optional(v.string()),
     weekLabel: v.optional(v.string()),       // free text: real rows say "23 & 24", "Flexible"
     weekNumber: v.optional(v.number()),      // parsed when unambiguous, for filtering
+    // Every week the label refers to: "31 & 32" -> [31, 32]. weekNumber alone
+    // cannot answer "show me week 32" for a two-week listing, and match alerts
+    // have the same problem, so both read this array.
+    weekNumbers: v.optional(v.array(v.number())),
     year: v.optional(v.number()),
 
     // for_sale
@@ -464,6 +495,7 @@ const schema = defineSchema({
     // trade
     desiredWeekLabel: v.optional(v.string()),
     desiredWeekNumber: v.optional(v.number()),
+    desiredWeekNumbers: v.optional(v.array(v.number())),
     desiredYear: v.optional(v.number()),
 
     notes: v.optional(v.string()),

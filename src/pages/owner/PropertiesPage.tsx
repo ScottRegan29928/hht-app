@@ -118,12 +118,35 @@ export function OwnerPropertiesPage() {
                         src={w.photoUrl}
                         alt={w.propertyAddress}
                         className="w-full h-full object-cover"
+                        loading="lazy"
+                        /* Photos are served from HostAway's S3 bucket, not from
+                           us. Scott saw one fail to load on 2026-09-12 that
+                           loads fine here, so the cause is on the request side
+                           rather than the data: some networks and privacy
+                           extensions block a third-party image host, and an S3
+                           referer policy can reject a cross-origin referer.
+                           no-referrer removes the second possibility, and the
+                           onError below makes the first degrade to the same
+                           placeholder an absent photo gets, instead of a broken
+                           image icon. */
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          img.style.display = "none";
+                          img.parentElement
+                            ?.querySelector("[data-photo-fallback]")
+                            ?.classList.remove("hidden");
+                        }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Home className="w-10 h-10 text-muted-foreground/30" />
-                      </div>
-                    )}
+                    ) : null}
+                    <div
+                      data-photo-fallback
+                      className={`w-full h-full items-center justify-center flex ${
+                        w.photoUrl ? "hidden" : ""
+                      }`}
+                    >
+                      <Home className="w-10 h-10 text-muted-foreground/30" />
+                    </div>
                   </div>
 
                   {/* Info + Action */}

@@ -18,10 +18,14 @@ import {
   Info,
   MessageSquarePlus,
   Vote,
+  Bell,
+  Sparkles,
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, useEffect, useRef } from "react";
 import { useSiteBrand, useSitePayment, useSiteFlags } from "@/lib/siteContext";
+import { resortTheme, themeVars } from "./portalTheme";
+import { MatchAlertsPanel } from "./MatchAlertsPanel";
 
 // Grouped so the portal reads as three jobs — your ownership, the resale
 // marketplace, and the association — instead of one flat list of nine links.
@@ -67,6 +71,7 @@ export function OwnerLayout() {
   const brand = useSiteBrand();
   const payment = useSitePayment();
   const { siteSlug } = useSiteFlags();
+  const theme = resortTheme(siteSlug);
   const groups = payment.enabled
     ? [...navGroups, { items: [paymentNavItem] }]
     : navGroups;
@@ -84,7 +89,13 @@ export function OwnerLayout() {
   const navigate = useNavigate();
   const { signOut } = useAuthActions();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const claimedRef = useRef(false);
+  // Match alerts: someone wants a week this owner holds [scott, 2026-09-12].
+  const unread = useQuery(
+    api.marketplaceMatches.unreadCount,
+    currentUser ? {} : "skip"
+  );
 
   // Auto-link profile when needsLink is true (new signup matching existing owner email)
   useEffect(() => {
@@ -135,7 +146,10 @@ export function OwnerLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 flex">
+    <div
+      className="min-h-screen flex"
+      style={{ ...themeVars(theme), background: "#F4F6F7" }}
+    >
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -148,10 +162,13 @@ export function OwnerLayout() {
       <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-50
-          w-64 bg-foreground text-primary-foreground flex flex-col
+          w-64 text-white flex flex-col
           transform transition-transform duration-200
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
+        style={{
+          backgroundImage: `linear-gradient(175deg, ${theme.ink} 0%, ${theme.inkDeep} 100%)`,
+        }}
       >
         <div className="p-5 flex items-center justify-between border-b border-white/10">
           <Link to="/owner" className="flex items-center gap-3">
@@ -162,13 +179,19 @@ export function OwnerLayout() {
                 className="h-9 w-auto object-contain"
               />
             ) : (
-              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-                <Key className="w-5 h-5 text-primary-foreground" />
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: theme.accent }}
+              >
+                <Key className="w-5 h-5 text-white" />
               </div>
             )}
             <div>
               <div className="text-sm font-bold">{brand.wordmarkTop}</div>
-              <div className="text-[10px] text-primary-foreground/50 uppercase tracking-wider">
+              <div
+                className="text-[10px] uppercase tracking-wider font-semibold"
+                style={{ color: theme.accent }}
+              >
                 Owner Portal
               </div>
             </div>
@@ -185,7 +208,7 @@ export function OwnerLayout() {
           {groups.map((group, gi) => (
             <div key={group.heading ?? `group-${gi}`} className="space-y-1">
               {group.heading && (
-                <div className="px-3 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/35">
+                <div className="px-3 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/40">
                   {group.heading}
                 </div>
               )}
@@ -203,10 +226,20 @@ export function OwnerLayout() {
                       flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
                       ${
                         isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/5"
+                          ? "text-white shadow-sm"
+                          : "text-white/65 hover:text-white hover:bg-white/5"
                       }
                     `}
+                    style={
+                      isActive
+                        ? {
+                            background: theme.accent,
+                            // A left rule keeps the active item legible for
+                            // anyone who cannot separate the two colors.
+                            boxShadow: `inset 3px 0 0 0 rgba(255,255,255,0.65)`,
+                          }
+                        : undefined
+                    }
                   >
                     <Icon className="w-4.5 h-4.5" />
                     {label}
@@ -220,14 +253,14 @@ export function OwnerLayout() {
         <div className="p-3 border-t border-white/10 space-y-1">
           <Link
             to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/5 transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/65 hover:text-white hover:bg-white/5 transition-colors"
           >
             <ChevronLeft className="w-4.5 h-4.5" />
             Back to Site
           </Link>
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary-foreground/60 hover:text-red-400 hover:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/65 hover:text-red-300 hover:bg-white/5 transition-colors"
           >
             <LogOut className="w-4.5 h-4.5" />
             Sign Out
@@ -237,7 +270,7 @@ export function OwnerLayout() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-background border-b flex items-center px-4 lg:px-6 gap-3">
+        <header className="h-14 bg-white border-b border-slate-200 flex items-center px-4 lg:px-6 gap-1.5">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-muted-foreground hover:text-foreground"
@@ -245,8 +278,48 @@ export function OwnerLayout() {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex-1" />
-          <div className="text-sm text-muted-foreground">
-            {currentUser.displayName ?? currentUser.email ?? "Owner"}
+
+          {/* Match alerts */}
+          <div className="relative">
+            <button
+              onClick={() => setAlertsOpen((v) => !v)}
+              aria-label={
+                unread ? `${unread} new marketplace alerts` : "Marketplace alerts"
+              }
+              aria-expanded={alertsOpen}
+              className="relative w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+            >
+              <Bell className="w-[18px] h-[18px]" />
+              {!!unread && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white"
+                  style={{ background: theme.accent }}
+                >
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </button>
+            {alertsOpen && (
+              <MatchAlertsPanel
+                theme={theme}
+                onClose={() => setAlertsOpen(false)}
+              />
+            )}
+          </div>
+
+          <div className="flex items-center gap-2.5 pl-1">
+            <span
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white"
+              style={{ background: theme.ink }}
+            >
+              {(currentUser.displayName ?? currentUser.email ?? "O")
+                .trim()
+                .charAt(0)
+                .toUpperCase()}
+            </span>
+            <span className="text-sm font-medium text-slate-700 hidden sm:block">
+              {currentUser.displayName ?? currentUser.email ?? "Owner"}
+            </span>
           </div>
         </header>
 
@@ -256,7 +329,11 @@ export function OwnerLayout() {
               href={portal.votingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 mb-5 px-4 py-3 rounded-xl bg-primary text-primary-foreground hover:opacity-95 transition-opacity"
+              className="flex items-center gap-3 mb-5 px-4 py-3 rounded-xl text-white hover:brightness-110 transition-all shadow-sm"
+              style={{
+                backgroundImage: `linear-gradient(100deg, ${theme.inkDeep} 0%, ${theme.ink} 100%)`,
+                boxShadow: `inset 4px 0 0 0 ${theme.accent}`,
+              }}
             >
               <Vote className="w-5 h-5 shrink-0" />
               <span className="text-sm font-semibold">

@@ -1,6 +1,7 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
 
@@ -23,6 +24,25 @@ import type { Doc, Id } from "./_generated/dataModel";
 
 export const JOINT_POOL = "seapines-joint";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+/**
+ * Every week number a free-text label refers to: "31 & 32" -> [31, 32].
+ *
+ * Owners type week labels by hand and real rows say "9, 10, 11, 12" or
+ * "31 & 32". A single weekNumber cannot represent those, so filtering by week
+ * would silently miss multi-week listings and so would match alerts. This is
+ * derived server-side on every write so the array can never drift from the
+ * label the owner sees.
+ */
+export function expandWeeks(label?: string | null): number[] {
+  if (!label) return [];
+  const found: number[] = [];
+  for (const m of label.matchAll(/\d+/g)) {
+    const n = Number(m[0]);
+    if (n >= 1 && n <= 53 && !found.includes(n)) found.push(n);
+  }
+  return found.sort((a, b) => a - b);
+}
 
 export type ViewerProfile = Doc<"userProfiles">;
 
@@ -95,6 +115,10 @@ export const listPool = query({
       )
     ),
     includeInactive: v.optional(v.boolean()),
+    // Filters [scott, 2026-09-12]. Applied in memory: the pool is a few dozen
+    // rows, and week matching needs the weekNumbers array rather than an index.
+    communitySlug: v.optional(v.string()),
+    weekNumber: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requireOwnerProfile(ctx);
@@ -108,7 +132,62 @@ export const listPool = query({
     return all
       .filter((l) => (args.includeInactive ? true : isLive(l, now)))
       .filter((l) => (args.kind ? l.kind === args.kind : true))
+      .filter((l) =>
+        args.communitySlug ? l.communitySlug === args.communitySlug : true
+      )
+      .filter((l) => {
+        if (args.weekNumber === undefined) return true;
+        const weeks = l.weekNumbers?.length
+          ? l.weekNumbers
+          : expandWeeks(l.weekLabel);
+        // A want_to_buy/trade listing is also a match on the week it wants.
+        const desired = l.desiredWeekNumbers?.length
+          ? l.desiredWeekNumbers
+          : expandWeeks(l.desiredWeekLabel);
+        return (
+          weeks.includes(args.weekNumber) || desired.includes(args.weekNumber)
+        );
+      })
       .sort((a, b) => b.postedAt - a.postedAt);
+  },
+});
+
+/**
+ * The communities and week numbers that actually appear in the pool, so the
+ * filter controls only ever offer values that return something.
+ */
+export const poolFacets = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireOwnerProfile(ctx);
+    const now = Date.now();
+    const live = (
+      await ctx.db
+        .query("marketplaceListings")
+        .withIndex("by_pool_status", (q) => q.eq("pool", JOINT_POOL))
+        .collect()
+    ).filter((l) => isLive(l, now));
+
+    const communities = new Map<string, number>();
+    const weeks = new Set<number>();
+    for (const l of live) {
+      if (l.communitySlug)
+        communities.set(
+          l.communitySlug,
+          (communities.get(l.communitySlug) ?? 0) + 1
+        );
+      const ws = l.weekNumbers?.length ? l.weekNumbers : expandWeeks(l.weekLabel);
+      const ds = l.desiredWeekNumbers?.length
+        ? l.desiredWeekNumbers
+        : expandWeeks(l.desiredWeekLabel);
+      for (const w of [...ws, ...ds]) weeks.add(w);
+    }
+    return {
+      communities: [...communities.entries()]
+        .map(([slug, count]) => ({ slug, count }))
+        .sort((a, b) => a.slug.localeCompare(b.slug)),
+      weeks: [...weeks].sort((a, b) => a - b),
+    };
   },
 });
 
@@ -239,10 +318,12 @@ export const createListing = mutation({
         originSiteSlug: args.originSiteSlug,
         communitySlug: args.communitySlug ?? existing.communitySlug,
         weekNumber: args.weekNumber ?? existing.weekNumber,
+        weekNumbers: expandWeeks(args.weekLabel ?? existing.weekLabel),
         year: args.year ?? existing.year,
         askingPrice: args.askingPrice,
         desiredWeekLabel: args.desiredWeekLabel,
         desiredWeekNumber: args.desiredWeekNumber,
+        desiredWeekNumbers: expandWeeks(args.desiredWeekLabel),
         desiredYear: args.desiredYear,
         notes: args.notes,
         contactName: contactName || existing.contactName,
@@ -254,10 +335,16 @@ export const createListing = mutation({
         closedAt: undefined,
         updatedAt: now,
       });
+      // Re-run matching: an edit can introduce a week nobody was told about.
+      await ctx.scheduler.runAfter(
+        0,
+        internal.marketplaceMatches.runForListing,
+        { listingId: existing._id }
+      );
       return existing._id;
     }
 
-    return await ctx.db.insert("marketplaceListings", {
+    const listingId = await ctx.db.insert("marketplaceListings", {
       pool: JOINT_POOL,
       originSiteSlug: args.originSiteSlug,
       kind: args.kind,
@@ -268,10 +355,12 @@ export const createListing = mutation({
       unitNumber: args.unitNumber,
       weekLabel: args.weekLabel,
       weekNumber: args.weekNumber,
+      weekNumbers: expandWeeks(args.weekLabel),
       year: args.year,
       askingPrice: args.askingPrice,
       desiredWeekLabel: args.desiredWeekLabel,
       desiredWeekNumber: args.desiredWeekNumber,
+      desiredWeekNumbers: expandWeeks(args.desiredWeekLabel),
       desiredYear: args.desiredYear,
       notes: args.notes,
       contactName: contactName || undefined,
@@ -282,6 +371,12 @@ export const createListing = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // Tell every owner who holds a week this listing is looking for.
+    await ctx.scheduler.runAfter(0, internal.marketplaceMatches.runForListing, {
+      listingId,
+    });
+    return listingId;
   },
 });
 
@@ -346,7 +441,16 @@ export const updateListing = mutation({
     // "Contact for price" has to be reachable from a listing that once had a
     // number, so an explicit clear is distinct from an omitted field.
     if (clearPrice) clean.askingPrice = undefined;
+    // Keep the derived week arrays in step with whatever label is now stored,
+    // otherwise an edited listing keeps answering filters for its old weeks.
+    if (args.weekLabel !== undefined)
+      clean.weekNumbers = expandWeeks(args.weekLabel);
+    if (args.desiredWeekLabel !== undefined)
+      clean.desiredWeekNumbers = expandWeeks(args.desiredWeekLabel);
     await ctx.db.patch(listingId, clean);
+    await ctx.scheduler.runAfter(0, internal.marketplaceMatches.runForListing, {
+      listingId,
+    });
     return null;
   },
 });
@@ -507,6 +611,8 @@ export const seedLegacyListings = internalMutation({
         unitNumber: v.optional(v.string()),
         weekLabel: v.optional(v.string()),
         weekNumber: v.optional(v.number()),
+        weekNumbers: v.optional(v.array(v.number())),
+        desiredWeekNumbers: v.optional(v.array(v.number())),
         askingPrice: v.optional(v.number()),
         desiredWeekLabel: v.optional(v.string()),
         notes: v.optional(v.string()),
@@ -558,6 +664,9 @@ export const seedLegacyListings = internalMutation({
         unitNumber: r.unitNumber,
         weekLabel: r.weekLabel,
         weekNumber: r.weekNumber,
+        weekNumbers: r.weekNumbers ?? expandWeeks(r.weekLabel),
+        desiredWeekNumbers:
+          r.desiredWeekNumbers ?? expandWeeks(r.desiredWeekLabel),
         askingPrice: r.askingPrice,
         desiredWeekLabel: r.desiredWeekLabel,
         notes: r.notes,
@@ -571,5 +680,32 @@ export const seedLegacyListings = internalMutation({
       });
     }
     return { inserted, skipped, dryRun: !!args.dryRun };
+  },
+});
+
+/**
+ * One-off: fill weekNumbers/desiredWeekNumbers on rows seeded before those
+ * fields existed. Idempotent — safe to re-run after any future import.
+ */
+export const backfillWeekNumbers = internalMutation({
+  args: {},
+  returns: v.object({ scanned: v.number(), updated: v.number() }),
+  handler: async (ctx) => {
+    const all = await ctx.db.query("marketplaceListings").collect();
+    let updated = 0;
+    for (const l of all) {
+      const weeks = expandWeeks(l.weekLabel);
+      const desired = expandWeeks(l.desiredWeekLabel);
+      const same = (a?: number[], b?: number[]) =>
+        JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
+      if (same(l.weekNumbers, weeks) && same(l.desiredWeekNumbers, desired))
+        continue;
+      await ctx.db.patch(l._id, {
+        weekNumbers: weeks,
+        desiredWeekNumbers: desired,
+      });
+      updated++;
+    }
+    return { scanned: all.length, updated };
   },
 });

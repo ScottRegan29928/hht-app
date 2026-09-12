@@ -35,4 +35,9 @@ crons.interval(
   {}
 );
 
+// Refresh rental photo URLs from HostAway daily. HostAway rotates its S3
+// objects, so stored URLs quietly start returning 403 and the site shows broken
+// images (118 dead URLs across 30 rentals, found 2026-09-12).
+crons.interval("sync-hostaway-photos", { hours: 24 }, internal.hostawayApi.syncPhotos, {});
+
 export default crons;

@@ -12,14 +12,18 @@ import {
   Info,
   MessageSquarePlus,
   Store,
+  BellRing,
 } from "lucide-react";
 import { useSiteFlags } from "@/lib/siteContext";
+import { resortTheme } from "@/components/owner/portalTheme";
 
 export function OwnerDashboardPage() {
   const stats = useQuery(api.owner.dashboardStats);
   const requests = useQuery(api.owner.listSaleRequests);
   const { siteSlug, siteName } = useSiteFlags();
   const portal = useQuery(api.ownerPortal.overview, { siteSlug });
+  const theme = resortTheme(siteSlug);
+  const matches = useQuery(api.marketplaceMatches.myMatches, {});
 
   if (stats === undefined) {
     return (
@@ -35,14 +39,74 @@ export function OwnerDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">
-          {portal?.viewerName ? `Welcome back, ${portal.viewerName}` : "Owner Portal"}
+      {/* A branded welcome band: the dashboard opened on plain white text and
+          read like a settings screen rather than somewhere pleasant to be. */}
+      <div
+        className="rounded-2xl px-6 py-7 text-white relative overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(105deg, ${theme.inkDeep} 0%, ${theme.ink} 100%)`,
+          boxShadow: `inset 4px 0 0 0 ${theme.accent}`,
+        }}
+      >
+        {/* A soft wash of the resort accent, rather than blending teal into
+            berry — that mid-tone came out muddy brown. */}
+        <div
+          className="absolute -right-20 -top-24 w-72 h-72 rounded-full opacity-25 blur-2xl"
+          style={{ background: theme.accent }}
+          aria-hidden="true"
+        />
+        <h1 className="text-2xl font-bold relative">
+          {portal?.viewerName
+            ? `Welcome back, ${portal.viewerName}`
+            : "Owner Portal"}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-white/75 mt-1 relative">
           Your ownership at {siteName}, all in one place.
         </p>
       </div>
+
+      {/* Match alerts get top billing — they are time-sensitive and the whole
+          reason the email was sent. */}
+      {!!matches?.length && (
+        <Link
+          to="/owner/marketplace"
+          className="flex items-start gap-3 rounded-xl border p-4 transition-colors hover:brightness-[0.98]"
+          style={{
+            background: theme.accentSoft,
+            borderColor: theme.accent + "44",
+          }}
+        >
+          <BellRing
+            className="w-5 h-5 shrink-0 mt-0.5"
+            style={{ color: theme.accentInk }}
+          />
+          <div className="min-w-0">
+            <p
+              className="text-sm font-semibold"
+              style={{ color: theme.accentInk }}
+            >
+              {matches.length === 1
+                ? "Another owner wants a week you own"
+                : `${matches.length} owners want weeks you own`}
+            </p>
+            <p className="text-xs mt-0.5 text-slate-600">
+              {matches
+                .slice(0, 2)
+                .map((m: any) =>
+                  m.kind === "trade"
+                    ? `Trade for week ${m.weekNumber}`
+                    : `Wants to buy week ${m.weekNumber}`
+                )
+                .join(" · ")}
+              {matches.length > 2 ? ` · +${matches.length - 2} more` : ""}
+            </p>
+          </div>
+          <ArrowRight
+            className="w-4 h-4 ml-auto shrink-0 mt-0.5"
+            style={{ color: theme.accentInk }}
+          />
+        </Link>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -50,26 +114,26 @@ export function OwnerDashboardPage() {
           icon={Calendar}
           label="Owned Weeks"
           value={stats.ownedWeeks}
-          color="bg-blue-500"
+          tint="bg-sky-50 text-sky-700 border-sky-100"
         />
         <StatCard
           icon={Tag}
           label="Listed for Sale"
           value={stats.listedForSale}
-          color="bg-purple-500"
+          tint="bg-emerald-50 text-emerald-700 border-emerald-100"
         />
         <StatCard
           icon={Clock}
           label="Pending Requests"
           value={stats.pendingRequests}
-          color="bg-amber-500"
+          tint="bg-amber-50 text-amber-700 border-amber-100"
         />
         <StatCard
           icon={MessageSquare}
           label="New Inquiries"
           value={stats.newInquiryCount}
           sublabel={`${stats.inquiryCount} total`}
-          color="bg-green-500"
+          tint="bg-violet-50 text-violet-700 border-violet-100"
         />
       </div>
 
@@ -77,7 +141,7 @@ export function OwnerDashboardPage() {
       <div className="grid sm:grid-cols-2 gap-4">
         <Link
           to="/owner/properties"
-          className="bg-background rounded-xl border p-5 hover:border-primary/30 hover:shadow-sm transition-all group"
+          className="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-300 hover:shadow-[0_8px_22px_-16px_rgba(16,27,46,0.45)] transition-all group"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -91,7 +155,7 @@ export function OwnerDashboardPage() {
         </Link>
         <Link
           to="/owner/inquiries"
-          className="bg-background rounded-xl border p-5 hover:border-primary/30 hover:shadow-sm transition-all group"
+          className="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-300 hover:shadow-[0_8px_22px_-16px_rgba(16,27,46,0.45)] transition-all group"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -148,7 +212,7 @@ export function OwnerDashboardPage() {
 
       {/* Recent sale requests */}
       {recentRequests.length > 0 && (
-        <div className="bg-background rounded-xl border">
+        <div className="bg-white rounded-xl border border-slate-200">
           <div className="px-5 py-4 border-b">
             <h2 className="font-semibold">Recent Sale Requests</h2>
           </div>
@@ -194,11 +258,11 @@ function TileLink({
   return (
     <Link
       to={to}
-      className="bg-background rounded-xl border p-4 hover:border-primary/30 hover:shadow-sm transition-all"
+      className="bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 hover:shadow-[0_8px_22px_-16px_rgba(16,27,46,0.45)] transition-all"
     >
-      <Icon className="w-4.5 h-4.5 text-muted-foreground mb-2.5" />
-      <div className="font-medium text-sm">{title}</div>
-      <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>
+      <Icon className="w-4.5 h-4.5 text-slate-400 mb-2.5" />
+      <div className="font-medium text-sm text-slate-800">{title}</div>
+      <div className="text-xs text-slate-500 mt-0.5">{sub}</div>
     </Link>
   );
 }
@@ -208,26 +272,26 @@ function StatCard({
   label,
   value,
   sublabel,
-  color,
+  tint,
 }: {
   icon: any;
   label: string;
   value: number;
   sublabel?: string;
-  color: string;
+  /** Tinted chip rather than a saturated block: four solid squares in a row
+      competed with the content underneath them. */
+  tint: string;
 }) {
   return (
-    <div className="bg-background rounded-xl border p-4">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-[0_1px_2px_rgba(16,27,46,0.05)]">
       <div
-        className={`w-9 h-9 rounded-lg ${color} flex items-center justify-center mb-3`}
+        className={`w-9 h-9 rounded-lg border flex items-center justify-center mb-3 ${tint}`}
       >
-        <Icon className="w-4.5 h-4.5 text-white" />
+        <Icon className="w-4.5 h-4.5" />
       </div>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-sm text-muted-foreground">{label}</div>
-      {sublabel && (
-        <div className="text-xs text-muted-foreground">{sublabel}</div>
-      )}
+      <div className="text-2xl font-bold text-slate-900">{value}</div>
+      <div className="text-sm text-slate-500">{label}</div>
+      {sublabel && <div className="text-xs text-slate-400">{sublabel}</div>}
     </div>
   );
 }
