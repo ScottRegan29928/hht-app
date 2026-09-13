@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../../convex/_generated/api";
 import { useSiteBrand } from "@/lib/siteContext";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { KeyRound, ShieldCheck, Eye, EyeOff } from "lucide-react";
 
 /**
  * Owner activation from an emailed invitation.
@@ -28,6 +28,7 @@ export function OwnerActivatePage() {
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,9 +93,11 @@ export function OwnerActivatePage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-xl font-semibold">
-            {brand.wordmarkTop ?? "Owner Portal"}
-          </h1>
+          <img
+            src="/brand/cgl/logo-color.png"
+            alt="The Club Group"
+            className="h-[72px] w-auto mx-auto"
+          />
         </div>
         <div className="bg-background border rounded-xl p-6 shadow-sm">
           {children}
@@ -159,13 +162,27 @@ export function OwnerActivatePage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1.5">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            className="w-full px-3 py-2 border rounded-lg bg-background"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              className="w-full px-3 py-2 pr-10 border rounded-lg bg-background"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground mt-1">
             At least {MIN_LENGTH} characters. A short phrase you will remember
             beats a short password.
@@ -175,13 +192,27 @@ export function OwnerActivatePage() {
           <label className="block text-sm font-medium mb-1.5">
             Confirm password
           </label>
-          <input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            autoComplete="new-password"
-            className="w-full px-3 py-2 border rounded-lg bg-background"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+              className="w-full px-3 py-2 pr-10 border rounded-lg bg-background"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          </div>
         </div>
 
         {error && (

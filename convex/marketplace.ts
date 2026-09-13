@@ -686,6 +686,14 @@ export const deleteListing = mutation({
     if (listing.ownerProfileId !== profile._id) {
       throw new Error("You can only remove your own listings");
     }
+    // A closed listing is the record of a completed sale or trade and can
+    // never be deleted [scott, 2026-09-13]. Enforced here rather than only in
+    // the UI, because the UI is not what protects the record.
+    if (listing.status === "closed") {
+      throw new Error(
+        "Completed sales and trades are a permanent record and cannot be deleted.",
+      );
+    }
     await ctx.db.delete(args.listingId);
     return null;
   },

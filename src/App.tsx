@@ -30,6 +30,7 @@ import { OwnerDocumentsPage } from "./pages/owner/DocumentsPage";
 import { OwnerBoardPage } from "./pages/owner/BoardPage";
 import { OwnerResortInfoPage } from "./pages/owner/ResortInfoPage";
 import { OwnerCommentCardPage } from "./pages/owner/CommentCardPage";
+import { OwnerAccountPage } from "./pages/owner/AccountPage";
 import { OwnerActivatePage } from "./pages/owner/ActivatePage";
 import { AccountPage } from "./pages/admin/AccountPage";
 import { OwnersPage } from "./pages/admin/OwnersPage";
@@ -133,6 +134,7 @@ export default function App() {
             <Route path="board" element={<OwnerBoardPage />} />
             <Route path="resort" element={<OwnerResortInfoPage />} />
             <Route path="comment-card" element={<OwnerCommentCardPage />} />
+            <Route path="account" element={<OwnerAccountPage />} />
           </Route>
         </Routes>
         <Toaster position="bottom-right" richColors />

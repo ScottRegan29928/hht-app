@@ -54,7 +54,11 @@ const navGroups: {
       { label: "Documents", path: "/owner/documents", icon: FileText },
       { label: "Board", path: "/owner/board", icon: Users },
       { label: "Resort Info", path: "/owner/resort", icon: Info },
-      { label: "Comment Card", path: "/owner/comment-card", icon: MessageSquarePlus },
+      {
+        label: "Comment Card",
+        path: "/owner/comment-card",
+        icon: MessageSquarePlus,
+      },
     ],
   },
 ];
@@ -82,7 +86,7 @@ export function OwnerLayout() {
   // signed-out /owner/* routes.
   const portal = useQuery(
     api.ownerPortal.getSettings,
-    currentUser ? { siteSlug } : "skip"
+    currentUser ? { siteSlug } : "skip",
   );
   const claimProfile = useMutation(api.owner.claimProfile);
   const location = useLocation();
@@ -94,7 +98,7 @@ export function OwnerLayout() {
   // Match alerts: someone wants a week this owner holds [scott, 2026-09-12].
   const unread = useQuery(
     api.marketplaceMatches.unreadCount,
-    currentUser ? {} : "skip"
+    currentUser ? {} : "skip",
   );
 
   // Auto-link profile when needsLink is true (new signup matching existing owner email)
@@ -133,7 +137,8 @@ export function OwnerLayout() {
             Sign In
           </Link>
           <p className="text-xs text-muted-foreground mt-4">
-            If you were using the admin portal, you'll need to sign in separately here.
+            If you were using the admin portal, you'll need to sign in
+            separately here.
           </p>
         </div>
       </div>
@@ -284,7 +289,9 @@ export function OwnerLayout() {
             <button
               onClick={() => setAlertsOpen((v) => !v)}
               aria-label={
-                unread ? `${unread} new marketplace alerts` : "Marketplace alerts"
+                unread
+                  ? `${unread} new marketplace alerts`
+                  : "Marketplace alerts"
               }
               aria-expanded={alertsOpen}
               className="relative w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
@@ -307,20 +314,32 @@ export function OwnerLayout() {
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 pl-1">
-            <span
-              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white"
-              style={{ background: theme.ink }}
-            >
-              {(currentUser.displayName ?? currentUser.email ?? "O")
-                .trim()
-                .charAt(0)
-                .toUpperCase()}
-            </span>
+          <Link
+            to="/owner/account"
+            title="My account"
+            className="flex items-center gap-2.5 pl-1 rounded-lg px-1.5 py-1 hover:bg-slate-100 transition-colors"
+          >
+            {(currentUser as any).avatarUrl ? (
+              <img
+                src={(currentUser as any).avatarUrl}
+                alt=""
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <span
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white"
+                style={{ background: theme.ink }}
+              >
+                {(currentUser.displayName ?? currentUser.email ?? "O")
+                  .trim()
+                  .charAt(0)
+                  .toUpperCase()}
+              </span>
+            )}
             <span className="text-sm font-medium text-slate-700 hidden sm:block">
               {currentUser.displayName ?? currentUser.email ?? "Owner"}
             </span>
-          </div>
+          </Link>
         </header>
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">

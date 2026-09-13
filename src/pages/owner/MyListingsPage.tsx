@@ -255,7 +255,7 @@ export function OwnerMyListingsPage() {
       await setStatus({ listingId, status });
       toast.success(
         status === "closed"
-          ? "Marked as closed"
+          ? "Listing marked as closed"
           : status === "withdrawn"
             ? "Listing withdrawn"
             : "Listing reposted for another year",
@@ -591,7 +591,11 @@ export function OwnerMyListingsPage() {
                           onClick={() => changeStatus(l._id, "closed")}
                           className="text-xs font-medium px-2.5 py-1.5 rounded border hover:bg-muted"
                         >
-                          Mark closed
+                          {l.kind === "trade"
+                            ? "Mark as traded"
+                            : l.kind === "want_to_buy"
+                              ? "Mark as filled"
+                              : "Mark as sold"}
                         </button>
                         <button
                           onClick={() => changeStatus(l._id, "withdrawn")}

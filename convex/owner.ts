@@ -42,8 +42,14 @@ export const currentUser = query({
       .query("userProfiles")
       .withIndex("by_userId", (q: any) => q.eq("userId", userId))
       .first();
-    if (profile && profile.role === "owner")
-      return { ...profile, needsLink: false };
+    if (profile && profile.role === "owner") {
+      // Resolve the avatar to a URL here so every surface that already reads
+      // currentUser (header, listing cards) picks up the photo for free.
+      const avatarUrl = profile.avatarStorageId
+        ? await ctx.storage.getUrl(profile.avatarStorageId)
+        : null;
+      return { ...profile, avatarUrl, needsLink: false };
+    }
 
     // Second: check by email (pre-registered owner who just signed up)
     const authUser = await ctx.db.get(userId);
