@@ -227,6 +227,26 @@ export function OwnerMyListingsPage() {
     }
   };
 
+  // Permanent delete, offered only on a listing the owner has already
+  // withdrawn — deliberately not on active or closed ones, so a hard delete is
+  // never one click away from a live listing or a completed sale record
+  // [scott, 2026-09-13].
+  const handleDelete = async (listingId: Id<"marketplaceListings">) => {
+    if (
+      !window.confirm(
+        "Delete this withdrawn listing permanently? This cannot be undone.",
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteListing({ listingId });
+      toast.success("Listing deleted");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not delete the listing.");
+    }
+  };
+
   const changeStatus = async (
     listingId: Id<"marketplaceListings">,
     status: "active" | "closed" | "withdrawn",
@@ -581,12 +601,22 @@ export function OwnerMyListingsPage() {
                         </button>
                       </>
                     ) : (
-                      <button
-                        onClick={() => changeStatus(l._id, "active")}
-                        className="text-xs font-medium px-2.5 py-1.5 rounded border hover:bg-muted"
-                      >
-                        Repost
-                      </button>
+                      <>
+                        <button
+                          onClick={() => changeStatus(l._id, "active")}
+                          className="text-xs font-medium px-2.5 py-1.5 rounded border hover:bg-muted"
+                        >
+                          Repost
+                        </button>
+                        {l.status === "withdrawn" && (
+                          <button
+                            onClick={() => handleDelete(l._id)}
+                            className="text-xs font-medium px-2.5 py-1.5 rounded border border-destructive/40 text-destructive hover:bg-destructive/10"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 }
