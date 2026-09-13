@@ -206,6 +206,7 @@ export const listOwnedWeeks = query({
           // week, and the ownership check on the server matches on both.
           unitNumber: property?.unitNumber,
           communityName: community?.name ?? "Unknown",
+          communitySlug: (community as any)?.slug ?? null,
           bedrooms: property?.bedrooms,
           bathrooms: property?.bathrooms,
           photoUrl,

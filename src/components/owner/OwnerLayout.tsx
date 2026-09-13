@@ -20,6 +20,7 @@ import {
   Vote,
   Bell,
   Sparkles,
+  Megaphone,
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, useEffect, useRef } from "react";
@@ -92,6 +93,8 @@ export function OwnerLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuthActions();
+  // Admin-managed top-of-page notices for this community [scott, 2026-09-13].
+  const notices = useQuery(api.ownerNotices.listActive, { siteSlug }) ?? [];
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const claimedRef = useRef(false);
@@ -166,7 +169,8 @@ export function OwnerLayout() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:static inset-y-0 left-0 z-50
+          fixed lg:sticky inset-y-0 lg:top-0 left-0 z-50
+          lg:h-screen lg:shrink-0
           w-64 text-white flex flex-col
           transform transition-transform duration-200
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -209,7 +213,7 @@ export function OwnerLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
+        <nav className="flex-1 min-h-0 p-3 space-y-4 overflow-y-auto">
           {groups.map((group, gi) => (
             <div key={group.heading ?? `group-${gi}`} className="space-y-1">
               {group.heading && (
@@ -343,6 +347,47 @@ export function OwnerLayout() {
         </header>
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
+          {notices.map((n: any) => {
+            const accent =
+              n.tone === "alert"
+                ? "#B3261E"
+                : n.tone === "success"
+                  ? "#1B7F4B"
+                  : theme.accent;
+            const inner = (
+              <>
+                <Megaphone className="w-5 h-5 shrink-0" />
+                <span className="text-sm font-semibold">{n.message}</span>
+                {n.linkLabel && (
+                  <span className="ml-auto text-sm underline shrink-0">
+                    {n.linkLabel}
+                  </span>
+                )}
+              </>
+            );
+            const cls =
+              "flex items-center gap-3 mb-5 px-4 py-3 rounded-xl text-white shadow-sm";
+            const style = {
+              backgroundImage: `linear-gradient(100deg, ${theme.inkDeep} 0%, ${theme.ink} 100%)`,
+              boxShadow: `inset 4px 0 0 0 ${accent}`,
+            };
+            return n.linkUrl ? (
+              <a
+                key={n._id}
+                href={n.linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${cls} hover:brightness-110 transition-all`}
+                style={style}
+              >
+                {inner}
+              </a>
+            ) : (
+              <div key={n._id} className={cls} style={style}>
+                {inner}
+              </div>
+            );
+          })}
           {portal?.votingEnabled && portal.votingUrl && (
             <a
               href={portal.votingUrl}

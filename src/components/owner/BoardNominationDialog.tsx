@@ -43,6 +43,9 @@ export function BoardNominationDialog({
   const [form, setForm] = useState({
     name: "",
     address: "",
+    city: "",
+    state: "",
+    zip: "",
     villaWeek: "",
     occupation: "",
     homePhone: "",
@@ -69,9 +72,22 @@ export function BoardNominationDialog({
     "";
   const name = form.name || displayName;
   const email = form.email || me?.email || "";
-  const villaOptions = (ownedWeeks ?? []).map(
-    (w: any) => `${w.propertyAddress} — Week ${w.weekNumber}`,
-  );
+  // Address and phone come from the owner's account [scott, 2026-09-13];
+  // `??` is wrong here because the stored value may be an empty string.
+  const address = form.address || me?.homeAddress || "";
+  const city = form.city || me?.homeCity || "";
+  const stateVal = form.state || me?.homeState || "";
+  const zip = form.zip || me?.homePostalCode || "";
+  const homePhone = form.homePhone || me?.phone || "";
+
+  // The nomination form belongs to one association, so it must only offer the
+  // weeks this owner holds in *this* resort. An owner with weeks in both
+  // communities was shown all of them [scott, 2026-09-13].
+  const communitySlug =
+    siteSlug === "swallowtail" ? "swallowtail-at-sea-pines" : "spicebush";
+  const villaOptions = (ownedWeeks ?? [])
+    .filter((w: any) => w.communitySlug === communitySlug)
+    .map((w: any) => `${w.propertyAddress} — Week ${w.weekNumber}`);
 
   const wordCount = form.profile.trim()
     ? form.profile.trim().split(/\s+/).length
@@ -97,10 +113,13 @@ export function BoardNominationDialog({
     // The paper form is one page of labelled answers; keep that shape so the
     // recipient reads something familiar rather than a JSON blob.
     const message = [
-      ["Address", form.address],
+      ["Address", address],
+      ["City", city],
+      ["State", stateVal],
+      ["ZIP", zip],
       ["Villa/Week", form.villaWeek],
       ["Occupation", form.occupation],
-      ["Home phone", form.homePhone],
+      ["Home phone", homePhone],
       ["Office phone", form.officePhone],
       ["Relevant experience", form.experience],
       ["How participation would benefit the Association", form.benefit],
@@ -120,7 +139,7 @@ export function BoardNominationDialog({
         siteSlug,
         name: name.trim(),
         email: email.trim(),
-        phone: form.homePhone.trim() || form.officePhone.trim() || undefined,
+        phone: homePhone.trim() || form.officePhone.trim() || undefined,
         message,
       });
       toast.success("Your volunteer form has been submitted. Thank you.");
@@ -198,14 +217,45 @@ export function BoardNominationDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Address</label>
-            <textarea
-              value={form.address}
+            <label className="block text-sm font-medium mb-1.5">
+              Street address
+            </label>
+            <input
+              value={address}
               onChange={set("address")}
-              rows={2}
               className={field}
               style={ring}
             />
+          </div>
+
+          <div className="grid sm:grid-cols-[2fr_1fr_1fr] gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">City</label>
+              <input
+                value={city}
+                onChange={set("city")}
+                className={field}
+                style={ring}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">State</label>
+              <input
+                value={stateVal}
+                onChange={set("state")}
+                className={field}
+                style={ring}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">ZIP</label>
+              <input
+                value={zip}
+                onChange={set("zip")}
+                className={field}
+                style={ring}
+              />
+            </div>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -254,7 +304,7 @@ export function BoardNominationDialog({
                 Home phone
               </label>
               <input
-                value={form.homePhone}
+                value={homePhone}
                 onChange={set("homePhone")}
                 className={field}
                 style={ring}

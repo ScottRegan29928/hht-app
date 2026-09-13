@@ -845,6 +845,24 @@ const schema = defineSchema({
     createdAt: v.number(),
   }).index("by_site", ["siteSlug"]),
 
+  // Dismissible banners across the top of the owner portal, managed per
+  // community in the admin portal [scott, 2026-09-13]. The voting banner is
+  // just one instance of these.
+  ownerPortalNotices: defineTable({
+    siteSlug: v.string(),
+    message: v.string(),
+    linkLabel: v.optional(v.string()),
+    linkUrl: v.optional(v.string()),
+    tone: v.optional(v.string()), // "info" | "alert" | "success"
+    enabled: v.boolean(),
+    // Optional scheduling window; empty means "show whenever enabled".
+    startsAt: v.optional(v.number()),
+    endsAt: v.optional(v.number()),
+    sortOrder: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_site", ["siteSlug"]),
+
 });
 
 export default schema;

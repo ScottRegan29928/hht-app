@@ -21,7 +21,7 @@ import {
  * general SitePicker.
  */
 
-type Tab = "documents" | "board" | "settings";
+type Tab = "documents" | "board" | "notifications" | "settings";
 
 const PORTAL_SITES = [
   { slug: "swallowtail", label: "Swallowtail" },
@@ -69,23 +69,26 @@ export function AdminOwnerPortalPage() {
       </div>
 
       <div className="flex gap-1.5 border-b">
-        {(["documents", "board", "settings"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 -mb-px transition-colors ${
-              tab === t
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+        {(["documents", "board", "notifications", "settings"] as Tab[]).map(
+          (t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 -mb-px transition-colors ${
+                tab === t
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t}
+            </button>
+          ),
+        )}
       </div>
 
       {tab === "documents" && <DocumentsTab siteSlug={siteSlug} />}
       {tab === "board" && <BoardTab siteSlug={siteSlug} />}
+      {tab === "notifications" && <NotificationsTab siteSlug={siteSlug} />}
       {tab === "settings" && <SettingsTab siteSlug={siteSlug} />}
     </div>
   );
@@ -126,9 +129,7 @@ function DocumentsTab({ siteSlug }: { siteSlug: string }) {
         category,
         title: title.trim(),
         storageId,
-        documentDate: year
-          ? Date.UTC(Number(year), 0, 1)
-          : undefined,
+        documentDate: year ? Date.UTC(Number(year), 0, 1) : undefined,
         published: true,
       });
       toast.success("Document added");
@@ -177,7 +178,9 @@ function DocumentsTab({ siteSlug }: { siteSlug: string }) {
             <label className="block text-sm font-medium mb-1.5">Year</label>
             <input
               value={year}
-              onChange={(e) => setYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              onChange={(e) =>
+                setYear(e.target.value.replace(/\D/g, "").slice(0, 4))
+              }
               placeholder="2026"
               className="w-full px-3 py-2 border rounded-lg bg-background text-sm"
             />
@@ -247,7 +250,9 @@ function DocumentsTab({ siteSlug }: { siteSlug: string }) {
                     title: d.title,
                     published: !d.published,
                   }).then(() =>
-                    toast.success(d.published ? "Hidden from owners" : "Visible to owners")
+                    toast.success(
+                      d.published ? "Hidden from owners" : "Visible to owners",
+                    ),
                   )
                 }
                 className="text-muted-foreground hover:text-foreground"
@@ -262,7 +267,9 @@ function DocumentsTab({ siteSlug }: { siteSlug: string }) {
               <button
                 onClick={() => {
                   if (!confirm(`Delete “${d.title}”?`)) return;
-                  void remove({ id: d._id }).then(() => toast.success("Deleted"));
+                  void remove({ id: d._id }).then(() =>
+                    toast.success("Deleted"),
+                  );
                 }}
                 className="text-red-600 hover:text-red-700"
                 title="Delete"
@@ -338,7 +345,9 @@ function BoardTab({ siteSlug }: { siteSlug: string }) {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {[
-                    m.termStart && m.termEnd ? `${m.termStart}–${m.termEnd}` : null,
+                    m.termStart && m.termEnd
+                      ? `${m.termStart}–${m.termEnd}`
+                      : null,
                     m.termNote,
                     m.holdings,
                     m.email,
@@ -350,7 +359,9 @@ function BoardTab({ siteSlug }: { siteSlug: string }) {
               <button
                 onClick={() => {
                   if (!confirm(`Remove ${m.name} from the board?`)) return;
-                  void remove({ id: m._id }).then(() => toast.success("Removed"));
+                  void remove({ id: m._id }).then(() =>
+                    toast.success("Removed"),
+                  );
                 }}
                 className="text-red-600 hover:text-red-700"
               >
@@ -364,7 +375,11 @@ function BoardTab({ siteSlug }: { siteSlug: string }) {
       <div className="border rounded-xl p-5">
         <h3 className="font-semibold mb-3">Add a board member</h3>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Text label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+          <Text
+            label="Name"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
+          />
           <Text
             label="Position"
             placeholder="President"
@@ -387,13 +402,20 @@ function BoardTab({ siteSlug }: { siteSlug: string }) {
               label="Term start"
               placeholder="2024"
               value={form.termStart}
-              onChange={(v) => setForm({ ...form, termStart: v.replace(/\D/g, "").slice(0, 4) })}
+              onChange={(v) =>
+                setForm({
+                  ...form,
+                  termStart: v.replace(/\D/g, "").slice(0, 4),
+                })
+              }
             />
             <Text
               label="Term end"
               placeholder="2027"
               value={form.termEnd}
-              onChange={(v) => setForm({ ...form, termEnd: v.replace(/\D/g, "").slice(0, 4) })}
+              onChange={(v) =>
+                setForm({ ...form, termEnd: v.replace(/\D/g, "").slice(0, 4) })
+              }
             />
           </div>
           <Text
@@ -411,6 +433,277 @@ function BoardTab({ siteSlug }: { siteSlug: string }) {
           Add member
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────
+
+const TONES = [
+  { key: "info", label: "Info" },
+  { key: "alert", label: "Alert" },
+  { key: "success", label: "Good news" },
+];
+
+const toDateInput = (ms?: number) =>
+  ms ? new Date(ms).toISOString().slice(0, 10) : "";
+// Parsed as local midnight so an admin picking "the 20th" does not get the
+// 19th in Eastern time, which `new Date("YYYY-MM-DD")` (UTC) would give.
+const fromDateInput = (s: string) => {
+  if (!s) return undefined;
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d).getTime();
+};
+const endOfDay = (s: string) => {
+  const t = fromDateInput(s);
+  return t === undefined ? undefined : t + 86_399_999;
+};
+
+const BLANK = {
+  id: undefined as any,
+  message: "",
+  linkLabel: "",
+  linkUrl: "",
+  tone: "info",
+  enabled: true,
+  startsAt: "",
+  endsAt: "",
+};
+
+function NotificationsTab({ siteSlug }: { siteSlug: string }) {
+  const notices = useQuery(api.ownerNotices.adminList, { siteSlug });
+  const upsert = useMutation(api.ownerNotices.upsert);
+  const setEnabled = useMutation(api.ownerNotices.setEnabled);
+  const remove = useMutation(api.ownerNotices.remove);
+  const [form, setForm] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+
+  const edit = (n: any) =>
+    setForm({
+      id: n._id,
+      message: n.message,
+      linkLabel: n.linkLabel ?? "",
+      linkUrl: n.linkUrl ?? "",
+      tone: n.tone ?? "info",
+      enabled: n.enabled,
+      startsAt: toDateInput(n.startsAt),
+      endsAt: toDateInput(n.endsAt),
+    });
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await upsert({
+        id: form.id,
+        siteSlug,
+        message: form.message,
+        linkLabel: form.linkLabel || undefined,
+        linkUrl: form.linkUrl || undefined,
+        tone: form.tone,
+        enabled: form.enabled,
+        startsAt: fromDateInput(form.startsAt),
+        endsAt: endOfDay(form.endsAt),
+      });
+      toast.success(form.id ? "Notice updated" : "Notice added");
+      setForm(null);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not save that notice.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const field =
+    "w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Banners across the top of every page of this community&rsquo;s owner
+          portal. Owners of the other community do not see them.
+        </p>
+        {!form && (
+          <button
+            onClick={() => setForm({ ...BLANK })}
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
+          >
+            Add notice
+          </button>
+        )}
+      </div>
+
+      {form && (
+        <div className="border rounded-xl p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Message</label>
+            <input
+              value={form.message}
+              onChange={(e) => setForm({ ...form, message: e.target.value })}
+              placeholder="Voting is now open"
+              className={field}
+            />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">
+                Link text{" "}
+                <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <input
+                value={form.linkLabel}
+                onChange={(e) =>
+                  setForm({ ...form, linkLabel: e.target.value })
+                }
+                placeholder="Cast your vote"
+                className={field}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">
+                Link URL{" "}
+                <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <input
+                value={form.linkUrl}
+                onChange={(e) => setForm({ ...form, linkUrl: e.target.value })}
+                placeholder="https://…"
+                className={field}
+              />
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Style</label>
+              <select
+                value={form.tone}
+                onChange={(e) => setForm({ ...form, tone: e.target.value })}
+                className={field}
+              >
+                {TONES.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">
+                Show from{" "}
+                <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <input
+                type="date"
+                value={form.startsAt}
+                onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+                className={field}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">
+                Show until{" "}
+                <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <input
+                type="date"
+                value={form.endsAt}
+                onChange={(e) => setForm({ ...form, endsAt: e.target.value })}
+                className={field}
+              />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.enabled}
+              onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+            />
+            Live
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={save}
+              disabled={busy || !form.message.trim()}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+            >
+              {busy ? "Saving…" : form.id ? "Save changes" : "Add notice"}
+            </button>
+            <button
+              onClick={() => setForm(null)}
+              className="px-4 py-2 rounded-lg border text-sm font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {notices === undefined ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : notices.length === 0 ? (
+        <p className="text-sm text-muted-foreground border rounded-xl p-5">
+          No notices yet for this community.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {notices.map((n: any) => (
+            <div
+              key={n._id}
+              className="border rounded-xl p-4 flex items-start gap-3"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium">{n.message}</span>
+                  <span
+                    className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
+                      n.isLive
+                        ? "bg-green-100 text-green-800"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {n.isLive ? "Showing now" : "Not showing"}
+                  </span>
+                </div>
+                {n.linkLabel && (
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {n.linkLabel} → {n.linkUrl}
+                  </p>
+                )}
+                {(n.startsAt || n.endsAt) && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {n.startsAt ? toDateInput(n.startsAt) : "any time"} –{" "}
+                    {n.endsAt ? toDateInput(n.endsAt) : "no end"}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setEnabled({ id: n._id, enabled: !n.enabled })}
+                  className="px-3 py-1.5 rounded-lg border text-xs font-semibold"
+                >
+                  {n.enabled ? "Turn off" : "Turn on"}
+                </button>
+                <button
+                  onClick={() => edit(n)}
+                  className="px-3 py-1.5 rounded-lg border text-xs font-semibold"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm("Delete this notice?")) return;
+                    await remove({ id: n._id });
+                    toast.success("Notice deleted");
+                  }}
+                  className="px-3 py-1.5 rounded-lg border text-xs font-semibold text-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -470,7 +763,10 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
         rentIntro: f.rentIntro || undefined,
         rentContactName: f.rentContactName || undefined,
         rentContactPhones: f.rentContactPhones
-          ? f.rentContactPhones.split(",").map((p: string) => p.trim()).filter(Boolean)
+          ? f.rentContactPhones
+              .split(",")
+              .map((p: string) => p.trim())
+              .filter(Boolean)
           : undefined,
         hoaSalesIntro: f.hoaSalesIntro || undefined,
         hoaSalesContactName: f.hoaSalesContactName || undefined,
@@ -516,7 +812,10 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
 
   return (
     <div className="space-y-5">
-      <Section title="Voting banner" hint="Shows across the top of every portal page while open.">
+      <Section
+        title="Voting banner"
+        hint="Shows across the top of every portal page while open."
+      >
         <label className="flex items-center gap-2.5 text-sm">
           <input
             type="checkbox"
@@ -528,8 +827,16 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
         </label>
         {f.votingEnabled && (
           <div className="grid gap-3 sm:grid-cols-2 mt-3">
-            <Text label="Banner text" value={f.votingLabel} onChange={set("votingLabel")} />
-            <Text label="Voting link" value={f.votingUrl} onChange={set("votingUrl")} />
+            <Text
+              label="Banner text"
+              value={f.votingLabel}
+              onChange={set("votingLabel")}
+            />
+            <Text
+              label="Voting link"
+              value={f.votingUrl}
+              onChange={set("votingUrl")}
+            />
           </div>
         )}
       </Section>
@@ -537,7 +844,11 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
       <Section title="Renting an additional week">
         <Area label="Intro" value={f.rentIntro} onChange={set("rentIntro")} />
         <div className="grid gap-3 sm:grid-cols-2">
-          <Text label="Contact name" value={f.rentContactName} onChange={set("rentContactName")} />
+          <Text
+            label="Contact name"
+            value={f.rentContactName}
+            onChange={set("rentContactName")}
+          />
           <Text
             label="Phone numbers"
             hint="Comma separated"
@@ -548,16 +859,39 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
       </Section>
 
       <Section title="Association weeks for sale">
-        <Area label="Intro" value={f.hoaSalesIntro} onChange={set("hoaSalesIntro")} />
+        <Area
+          label="Intro"
+          value={f.hoaSalesIntro}
+          onChange={set("hoaSalesIntro")}
+        />
         <div className="grid gap-3 sm:grid-cols-3">
-          <Text label="Contact" value={f.hoaSalesContactName} onChange={set("hoaSalesContactName")} />
-          <Text label="Phone" value={f.hoaSalesContactPhone} onChange={set("hoaSalesContactPhone")} />
-          <Text label="Email" value={f.hoaSalesContactEmail} onChange={set("hoaSalesContactEmail")} />
+          <Text
+            label="Contact"
+            value={f.hoaSalesContactName}
+            onChange={set("hoaSalesContactName")}
+          />
+          <Text
+            label="Phone"
+            value={f.hoaSalesContactPhone}
+            onChange={set("hoaSalesContactPhone")}
+          />
+          <Text
+            label="Email"
+            value={f.hoaSalesContactEmail}
+            onChange={set("hoaSalesContactEmail")}
+          />
         </div>
       </Section>
 
-      <Section title="Comment card & regime managers" hint="Comment cards are emailed to the routing address below.">
-        <Area label="Intro" value={f.commentCardIntro} onChange={set("commentCardIntro")} />
+      <Section
+        title="Comment card & regime managers"
+        hint="Comment cards are emailed to the routing address below."
+      >
+        <Area
+          label="Intro"
+          value={f.commentCardIntro}
+          onChange={set("commentCardIntro")}
+        />
         <Area
           label="Managers"
           hint="One per line: Name <email@example.com>"
@@ -565,14 +899,26 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
           onChange={set("regimeManagers")}
         />
         <div className="grid gap-3 sm:grid-cols-3">
-          <Text label="Phone" value={f.regimePhone} onChange={set("regimePhone")} />
+          <Text
+            label="Phone"
+            value={f.regimePhone}
+            onChange={set("regimePhone")}
+          />
           <Text label="Fax" value={f.regimeFax} onChange={set("regimeFax")} />
-          <Text label="Routing email" value={f.regimeEmail} onChange={set("regimeEmail")} />
+          <Text
+            label="Routing email"
+            value={f.regimeEmail}
+            onChange={set("regimeEmail")}
+          />
         </div>
       </Section>
 
       <Section title="Hurricane & weather links">
-        <Area label="Intro" value={f.weatherIntro} onChange={set("weatherIntro")} />
+        <Area
+          label="Intro"
+          value={f.weatherIntro}
+          onChange={set("weatherIntro")}
+        />
         <Area
           label="Links"
           hint="One per line: Label | https://url"
@@ -582,7 +928,11 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
       </Section>
 
       <Section title="Internal trades" hint="Shown on the trade listing form.">
-        <Area label="Trade fee note" value={f.tradeFeeNote} onChange={set("tradeFeeNote")} />
+        <Area
+          label="Trade fee note"
+          value={f.tradeFeeNote}
+          onChange={set("tradeFeeNote")}
+        />
       </Section>
 
       <button

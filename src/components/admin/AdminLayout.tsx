@@ -54,7 +54,10 @@ export function AdminLayout() {
     setCachedUser(currentUser);
   }
 
-  const user = currentUser ?? cachedUser;
+  // `undefined` means still loading (use the cache to avoid a flash); `null`
+  // means signed out and must NOT fall back to the cached user, or the admin
+  // UI keeps rendering for a signed-out session [scott, 2026-09-13].
+  const user = currentUser !== undefined ? currentUser : cachedUser;
 
   // Loading — only show on first load, not during navigation
   if (user === undefined) {

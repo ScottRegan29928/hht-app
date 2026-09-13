@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -26,12 +26,24 @@ export function AdminLoginPage() {
   const [notice, setNotice] = useState("");
   const [mode, setMode] = useState<Mode>("signIn");
 
-  // If already logged in as admin, redirect
+  // If already signed in as an admin, skip the form and go to the dashboard.
+  //
+  // Must be gated on `isAuthenticated` and run in an effect, not during
+  // render: signing out navigates here while the `currentUser` query still
+  // holds its last authenticated result for a tick, and redirecting on that
+  // stale value bounced the user back to /management as a signed-out user,
+  // which looks like a dead URL [scott, 2026-09-13].
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const adminRoles = ["admin", "admin_user", "admin_rental", "admin_sales"];
-  if (currentUser?.profile?.role && adminRoles.includes(currentUser.profile.role)) {
-    navigate("/management");
-    return null;
-  }
+  const isSignedInAdmin =
+    isAuthenticated &&
+    !authLoading &&
+    !!currentUser?.profile?.role &&
+    adminRoles.includes(currentUser.profile.role);
+
+  useEffect(() => {
+    if (isSignedInAdmin) navigate("/management", { replace: true });
+  }, [isSignedInAdmin, navigate]);
 
   const switchMode = (next: Mode) => {
     setMode(next);
@@ -55,7 +67,9 @@ export function AdminLoginPage() {
       if (mode === "reset") {
         await signIn("password", { email, flow: "reset" });
         setMode("resetVerify");
-        setNotice(`We sent a reset code to ${email}. It expires in 20 minutes.`);
+        setNotice(
+          `We sent a reset code to ${email}. It expires in 20 minutes.`,
+        );
         return;
       }
 
@@ -73,12 +87,14 @@ export function AdminLoginPage() {
       } else if (mode === "reset") {
         // Deliberately generic: don't reveal whether an account exists.
         setMode("resetVerify");
-        setNotice(`If an account exists for ${email}, a reset code is on its way.`);
+        setNotice(
+          `If an account exists for ${email}, a reset code is on its way.`,
+        );
       } else {
         setError(
           err?.message?.includes("at least 10")
             ? "Password must be at least 10 characters."
-            : "That code was incorrect or has expired. Request a new one."
+            : "That code was incorrect or has expired. Request a new one.",
         );
       }
     } finally {
@@ -124,7 +140,9 @@ export function AdminLoginPage() {
 
           {mode === "signIn" && (
             <div>
-              <label className="block text-sm font-medium mb-1.5">Password</label>
+              <label className="block text-sm font-medium mb-1.5">
+                Password
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -186,7 +204,9 @@ export function AdminLoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showPassword ? (
