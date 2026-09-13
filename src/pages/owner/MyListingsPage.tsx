@@ -69,6 +69,17 @@ export function OwnerMyListingsPage() {
       .map((l: any) => `${l.unitNumber ?? ""}|${l.weekNumber ?? ""}`),
   );
 
+  const [askingPrice, setAskingPrice] = useState("");
+  const [desiredWeekLabel, setDesiredWeekLabel] = useState("");
+  const [desiredYear, setDesiredYear] = useState(String(SELECTABLE_YEARS[0]));
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  // Non-null while editing an existing listing; the same form serves both, so
+  // the fields and validation can never drift apart between create and edit.
+  const [editingId, setEditingId] = useState<Id<"marketplaceListings"> | null>(
+    null,
+  );
+
   // Desired "week|year" pairs already covered by an active trade listing for
   // the owned week currently selected. An owner may offer the same week
   // against several different weeks, but not twice against the same one
@@ -83,16 +94,6 @@ export function OwnerMyListingsPage() {
           l._id !== editingId,
       )
       .map((l: any) => `${l.desiredWeekNumber ?? ""}|${l.desiredYear ?? ""}`),
-  );
-  const [askingPrice, setAskingPrice] = useState("");
-  const [desiredWeekLabel, setDesiredWeekLabel] = useState("");
-  const [desiredYear, setDesiredYear] = useState(String(SELECTABLE_YEARS[0]));
-  const [notes, setNotes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  // Non-null while editing an existing listing; the same form serves both, so
-  // the fields and validation can never drift apart between create and edit.
-  const [editingId, setEditingId] = useState<Id<"marketplaceListings"> | null>(
-    null,
   );
 
   const touchedCommunity = useRef(false);
@@ -130,22 +131,6 @@ export function OwnerMyListingsPage() {
     setNotes(l.notes ?? "");
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleRemove = async (listingId: Id<"marketplaceListings">) => {
-    if (
-      !window.confirm(
-        "Remove this listing permanently? To take it down but keep it for later, use Withdraw instead.",
-      )
-    ) {
-      return;
-    }
-    try {
-      await deleteListing({ listingId });
-      toast.success("Listing removed");
-    } catch (err: any) {
-      toast.error(err.message || "Could not remove the listing");
-    }
   };
 
   /**
@@ -603,12 +588,6 @@ export function OwnerMyListingsPage() {
                         Repost
                       </button>
                     )}
-                    <button
-                      onClick={() => handleRemove(l._id)}
-                      className="text-xs font-medium px-2.5 py-1.5 rounded border border-destructive/40 text-destructive hover:bg-destructive/10"
-                    >
-                      Remove
-                    </button>
                   </div>
                 }
               />
