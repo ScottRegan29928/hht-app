@@ -2,6 +2,10 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useSiteFlags } from "@/lib/siteContext";
 import {
+  ResortSwitch,
+  useAssociationSite,
+} from "@/components/owner/ResortSwitch";
+import {
   FileText,
   Phone,
   Mail,
@@ -9,6 +13,7 @@ import {
   KeyRound,
   Tag,
   ExternalLink,
+  Download,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -21,8 +26,16 @@ import { Link } from "react-router-dom";
  */
 
 export function OwnerResortInfoPage() {
-  const { siteSlug, siteName } = useSiteFlags();
-  const data = useQuery(api.ownerPortal.overview, { siteSlug });
+  const { siteSlug, portalSlug, setSiteSlug, resorts, multi } =
+    useAssociationSite();
+  const { siteName: portalName } = useSiteFlags();
+  // The heading has to follow the switcher, not the portal: an owner viewing
+  // Swallowtail's documents from the Spicebush portal should see Swallowtail.
+  const siteName =
+    resorts.find(
+      (r: { siteSlug: string; name: string }) => r.siteSlug === siteSlug,
+    )?.name ?? portalName;
+  const data = useQuery(api.ownerPortal.overview, { siteSlug, portalSlug });
 
   if (data === undefined) {
     return (
@@ -33,6 +46,10 @@ export function OwnerResortInfoPage() {
   }
 
   const s = data.settings;
+  // The HOA weeks-for-sale list, whichever of the two titles this resort uses.
+  const hoaResaleDoc = (data.documents?.association ?? []).find((d: any) =>
+    /hoa (weeks for sale|resale)/i.test(d.title),
+  );
   const stayDocs = data.documents?.stay ?? [];
 
   return (
@@ -42,6 +59,15 @@ export function OwnerResortInfoPage() {
         <p className="text-sm text-muted-foreground mt-1">
           Arrival details, rentals and storm information for {siteName}.
         </p>
+        {multi && (
+          <div className="pt-1">
+            <ResortSwitch
+              resorts={resorts}
+              value={siteSlug}
+              onChange={setSiteSlug}
+            />
+          </div>
+        )}
       </div>
 
       {stayDocs.length > 0 && (
@@ -66,7 +92,9 @@ export function OwnerResortInfoPage() {
 
       {(s?.rentIntro || s?.rentContactName) && (
         <Card icon={Phone} title="Renting an additional week">
-          {s?.rentIntro && <p className="text-sm leading-relaxed">{s.rentIntro}</p>}
+          {s?.rentIntro && (
+            <p className="text-sm leading-relaxed">{s.rentIntro}</p>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             {s?.rentContactName && (
               <span className="font-medium">{s.rentContactName}</span>
@@ -111,9 +139,27 @@ export function OwnerResortInfoPage() {
               </a>
             )}
           </div>
+          {/* The list itself, not just who to call about it. It lives in the
+              Documents tab, which is not where an owner reading about HOA
+              weeks for sale would look [scott, 2026-09-13]. */}
+          {hoaResaleDoc && (
+            <a
+              href={hoaResaleDoc.url ?? "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              {hoaResaleDoc.title}
+            </a>
+          )}
+
           <p className="text-xs text-muted-foreground mt-4">
             Looking for a week from another owner instead? Those are in the{" "}
-            <Link to="/owner/marketplace" className="text-primary hover:underline">
+            <Link
+              to="/owner/marketplace"
+              className="text-primary hover:underline"
+            >
               owner marketplace
             </Link>
             , where the discount and fee waiver above do not apply.

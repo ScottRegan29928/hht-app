@@ -38,6 +38,25 @@ function detectAmenities(
 
 // ── Public Queries ──
 
+/**
+ * Primary photo for a property, preferring our mirrored copy.
+ *
+ * Property photos were originally hotlinked from HostAway's S3 bucket, which
+ * ad blockers and corporate DNS filters routinely drop [scott, 2026-09-13].
+ * Every surface that shows a property photo resolves it through here so the
+ * mirrored copy wins everywhere, not just on the one page that was reported.
+ */
+async function resolvePrimaryPhoto(ctx: any, property: any): Promise<string | null> {
+  const photos = await ctx.db
+    .query("propertyPhotos")
+    .withIndex("by_property", (q: any) => q.eq("propertyId", property._id))
+    .collect();
+  const primary = photos.find((ph: any) => ph.isPrimary) ?? photos[0];
+  if (primary?.storageId) return await ctx.storage.getUrl(primary.storageId);
+  if (primary?.externalUrl) return primary.externalUrl;
+  return property.photoUrls?.[0] ?? null;
+}
+
 export const list = query({
   args: {
     communityId: v.optional(v.id("communities")),
@@ -462,10 +481,7 @@ export const search = query({
     return Promise.all(
       properties.map(async (p) => {
         const community = await ctx.db.get(p.communityId);
-        let photoUrl: string | null = null;
-        if (p.photoUrls && p.photoUrls.length > 0) {
-          photoUrl = p.photoUrls[0];
-        }
+        const photoUrl = await resolvePrimaryPhoto(ctx, p);
 
         // Compute pricing summaries for card badges
         const weeks = await ctx.db
@@ -789,7 +805,7 @@ export const searchWeeksForCalendar = query({
         available = available.filter((w) => weekSet.has(w.weekNumber));
       }
 
-      const photoUrl = p.photoUrls && p.photoUrls.length > 0 ? p.photoUrls[0] : null;
+      const photoUrl = await resolvePrimaryPhoto(ctx, p);
 
       for (const w of available) {
         results.push({

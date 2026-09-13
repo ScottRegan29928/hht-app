@@ -8,8 +8,17 @@ import type { Id } from "../../../convex/_generated/dataModel";
 export function AdminInquiriesPage() {
   const inquiries = useQuery(api.admin.listInquiries);
   const updateStatus = useMutation(api.admin.updateInquiryStatus);
-  const [filterType, setFilterType] = useState<"all" | "purchase" | "rental" | "general">("all");
-  const [filterStatus, setFilterStatus] = useState<"all" | "new" | "contacted" | "closed">("all");
+  const [filterType, setFilterType] = useState<
+    | "all"
+    | "purchase"
+    | "rental"
+    | "general"
+    | "comment_card"
+    | "board_nomination"
+  >("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "new" | "contacted" | "closed"
+  >("all");
 
   if (inquiries === undefined) {
     return (
@@ -17,7 +26,10 @@ export function AdminInquiriesPage() {
         <h1 className="text-2xl font-bold">Inquiries</h1>
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-24 bg-background border rounded-xl animate-pulse" />
+            <div
+              key={i}
+              className="h-24 bg-background border rounded-xl animate-pulse"
+            />
           ))}
         </div>
       </div>
@@ -30,7 +42,10 @@ export function AdminInquiriesPage() {
     return true;
   });
 
-  const handleStatusChange = async (id: Id<"inquiries">, status: "new" | "contacted" | "closed") => {
+  const handleStatusChange = async (
+    id: Id<"inquiries">,
+    status: "new" | "contacted" | "closed",
+  ) => {
     try {
       await updateStatus({ id, status });
       toast.success("Status updated");
@@ -58,6 +73,8 @@ export function AdminInquiriesPage() {
           <option value="all">All Types</option>
           <option value="purchase">Purchase</option>
           <option value="general">Contact</option>
+          <option value="comment_card">Comment Card</option>
+          <option value="board_nomination">Board Volunteer</option>
           <option value="rental">Rental</option>
         </select>
         <select
@@ -99,7 +116,10 @@ export function AdminInquiriesPage() {
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(inq.createdAt).toLocaleDateString()} at{" "}
-                      {new Date(inq.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(inq.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   </div>
 
@@ -140,14 +160,17 @@ export function AdminInquiriesPage() {
                 <select
                   value={inq.status}
                   onChange={(e) =>
-                    handleStatusChange(inq._id as Id<"inquiries">, e.target.value as any)
+                    handleStatusChange(
+                      inq._id as Id<"inquiries">,
+                      e.target.value as any,
+                    )
                   }
                   className={`text-xs font-semibold px-3 py-1.5 rounded-lg border cursor-pointer focus:outline-none ${
                     inq.status === "new"
                       ? "bg-blue-50 border-blue-200 text-blue-700"
                       : inq.status === "contacted"
-                      ? "bg-amber-50 border-amber-200 text-amber-700"
-                      : "bg-green-50 border-green-200 text-green-700"
+                        ? "bg-amber-50 border-amber-200 text-amber-700"
+                        : "bg-green-50 border-green-200 text-green-700"
                   }`}
                 >
                   <option value="new">New</option>

@@ -1,6 +1,10 @@
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 import type { Doc } from "../../../convex/_generated/dataModel";
-import { KIND_STYLES } from "./portalTheme";
+import { KIND_STYLES, communityBadge } from "./portalTheme";
+import {
+  formatUpcomingWeekRange,
+  formatOwnerWeekRange,
+} from "@/lib/weekCalendar";
 
 export type Listing = Doc<"marketplaceListings">;
 
@@ -43,11 +47,41 @@ export function ListingCard({
     .filter(Boolean)
     .join(" · ");
 
+  // Dates come from the resort calendar, never from the free-text label.
+  const nums: number[] = (listing as any).weekNumbers?.length
+    ? (listing as any).weekNumbers
+    : listing.weekNumber
+      ? [listing.weekNumber]
+      : [];
+  const ranges = nums
+    .map((n) => formatUpcomingWeekRange(n, listing.year))
+    .filter(Boolean);
+  const weekDates =
+    ranges.length === 0
+      ? null
+      : ranges.length === 1
+        ? ranges[0]
+        : `${ranges[0].split(" – ")[0]} – ${ranges[ranges.length - 1].split(" – ")[1]}`;
+
+  const badge = communityBadge(listing.communitySlug);
   const style = KIND_STYLES[kind] ?? KIND_STYLES.for_sale;
+
+  // Dates for the week the owner WANTS, so a trade reads like the rest of the
+  // portal [scott, 2026-09-13]. Multi-week ("20, 21, 22") and "Flexible"
+  // labels have no single date range, so they stay bare.
+  const desiredRange =
+    listing.desiredWeekNumber && listing.desiredYear
+      ? formatOwnerWeekRange(listing.desiredWeekNumber, listing.desiredYear)
+      : listing.desiredWeekNumber
+        ? formatUpcomingWeekRange(listing.desiredWeekNumber)
+        : null;
   const hasPrice = !!listing.askingPrice && listing.askingPrice > 0;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col gap-3 p-5 pt-4 shadow-[0_1px_2px_rgba(16,27,46,0.05)] hover:shadow-[0_8px_22px_-14px_rgba(16,27,46,0.4)] transition-shadow relative">
+    <div
+      data-listing-card
+      className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col gap-3 p-5 pt-4 shadow-[0_1px_2px_rgba(16,27,46,0.05)] hover:shadow-[0_8px_22px_-14px_rgba(16,27,46,0.4)] transition-shadow relative"
+    >
       {/* Color rail: kind is readable before any text is */}
       <span
         className={`absolute inset-x-0 top-0 h-1 ${style.dot}`}
@@ -62,14 +96,22 @@ export function ListingCard({
             >
               {style.label}
             </span>
-            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-              <MapPin className="w-3.5 h-3.5" />
-              {communityLabel(listing.communitySlug)}
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-bold uppercase tracking-wide ${badge.className}`}
+            >
+              <MapPin className="w-3 h-3" />
+              {badge.label}
             </span>
           </div>
           <h3 className="font-semibold text-base text-slate-900">
             {unitLine || "Week details on request"}
           </h3>
+          {/* Real dates for the week, so a buyer knows what they are looking
+              at without consulting the resort calendar [scott, 2026-09-13].
+              Multi-week listings ("31 & 32") show the span they cover. */}
+          {weekDates && (
+            <p className="text-xs text-slate-500 mt-0.5">{weekDates}</p>
+          )}
         </div>
 
         {kind === "for_sale" && (
@@ -92,6 +134,9 @@ export function ListingCard({
             <div className={`font-bold ${style.text}`}>
               Wants week {listing.desiredWeekLabel}
             </div>
+            {desiredRange ? (
+              <div className="text-xs text-slate-500">{desiredRange}</div>
+            ) : null}
             <div className="text-[11px] text-slate-400">one-time trade</div>
           </div>
         )}

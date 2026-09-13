@@ -294,7 +294,10 @@ const schema = defineSchema({
       v.literal("rental"),
       v.literal("general"),
       // Owner-portal comment card; routed to the resort regime managers.
-      v.literal("comment_card")
+      v.literal("comment_card"),
+      // Owner-portal board volunteer form, replacing the printable PDF
+      // [scott, 2026-09-13]. Long answers live in `message`.
+      v.literal("board_nomination")
     ),
     // Which of the four sister sites the enquiry came from.
     siteSlug: v.optional(v.string()),
@@ -307,6 +310,8 @@ const schema = defineSchema({
     message: v.optional(v.string()),
     // Routing
     routedTo: v.optional(v.string()), // email address it was sent to
+    // Private note the owner keeps against the inquiry.
+    ownerNotes: v.optional(v.string()),
     // Status
     status: v.union(
       v.literal("new"),
@@ -327,12 +332,36 @@ const schema = defineSchema({
     propertyId: v.id("properties"),
     storageId: v.optional(v.id("_storage")),
     externalUrl: v.optional(v.string()), // fallback URL from WordPress
+    // The HostAway S3 URL this row was mirrored from. Kept so a re-run knows
+    // what it already pulled, and so we can trace a photo back to its source.
+    legacyUrl: v.optional(v.string()),
     caption: v.optional(v.string()),
     sortOrder: v.number(),
     isPrimary: v.optional(v.boolean()),
   })
     .index("by_property", ["propertyId"])
     .index("by_primary", ["propertyId", "isPrimary"]),
+
+  // ── Inquiry replies ──
+  // Owners could read a buyer's inquiry but not answer it, so every
+  // conversation left the portal and nothing was tracked [scott, 2026-09-13].
+  // Replies are stored, not just emailed, so the next person to open the
+  // inquiry can see what was already said.
+  inquiryReplies: defineTable({
+    inquiryId: v.id("inquiries"),
+    // Who replied. Owner or staff — both use the same thread.
+    authorProfileId: v.id("userProfiles"),
+    authorName: v.string(),
+    authorEmail: v.optional(v.string()),
+    body: v.string(),
+    // Delivery is tracked separately from the reply itself: a failed send must
+    // not lose the owner's words.
+    sentAt: v.number(),
+    emailedAt: v.optional(v.number()),
+    emailError: v.optional(v.string()),
+  })
+    .index("by_inquiry", ["inquiryId"])
+    .index("by_author", ["authorProfileId"]),
 
   // ── Community Documents (site maps, floor plans) ──
   communityDocuments: defineTable({

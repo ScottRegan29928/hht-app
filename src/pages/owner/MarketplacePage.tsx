@@ -11,6 +11,7 @@ import {
 } from "@/components/owner/portalTheme";
 
 type Kind = "for_sale" | "want_to_buy" | "trade";
+type SortKey = "newest" | "week" | "price_asc" | "price_desc";
 
 const TABS: { key: Kind; label: string; icon: typeof Tag; blurb: string }[] = [
   {
@@ -39,6 +40,14 @@ export function OwnerMarketplacePage() {
   const [tab, setTab] = useState<Kind>("for_sale");
   const [community, setCommunity] = useState<string>("");
   const [week, setWeek] = useState<string>("");
+  const [sort, setSort] = useState<SortKey>("newest");
+
+  // Only For Sale listings carry prices, so switching tabs has to drop a price
+  // sort rather than silently applying one that cannot order anything.
+  const selectTab = (next: Kind) => {
+    setTab(next);
+    if (next !== "for_sale" && sort.startsWith("price")) setSort("newest");
+  };
   const { siteSlug } = useSiteFlags();
   const theme = resortTheme(siteSlug);
 
@@ -51,6 +60,32 @@ export function OwnerMarketplacePage() {
   // Only offer filter values that exist in the pool — a dropdown of 53 weeks
   // where 40 return nothing is worse than no dropdown.
   const facets = useQuery(api.marketplace.poolFacets, {});
+
+  /**
+   * Sorting happens here rather than in the query: the pool is small enough to
+   * order in the browser, and a listing with no price has to sink to the
+   * bottom of *both* price directions [scott, 2026-09-13] — which is not a
+   * sort order a database index can express.
+   */
+  const sorted = [...(listings ?? [])].sort((a: any, b: any) => {
+    if (sort === "week") {
+      const aw = a.weekNumbers?.[0] ?? a.weekNumber ?? 99;
+      const bw = b.weekNumbers?.[0] ?? b.weekNumber ?? 99;
+      if (aw !== bw) return aw - bw;
+      return (a.year ?? 0) - (b.year ?? 0);
+    }
+    if (sort === "price_asc" || sort === "price_desc") {
+      const ap = a.askingPrice && a.askingPrice > 0 ? a.askingPrice : null;
+      const bp = b.askingPrice && b.askingPrice > 0 ? b.askingPrice : null;
+      // "Contact for price" is not cheap and not expensive — it is unknown, so
+      // it goes last either way.
+      if (ap === null && bp === null) return b.postedAt - a.postedAt;
+      if (ap === null) return 1;
+      if (bp === null) return -1;
+      return sort === "price_asc" ? ap - bp : bp - ap;
+    }
+    return b.postedAt - a.postedAt;
+  });
 
   const active = TABS.find((t) => t.key === tab)!;
   const filtered = !!community || !!week;
@@ -75,7 +110,7 @@ export function OwnerMarketplacePage() {
           return (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => selectTab(t.key)}
               aria-pressed={isActive}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
                 isActive
@@ -152,6 +187,28 @@ export function OwnerMarketplacePage() {
           </select>
         </div>
 
+        <label className="sr-only" htmlFor="mkt-sort">
+          Sort
+        </label>
+        <div className="w-[11rem]">
+          <select
+            id="mkt-sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2"
+            style={{ ["--tw-ring-color" as any]: theme.accent }}
+          >
+            <option value="newest">Newest first</option>
+            <option value="week">Week, earliest first</option>
+            {tab === "for_sale" && (
+              <>
+                <option value="price_asc">Price, low to high</option>
+                <option value="price_desc">Price, high to low</option>
+              </>
+            )}
+          </select>
+        </div>
+
         {filtered && (
           <button
             onClick={() => {
@@ -202,7 +259,7 @@ export function OwnerMarketplacePage() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {listings.map((l: any) => (
+          {sorted.map((l: any) => (
             <ListingCard key={l._id} listing={l} />
           ))}
         </div>

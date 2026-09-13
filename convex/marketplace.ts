@@ -34,6 +34,69 @@ const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
  * derived server-side on every write so the array can never drift from the
  * label the owner sees.
  */
+/**
+ * Friday anchor for week 1 of each year, from the official 2025-2029 resort
+ * calendar. Weeks run Friday to Friday and the dates shift every year, so a
+ * week number only becomes a date once paired with a year.
+ *
+ * The client has the full calendar in src/lib/weekCalendar.ts, but Convex
+ * cannot import from src, and this only needs the anchors.
+ */
+const WEEK1_FRIDAY: Record<number, string> = {
+  2025: "2025-01-10",
+  2026: "2026-01-09",
+  2027: "2027-01-08",
+  2028: "2028-01-14",
+  2029: "2029-01-12",
+  2030: "2030-01-11",
+};
+
+/** Milliseconds at the END of the given week, or null if the year is unknown. */
+export function weekEndMs(weekNumber?: number, year?: number): number | null {
+  if (!weekNumber || !year) return null;
+  const anchor = WEEK1_FRIDAY[year];
+  if (!anchor) return null;
+  const start = new Date(anchor + "T12:00:00Z").getTime();
+  // Week N starts (N-1) weeks after week 1 and ends seven days later.
+  return start + (weekNumber - 1) * 7 * 86400000 + 7 * 86400000;
+}
+
+/**
+ * When a listing should stop being shown.
+ *
+ * A trade or a wanted week is tied to a specific week in a specific year, so
+ * it stops being useful the moment that week passes — holding it for a year
+ * from posting advertises a date that has already gone [scott, 2026-09-13].
+ * A for-sale listing has no such date and keeps the one-year rule, which is
+ * what the WordPress portal did.
+ */
+export function computeExpiry(args: {
+  kind: string;
+  now: number;
+  weekNumbers?: number[];
+  year?: number;
+  desiredWeekNumbers?: number[];
+  desiredYear?: number;
+}): number {
+  const { kind, now } = args;
+  if (kind === "for_sale") return now + ONE_YEAR_MS;
+
+  // Trades expire on the week they are asking for; wanted-to-buy on the week
+  // they name. Take the last week of a multi-week label.
+  const weeks =
+    kind === "trade"
+      ? (args.desiredWeekNumbers ?? [])
+      : (args.weekNumbers ?? []);
+  const year = kind === "trade" ? args.desiredYear : args.year;
+  const last = weeks.length ? Math.max(...weeks) : undefined;
+  const end = weekEndMs(last, year);
+
+  // No year named (a "Flexible" trade, or a listing from before the year field
+  // existed) falls back to the one-year rule rather than expiring immediately.
+  if (!end) return now + ONE_YEAR_MS;
+  return end;
+}
+
 export function expandWeeks(label?: string | null): number[] {
   if (!label) return [];
   const found: number[] = [];
@@ -111,8 +174,8 @@ export const listPool = query({
       v.union(
         v.literal("for_sale"),
         v.literal("want_to_buy"),
-        v.literal("trade")
-      )
+        v.literal("trade"),
+      ),
     ),
     includeInactive: v.optional(v.boolean()),
     // Filters [scott, 2026-09-12]. Applied in memory: the pool is a few dozen
@@ -133,7 +196,7 @@ export const listPool = query({
       .filter((l) => (args.includeInactive ? true : isLive(l, now)))
       .filter((l) => (args.kind ? l.kind === args.kind : true))
       .filter((l) =>
-        args.communitySlug ? l.communitySlug === args.communitySlug : true
+        args.communitySlug ? l.communitySlug === args.communitySlug : true,
       )
       .filter((l) => {
         if (args.weekNumber === undefined) return true;
@@ -174,9 +237,11 @@ export const poolFacets = query({
       if (l.communitySlug)
         communities.set(
           l.communitySlug,
-          (communities.get(l.communitySlug) ?? 0) + 1
+          (communities.get(l.communitySlug) ?? 0) + 1,
         );
-      const ws = l.weekNumbers?.length ? l.weekNumbers : expandWeeks(l.weekLabel);
+      const ws = l.weekNumbers?.length
+        ? l.weekNumbers
+        : expandWeeks(l.weekLabel);
       const ds = l.desiredWeekNumbers?.length
         ? l.desiredWeekNumbers
         : expandWeeks(l.desiredWeekLabel);
@@ -247,24 +312,108 @@ function weekKey(unitNumber?: string, weekLabel?: string): string | null {
  * expired entries match too, so reposting a week revives the original record
  * rather than leaving a duplicate history behind.
  */
+/**
+ * The owner's existing listing for the same thing, if any.
+ *
+ * One listing per unit and week, so re-posting edits rather than duplicates.
+ * Trades are the deliberate exception: an owner may offer the same week
+ * against several different weeks they would accept — "my week 32 for 2027
+ * week 26, or 27, or 28" is three listings, not one [scott, 2026-09-13]. So a
+ * trade is only a duplicate when the week it *wants* matches too.
+ */
 async function findOwnerListingForWeek(
   ctx: MutationCtx,
   ownerProfileId: Id<"userProfiles">,
   unitNumber?: string,
   weekLabel?: string,
-  excludeId?: Id<"marketplaceListings">
+  excludeId?: Id<"marketplaceListings">,
+  kind?: string,
+  desiredWeekLabel?: string,
+  desiredYear?: number,
 ) {
   const key = weekKey(unitNumber, weekLabel);
   if (!key) return null;
+  const wantKey =
+    kind === "trade"
+      ? `${(desiredWeekLabel ?? "").trim().toLowerCase()}|${desiredYear ?? ""}`
+      : null;
+
   const mine = await ctx.db
     .query("marketplaceListings")
     .withIndex("by_owner", (q) => q.eq("ownerProfileId", ownerProfileId))
     .collect();
   for (const l of mine) {
     if (excludeId && l._id === excludeId) continue;
-    if (weekKey(l.unitNumber, l.weekLabel) === key) return l;
+    if (weekKey(l.unitNumber, l.weekLabel) !== key) continue;
+    if (wantKey !== null) {
+      if (l.kind !== "trade") continue;
+      const theirs = `${(l.desiredWeekLabel ?? "").trim().toLowerCase()}|${l.desiredYear ?? ""}`;
+      if (theirs !== wantKey) continue;
+    }
+    return l;
   }
   return null;
+}
+
+/**
+ * An owner may only list a week they actually hold.
+ *
+ * The form offers a drop-down of owned weeks, but a drop-down is a convenience,
+ * not a control — the check has to live here or a crafted request can list any
+ * unit in the resort [scott, 2026-09-13]. The owner list uploaded in the admin
+ * portal is the source of truth, and `weeks.ownerId` is how that lands.
+ *
+ * want_to_buy is exempt by definition: you are asking for a week precisely
+ * because you do not own it. For a trade, the week *offered* must be owned;
+ * the week desired must not be.
+ */
+async function assertOwnsWeek(
+  ctx: any,
+  profileId: any,
+  unitNumber: string | undefined,
+  weekLabel: string | undefined,
+) {
+  const owned = await ctx.db
+    .query("weeks")
+    .withIndex("by_owner", (q: any) => q.eq("ownerId", profileId))
+    .collect();
+
+  if (owned.length === 0) {
+    throw new Error(
+      "Our records do not show any weeks in your name yet. Please contact the resort office so your ownership can be added.",
+    );
+  }
+
+  const wanted = new Set(expandWeeks(weekLabel) ?? []);
+  if (wanted.size === 0) {
+    throw new Error("Please choose the week you want to list.");
+  }
+
+  // Match on unit when one is given, and require every week named in the label
+  // to be owned — listing "31 & 32" while holding only 31 is not permitted.
+  const unit = (unitNumber ?? "").trim().toLowerCase();
+  const ownedWeeks = new Set<number>();
+  let matchedCommunity: string | undefined;
+  for (const w of owned) {
+    const property: any = await ctx.db.get(w.propertyId);
+    const wUnit = String(property?.unitNumber ?? "")
+      .trim()
+      .toLowerCase();
+    if (unit && wUnit && wUnit !== unit) continue;
+    ownedWeeks.add(w.weekNumber);
+    if (property?.communitySlug) matchedCommunity = property.communitySlug;
+  }
+
+  const missing = [...wanted].filter((n) => !ownedWeeks.has(n));
+  if (missing.length > 0) {
+    throw new Error(
+      `Our records do not show you as the owner of week ${missing.join(", ")}${
+        unit ? ` in unit ${unitNumber}` : ""
+      }. Please choose one of your own weeks.`,
+    );
+  }
+
+  return { communitySlug: matchedCommunity };
 }
 
 export const createListing = mutation({
@@ -273,7 +422,7 @@ export const createListing = mutation({
     kind: v.union(
       v.literal("for_sale"),
       v.literal("want_to_buy"),
-      v.literal("trade")
+      v.literal("trade"),
     ),
     communitySlug: v.optional(v.string()),
     unitNumber: v.optional(v.string()),
@@ -298,6 +447,17 @@ export const createListing = mutation({
       throw new Error("Asking price cannot be negative");
     }
 
+    let ownedCommunity: string | undefined;
+    if (args.kind !== "want_to_buy") {
+      const owned = await assertOwnsWeek(
+        ctx,
+        profile._id,
+        args.unitNumber,
+        args.weekLabel,
+      );
+      ownedCommunity = owned?.communitySlug;
+    }
+
     const contactName =
       args.contactName ??
       [profile.firstName, profile.lastName].filter(Boolean).join(" ") ??
@@ -307,7 +467,11 @@ export const createListing = mutation({
       ctx,
       profile._id,
       args.unitNumber,
-      args.weekLabel
+      args.weekLabel,
+      undefined,
+      args.kind,
+      args.desiredWeekLabel,
+      args.desiredYear,
     );
     if (existing) {
       // Update in place and restart the one-year clock, rather than creating a
@@ -316,22 +480,33 @@ export const createListing = mutation({
         kind: args.kind,
         status: "active",
         originSiteSlug: args.originSiteSlug,
-        communitySlug: args.communitySlug ?? existing.communitySlug,
+        communitySlug:
+          ownedCommunity ?? args.communitySlug ?? existing.communitySlug,
         weekNumber: args.weekNumber ?? existing.weekNumber,
         weekNumbers: expandWeeks(args.weekLabel ?? existing.weekLabel),
         year: args.year ?? existing.year,
         askingPrice: args.askingPrice,
         desiredWeekLabel: args.desiredWeekLabel,
-        desiredWeekNumber: args.desiredWeekNumber,
+        desiredWeekNumber:
+          args.desiredWeekNumber ?? expandWeeks(args.desiredWeekLabel)[0],
         desiredWeekNumbers: expandWeeks(args.desiredWeekLabel),
         desiredYear: args.desiredYear,
         notes: args.notes,
         contactName: contactName || existing.contactName,
-        contactEmail: args.contactEmail ?? profile.email ?? existing.contactEmail,
-        contactPhone: args.contactPhone ?? profile.phone ?? existing.contactPhone,
+        contactEmail:
+          args.contactEmail ?? profile.email ?? existing.contactEmail,
+        contactPhone:
+          args.contactPhone ?? profile.phone ?? existing.contactPhone,
         isLegacy: false,
         postedAt: now,
-        expiresAt: now + ONE_YEAR_MS,
+        expiresAt: computeExpiry({
+          kind: args.kind,
+          now,
+          weekNumbers: expandWeeks(args.weekLabel ?? existing.weekLabel),
+          year: args.year ?? existing.year,
+          desiredWeekNumbers: expandWeeks(args.desiredWeekLabel),
+          desiredYear: args.desiredYear,
+        }),
         closedAt: undefined,
         updatedAt: now,
       });
@@ -339,7 +514,7 @@ export const createListing = mutation({
       await ctx.scheduler.runAfter(
         0,
         internal.marketplaceMatches.runForListing,
-        { listingId: existing._id }
+        { listingId: existing._id },
       );
       return existing._id;
     }
@@ -351,7 +526,8 @@ export const createListing = mutation({
       status: "active",
       ownerProfileId: profile._id,
       isLegacy: false,
-      communitySlug: args.communitySlug,
+      // The unit's own community wins over the portal hostname.
+      communitySlug: ownedCommunity ?? args.communitySlug,
       unitNumber: args.unitNumber,
       weekLabel: args.weekLabel,
       weekNumber: args.weekNumber,
@@ -359,7 +535,10 @@ export const createListing = mutation({
       year: args.year,
       askingPrice: args.askingPrice,
       desiredWeekLabel: args.desiredWeekLabel,
-      desiredWeekNumber: args.desiredWeekNumber,
+      // Derived rather than trusted: the form sends a label only, and a
+      // missing desiredWeekNumber silently breaks anything keyed on it.
+      desiredWeekNumber:
+        args.desiredWeekNumber ?? expandWeeks(args.desiredWeekLabel)[0],
       desiredWeekNumbers: expandWeeks(args.desiredWeekLabel),
       desiredYear: args.desiredYear,
       notes: args.notes,
@@ -367,7 +546,14 @@ export const createListing = mutation({
       contactEmail: args.contactEmail ?? profile.email,
       contactPhone: args.contactPhone ?? profile.phone,
       postedAt: now,
-      expiresAt: now + ONE_YEAR_MS,
+      expiresAt: computeExpiry({
+        kind: args.kind,
+        now,
+        weekNumbers: expandWeeks(args.weekLabel),
+        year: args.year,
+        desiredWeekNumbers: expandWeeks(args.desiredWeekLabel),
+        desiredYear: args.desiredYear,
+      }),
       createdAt: now,
       updatedAt: now,
     });
@@ -388,8 +574,8 @@ export const updateListing = mutation({
       v.union(
         v.literal("for_sale"),
         v.literal("want_to_buy"),
-        v.literal("trade")
-      )
+        v.literal("trade"),
+      ),
     ),
     communitySlug: v.optional(v.string()),
     unitNumber: v.optional(v.string()),
@@ -418,6 +604,19 @@ export const updateListing = mutation({
       throw new Error("Asking price cannot be negative");
     }
 
+    // An edit can change the unit or week, so it needs the same ownership
+    // check as a new listing — otherwise the rule is trivially bypassed by
+    // posting a valid listing and then editing it.
+    const effectiveKind = args.kind ?? listing.kind;
+    if (effectiveKind !== "want_to_buy") {
+      await assertOwnsWeek(
+        ctx,
+        profile._id,
+        args.unitNumber ?? listing.unitNumber,
+        args.weekLabel ?? listing.weekLabel,
+      );
+    }
+
     // Editing a listing onto a unit/week the owner already has listed would
     // recreate the duplicate this rule exists to prevent.
     const clash = await findOwnerListingForWeek(
@@ -425,11 +624,14 @@ export const updateListing = mutation({
       profile._id,
       args.unitNumber ?? listing.unitNumber,
       args.weekLabel ?? listing.weekLabel,
-      listing._id
+      listing._id,
+      args.kind ?? listing.kind,
+      args.desiredWeekLabel ?? listing.desiredWeekLabel,
+      args.desiredYear ?? listing.desiredYear,
     );
     if (clash) {
       throw new Error(
-        "You already have a listing for that unit and week. Edit that listing instead."
+        "You already have a listing for that unit and week. Edit that listing instead.",
       );
     }
 
@@ -447,6 +649,19 @@ export const updateListing = mutation({
       clean.weekNumbers = expandWeeks(args.weekLabel);
     if (args.desiredWeekLabel !== undefined)
       clean.desiredWeekNumbers = expandWeeks(args.desiredWeekLabel);
+
+    // Expiry follows the week being asked for, so changing the week or year
+    // has to move the expiry with it.
+    const merged = { ...listing, ...clean } as any;
+    clean.expiresAt = computeExpiry({
+      kind: merged.kind,
+      now: Date.now(),
+      weekNumbers: merged.weekNumbers ?? [],
+      year: merged.year,
+      desiredWeekNumbers: merged.desiredWeekNumbers ?? [],
+      desiredYear: merged.desiredYear,
+    });
+
     await ctx.db.patch(listingId, clean);
     await ctx.scheduler.runAfter(0, internal.marketplaceMatches.runForListing, {
       listingId,
@@ -487,7 +702,7 @@ export const setListingStatus = mutation({
     status: v.union(
       v.literal("active"),
       v.literal("closed"),
-      v.literal("withdrawn")
+      v.literal("withdrawn"),
     ),
   },
   returns: v.null(),
@@ -506,10 +721,40 @@ export const setListingStatus = mutation({
     if (args.status === "closed") patch.closedAt = now;
     if (args.status === "active") {
       patch.postedAt = now;
-      patch.expiresAt = now + ONE_YEAR_MS;
+      patch.expiresAt = computeExpiry({
+        kind: listing.kind,
+        now,
+        weekNumbers: listing.weekNumbers ?? [],
+        year: listing.year,
+        desiredWeekNumbers: listing.desiredWeekNumbers ?? [],
+        desiredYear: listing.desiredYear,
+      });
       patch.closedAt = undefined;
     }
     await ctx.db.patch(args.listingId, patch);
+
+    // An owner offering one week against several possible weeks has several
+    // listings for the same week. Once one of those trades is done, the others
+    // are offering a week that is already spoken for [scott, 2026-09-13].
+    if (args.status === "closed" && listing.kind === "trade") {
+      const key = weekKey(listing.unitNumber, listing.weekLabel);
+      const mine = await ctx.db
+        .query("marketplaceListings")
+        .withIndex("by_owner", (q) => q.eq("ownerProfileId", profile._id))
+        .collect();
+      for (const other of mine) {
+        if (other._id === listing._id) continue;
+        if (other.kind !== "trade" || other.status !== "active") continue;
+        if (weekKey(other.unitNumber, other.weekLabel) !== key) continue;
+        await ctx.db.patch(other._id, {
+          status: "expired",
+          updatedAt: now,
+        });
+      }
+    }
+
+    // Re-activating has to re-derive expiry, which for a trade is the week it
+    // wants rather than a year from now.
     return null;
   },
 });
@@ -539,8 +784,8 @@ export const adminUpdateListing = mutation({
         v.literal("active"),
         v.literal("closed"),
         v.literal("withdrawn"),
-        v.literal("expired")
-      )
+        v.literal("expired"),
+      ),
     ),
     ownerProfileId: v.optional(v.id("userProfiles")),
     notes: v.optional(v.string()),
@@ -604,7 +849,7 @@ export const seedLegacyListings = internalMutation({
         kind: v.union(
           v.literal("for_sale"),
           v.literal("want_to_buy"),
-          v.literal("trade")
+          v.literal("trade"),
         ),
         originSiteSlug: v.string(),
         communitySlug: v.optional(v.string()),
@@ -620,7 +865,7 @@ export const seedLegacyListings = internalMutation({
         contactEmail: v.optional(v.string()),
         contactPhone: v.optional(v.string()),
         postedAt: v.number(),
-      })
+      }),
     ),
     dryRun: v.optional(v.boolean()),
   },
@@ -707,5 +952,104 @@ export const backfillWeekNumbers = internalMutation({
       updated++;
     }
     return { scanned: all.length, updated };
+  },
+});
+
+/**
+ * Keep the owner marketplace in step with an approved sale request.
+ *
+ * "Sell My Week" (saleRequests, admin-approved) and the owner marketplace
+ * (marketplaceListings, owner-posted) were built as separate paths, so an
+ * approved sale sat in the admin system and never appeared to other owners
+ * [scott, 2026-09-13]. This is the bridge, and it runs in both directions:
+ * approval publishes, anything else withdraws.
+ *
+ * The listing is matched by unit + week for this owner, so re-approving or
+ * editing updates the existing row instead of stacking duplicates — the same
+ * rule that governs owner-posted listings.
+ */
+export const syncListingForSaleRequest = internalMutation({
+  args: { requestId: v.id("saleRequests") },
+  returns: v.object({ action: v.string() }),
+  handler: async (ctx, { requestId }) => {
+    const request: any = await ctx.db.get(requestId);
+    if (!request) return { action: "no-request" };
+
+    const property: any = await ctx.db.get(request.propertyId);
+    const owner: any = await ctx.db.get(request.ownerId);
+    if (!property || !owner) return { action: "missing-refs" };
+
+    const community: any = property.communityId
+      ? await ctx.db.get(property.communityId)
+      : null;
+    const communitySlug = community?.slug;
+    // Which portal the week belongs to, for attribution only — the pool is joint.
+    const originSiteSlug =
+      communitySlug === "swallowtail-at-sea-pines"
+        ? "swallowtail"
+        : "spicebush";
+
+    const existing = await findOwnerListingForWeek(
+      ctx,
+      request.ownerId,
+      property.unitNumber,
+      String(request.weekNumber),
+    );
+
+    if (request.status !== "approved") {
+      if (existing && existing.status === "active") {
+        await ctx.db.patch(existing._id, {
+          status: "withdrawn",
+          updatedAt: Date.now(),
+        });
+        return { action: "withdrawn" };
+      }
+      return { action: "noop" };
+    }
+
+    const now = Date.now();
+    const contactName =
+      [owner.firstName, owner.lastName].filter(Boolean).join(" ") ||
+      owner.displayName ||
+      owner.email ||
+      "Owner";
+
+    const fields = {
+      kind: "for_sale" as const,
+      status: "active" as const,
+      originSiteSlug,
+      communitySlug,
+      unitNumber: property.unitNumber,
+      weekLabel: String(request.weekNumber),
+      weekNumber: request.weekNumber,
+      weekNumbers: expandWeeks(String(request.weekNumber)),
+      year: undefined as number | undefined,
+      askingPrice: request.askingPrice > 0 ? request.askingPrice : undefined,
+      notes: request.notes,
+      contactName,
+      contactEmail: owner.email,
+      contactPhone: owner.phone,
+      updatedAt: now,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        ...fields,
+        postedAt: existing.postedAt ?? now,
+        expiresAt: now + ONE_YEAR_MS,
+        closedAt: undefined,
+      });
+      return { action: "updated" };
+    }
+
+    await ctx.db.insert("marketplaceListings", {
+      pool: "seapines-joint",
+      ownerProfileId: request.ownerId,
+      postedAt: now,
+      expiresAt: now + ONE_YEAR_MS,
+      createdAt: now,
+      ...fields,
+    });
+    return { action: "created" };
   },
 });

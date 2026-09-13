@@ -15,6 +15,7 @@ import { AdminPropertiesPage } from "./pages/admin/PropertiesPage";
 import { PropertyEditPage } from "./pages/admin/PropertyEditPage";
 import { AdminCommunitiesPage } from "./pages/admin/CommunitiesPage";
 import { AdminWeeksPage } from "./pages/admin/WeeksPage";
+import { AdminSaleRequestsPage } from "@/pages/admin/SaleRequestsPage";
 import { AdminInquiriesPage } from "./pages/admin/InquiriesPage";
 import { OwnerLayout } from "./components/owner/OwnerLayout";
 import { OwnerLoginPage } from "./pages/owner/LoginPage";
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="communities" element={<AdminCommunitiesPage />} />
             <Route path="weeks" element={<AdminWeeksPage />} />
             <Route path="inquiries" element={<AdminInquiriesPage />} />
+            <Route path="sale-requests" element={<AdminSaleRequestsPage />} />
             <Route path="owners" element={<OwnersPage />} />
             <Route path="owners/:ownerId" element={<OwnerDetailPage />} />
             <Route path="pages" element={<AdminPagesPage />} />
@@ -118,10 +120,7 @@ export default function App() {
             element={<Navigate to="/ownerlogin" replace />}
           />
           <Route path="/owner/activate" element={<OwnerActivatePage />} />
-          <Route
-            path="/owneractivate"
-            element={<OwnerActivatePage />}
-          />
+          <Route path="/owneractivate" element={<OwnerActivatePage />} />
           <Route path="/owner" element={<OwnerLayout />}>
             <Route index element={<OwnerDashboardPage />} />
             <Route path="properties" element={<OwnerPropertiesPage />} />
@@ -149,7 +148,14 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/community/:slug" element={<CommunityPage />} />
-          <Route path="/property/:slug" element={<ErrorBoundary><PropertyPage /></ErrorBoundary>} />
+          <Route
+            path="/property/:slug"
+            element={
+              <ErrorBoundary>
+                <PropertyPage />
+              </ErrorBoundary>
+            }
+          />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/blog" element={<BlogIndexPage />} />

@@ -389,3 +389,113 @@ export function getNext52Weeks(): WeekDate[] {
 
   return result;
 }
+
+/**
+ * The next time a given week number actually occurs.
+ *
+ * A week number is meaningless to most owners on its own — "Week 32" does not
+ * tell you when to pack. Owners also think forward: once this year's week has
+ * passed, the useful dates are next year's [scott, 2026-09-13]. Returns
+ * undefined when the calendar has no entry (2030 is the last year we hold).
+ */
+export function getUpcomingWeekDates(
+  weekNumber: number,
+  fromYear?: number
+): WeekDate | undefined {
+  const today = new Date();
+  const startYear = fromYear ?? today.getFullYear();
+  const candidates = WEEK_CALENDAR.filter(
+    (w) => w.weekNumber === weekNumber && w.year >= startYear
+  ).sort((a, b) => a.year - b.year);
+
+  // Compare against the end of the week: an owner is still "in" their week on
+  // the Thursday, so it should not jump to next year mid-stay.
+  const upcoming = candidates.find(
+    (w) => new Date(w.endDate + "T12:00:00") >= today
+  );
+  return upcoming ?? candidates[candidates.length - 1];
+}
+
+/**
+ * "August 13-20, 2027" — the house format [scott, 2026-09-13].
+ *
+ * Full month name, no spaces around the dash, year once at the end. A week
+ * that crosses a month boundary names both months ("December 31-January 7"),
+ * and the year shown is the one the week ends in.
+ */
+export function formatOwnerWeekRange(weekNumber: number, year: number): string {
+  const wd = getWeekDates(weekNumber, year);
+  if (!wd) return "";
+  const start = new Date(wd.startDate + "T12:00:00");
+  const end = new Date(wd.endDate + "T12:00:00");
+  const month = (d: Date) => d.toLocaleDateString("en-US", { month: "long" });
+  const head =
+    start.getMonth() === end.getMonth()
+      ? `${month(start)} ${start.getDate()}-${end.getDate()}`
+      : `${month(start)} ${start.getDate()}-${month(end)} ${end.getDate()}`;
+  return `${head}, ${end.getFullYear()}`;
+}
+
+/** The next occurrence of a week, in the house format, or "" if unknown. */
+export function formatUpcomingWeekRange(
+  weekNumber: number,
+  fromYear?: number
+): string {
+  const wd = getUpcomingWeekDates(weekNumber, fromYear);
+  if (!wd) return "";
+  return formatOwnerWeekRange(wd.weekNumber, wd.year);
+}
+
+/**
+ * The next full year of weeks, starting with the first week that has not begun.
+ *
+ * A trade is arranged forward, so the picker should open on the next week an
+ * owner could actually trade into and run a year from there [scott,
+ * 2026-09-13]. Deliberately keyed on startDate rather than endDate: the week
+ * we are currently inside is not a "full week from today".
+ *
+ * Each entry carries its own year, which is what makes a rolling list possible
+ * across a year boundary — week 3 in this list may well be next year's.
+ */
+export function getRollingYearWeeks(): WeekDate[] {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const todayISO = today.toISOString().split("T")[0];
+
+  const upcoming = WEEK_CALENDAR.filter((w) => w.startDate > todayISO).sort(
+    (a, b) => a.startDate.localeCompare(b.startDate)
+  );
+
+  const seen = new Set<number>();
+  const result: WeekDate[] = [];
+  for (const w of upcoming) {
+    if (seen.has(w.weekNumber)) continue;
+    seen.add(w.weekNumber);
+    result.push(w);
+    if (result.length >= 52) break;
+  }
+  return result;
+}
+
+/** Years that still have at least one week left to trade into. */
+export function getSelectableYears(): number[] {
+  const todayISO = new Date().toISOString().split("T")[0];
+  const years = new Set<number>();
+  for (const w of WEEK_CALENDAR) {
+    if (w.startDate > todayISO) years.add(w.year);
+  }
+  return [...years].sort((a, b) => a - b);
+}
+
+/**
+ * Weeks in a given year that have not started yet.
+ *
+ * The year is chosen first and the week list follows it, so the current year
+ * offers only the weeks still to come — in September 2026 that is week 38
+ * onward, not all 52 [scott, 2026-09-13]. A future year offers everything.
+ */
+export function getRemainingWeeksInYear(year: number): WeekDate[] {
+  const todayISO = new Date().toISOString().split("T")[0];
+  return WEEK_CALENDAR.filter((w) => w.year === year && w.startDate > todayISO)
+    .sort((a, b) => a.weekNumber - b.weekNumber);
+}

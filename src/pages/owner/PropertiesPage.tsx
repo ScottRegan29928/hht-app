@@ -1,5 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Link } from "react-router-dom";
+import { formatUpcomingWeekRange } from "@/lib/weekCalendar";
 import { useState } from "react";
 import {
   Calendar,
@@ -8,6 +10,7 @@ import {
   Bath,
   Home,
   Tag,
+  Repeat,
   DollarSign,
   Send,
   X,
@@ -20,6 +23,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 export function OwnerPropertiesPage() {
   const weeks = useQuery(api.owner.listOwnedWeeks);
   const submitRequest = useMutation(api.owner.submitSaleRequest);
+  const updateRequest = useMutation(api.owner.updateSaleRequest);
   const withdrawRequest = useMutation(api.owner.withdrawSaleRequest);
 
   // Track which week has the sell form open
@@ -27,6 +31,10 @@ export function OwnerPropertiesPage() {
   const [askingPrice, setAskingPrice] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // When set, the inline form is editing this existing request rather than
+  // creating a new one.
+  const [editingRequestId, setEditingRequestId] =
+    useState<Id<"saleRequests"> | null>(null);
 
   if (weeks === undefined) {
     return (
@@ -40,12 +48,21 @@ export function OwnerPropertiesPage() {
 
   const openSellForm = (weekId: string) => {
     setSellFormWeekId(weekId);
+    setEditingRequestId(null);
     setAskingPrice("");
     setNotes("");
   };
 
+  const openEditForm = (weekId: string, sr: any) => {
+    setSellFormWeekId(weekId);
+    setEditingRequestId(sr._id);
+    setAskingPrice(String(sr.askingPrice ?? ""));
+    setNotes(sr.notes ?? "");
+  };
+
   const closeSellForm = () => {
     setSellFormWeekId(null);
+    setEditingRequestId(null);
     setAskingPrice("");
     setNotes("");
   };
@@ -58,12 +75,21 @@ export function OwnerPropertiesPage() {
     }
     setSubmitting(true);
     try {
-      await submitRequest({
-        weekId,
-        askingPrice: price,
-        notes: notes || undefined,
-      });
-      toast.success("Sale request submitted for approval!");
+      if (editingRequestId) {
+        await updateRequest({
+          requestId: editingRequestId,
+          askingPrice: price,
+          notes: notes || undefined,
+        });
+        toast.success("Listing updated");
+      } else {
+        await submitRequest({
+          weekId,
+          askingPrice: price,
+          notes: notes || undefined,
+        });
+        toast.success("Sale request submitted for approval!");
+      }
       closeSellForm();
     } catch (err: any) {
       toast.error(err.message || "Failed to submit request");
@@ -183,15 +209,20 @@ export function OwnerPropertiesPage() {
                             Week {w.weekNumber}
                           </span>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {w.year}
+                        {/* A week number alone does not tell an owner when to
+                            pack. Show the real Friday-to-Friday dates, rolling
+                            to next year once this year's week has passed
+                            [scott, 2026-09-13]. */}
+                        <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">
+                          {formatUpcomingWeekRange(w.weekNumber, w.year) ||
+                            w.year}
                         </div>
                       </div>
                     </div>
 
                     {/* Sale status / action */}
                     <div className="mt-4 pt-3 border-t">
-                      {sr ? (
+                      {sr && !isFormOpen ? (
                         // Active sale request
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
@@ -217,12 +248,20 @@ export function OwnerPropertiesPage() {
                               </>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleWithdraw(sr._id)}
-                            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                          >
-                            Withdraw
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openEditForm(w.weekId, sr)}
+                              className="text-xs font-medium px-3 py-1.5 rounded-lg border hover:bg-muted/50 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleWithdraw(sr._id)}
+                              className="text-xs font-medium px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              Withdraw
+                            </button>
+                          </div>
                         </div>
                       ) : isFormOpen ? (
                         // Inline sell form
@@ -269,29 +308,44 @@ export function OwnerPropertiesPage() {
                             </button>
                             <button
                               onClick={() =>
-                                handleSubmitSale(
-                                  w.weekId as Id<"weeks">
-                                )
+                                handleSubmitSale(w.weekId as Id<"weeks">)
                               }
                               disabled={submitting}
                               className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
                             >
                               <Send className="w-3.5 h-3.5" />
                               {submitting
-                                ? "Submitting…"
-                                : "Submit for Approval"}
+                                ? "Saving…"
+                                : editingRequestId
+                                  ? "Save Changes"
+                                  : "Submit for Approval"}
                             </button>
                           </div>
                         </div>
                       ) : (
-                        // No active request — show sell button
-                        <button
-                          onClick={() => openSellForm(w.weekId)}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-                        >
-                          <Tag className="w-3.5 h-3.5" />
-                          Sell My Week
-                        </button>
+                        // No active request — offer both ways to move a week.
+                        // Selling goes through admin approval; a trade is an
+                        // owner-to-owner listing in the joint marketplace, so
+                        // it hands off to the listing form with this week
+                        // pre-selected [scott, 2026-09-13].
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => openSellForm(w.weekId)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                          >
+                            <Tag className="w-3.5 h-3.5" />
+                            Sell My Week
+                          </button>
+                          <Link
+                            to={`/owner/listings?kind=trade&unit=${encodeURIComponent(
+                              w.unitNumber ?? "",
+                            )}&week=${w.weekNumber}`}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-muted/50 transition-colors"
+                          >
+                            <Repeat className="w-3.5 h-3.5" />
+                            Trade My Week
+                          </Link>
+                        </div>
                       )}
                     </div>
 

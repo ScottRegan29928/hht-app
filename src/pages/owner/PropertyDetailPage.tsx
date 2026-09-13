@@ -23,11 +23,11 @@ export function OwnerPropertyDetailPage() {
   const { propertyId } = useParams();
   const property = useQuery(
     api.owner.getProperty,
-    propertyId ? { propertyId: propertyId as Id<"properties"> } : "skip"
+    propertyId ? { propertyId: propertyId as Id<"properties"> } : "skip",
   );
   const saleRequests = useQuery(
     api.owner.listSaleRequestsByProperty,
-    propertyId ? { propertyId: propertyId as Id<"properties"> } : "skip"
+    propertyId ? { propertyId: propertyId as Id<"properties"> } : "skip",
   );
   const submitRequest = useMutation(api.owner.submitSaleRequest);
   const cancelRequest = useMutation(api.owner.cancelSaleRequest);
@@ -42,7 +42,9 @@ export function OwnerPropertyDetailPage() {
   if (property === undefined) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-pulse text-muted-foreground">Loading property…</div>
+        <div className="animate-pulse text-muted-foreground">
+          Loading property…
+        </div>
       </div>
     );
   }
@@ -51,7 +53,10 @@ export function OwnerPropertyDetailPage() {
     return (
       <div className="text-center py-20">
         <p className="text-muted-foreground">Property not found.</p>
-        <Link to="/owner/properties" className="text-primary text-sm mt-2 inline-block">
+        <Link
+          to="/owner/properties"
+          className="text-primary text-sm mt-2 inline-block"
+        >
           ← Back to properties
         </Link>
       </div>
@@ -172,16 +177,21 @@ export function OwnerPropertyDetailPage() {
             </div>
           ) : (
             property.saleWeeks.map((w: any) => (
-              <div key={w._id} className="px-5 py-3 flex items-center justify-between">
+              <div
+                key={w._id}
+                className="px-5 py-3 flex items-center justify-between"
+              >
                 <div>
                   <span className="font-medium">Week {w.weekNumber}</span>
                   <span className="text-muted-foreground text-sm ml-2">
-                    {w.isAnnual ? "Annual" : w.year ?? "—"}
+                    {w.isAnnual ? "Annual" : (w.year ?? "—")}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
                   {w.price && (
-                    <span className="text-sm font-medium">${w.price.toLocaleString()}</span>
+                    <span className="text-sm font-medium">
+                      ${w.price.toLocaleString()}
+                    </span>
                   )}
                   <WeekStatusBadge status={w.status} />
                 </div>
@@ -215,36 +225,50 @@ export function OwnerPropertyDetailPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium mb-1">Week #</label>
+                  <label className="block text-xs font-medium mb-1">
+                    Week #
+                  </label>
                   <input
                     type="number"
                     min={1}
                     max={52}
                     value={sellForm.weekNumber}
                     onChange={(e) =>
-                      setSellForm({ ...sellForm, weekNumber: Number(e.target.value) })
+                      setSellForm({
+                        ...sellForm,
+                        weekNumber: Number(e.target.value),
+                      })
                     }
                     className="w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">Asking Price ($)</label>
+                  <label className="block text-xs font-medium mb-1">
+                    Asking Price ($)
+                  </label>
                   <input
                     type="number"
                     min={0}
                     value={sellForm.askingPrice}
                     onChange={(e) =>
-                      setSellForm({ ...sellForm, askingPrice: Number(e.target.value) })
+                      setSellForm({
+                        ...sellForm,
+                        askingPrice: Number(e.target.value),
+                      })
                     }
                     className="w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Notes (optional)</label>
+                <label className="block text-xs font-medium mb-1">
+                  Notes (optional)
+                </label>
                 <textarea
                   value={sellForm.notes}
-                  onChange={(e) => setSellForm({ ...sellForm, notes: e.target.value })}
+                  onChange={(e) =>
+                    setSellForm({ ...sellForm, notes: e.target.value })
+                  }
                   rows={2}
                   className="w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                   placeholder="Any additional details about the sale…"
@@ -272,7 +296,9 @@ export function OwnerPropertyDetailPage() {
         {/* Sale request history */}
         <div className="divide-y">
           {saleRequests === undefined ? (
-            <div className="px-5 py-4 text-sm text-muted-foreground">Loading…</div>
+            <div className="px-5 py-4 text-sm text-muted-foreground">
+              Loading…
+            </div>
           ) : saleRequests.length === 0 ? (
             <div className="px-5 py-6 text-center text-sm text-muted-foreground">
               No sale requests yet. Use "New Request" to list a week for sale.
@@ -283,14 +309,18 @@ export function OwnerPropertyDetailPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-medium text-sm">Week {r.weekNumber}</span>
+                      <span className="font-medium text-sm">
+                        Week {r.weekNumber}
+                      </span>
                       <RequestStatusBadge status={r.status} />
                     </div>
                     <div className="text-sm text-muted-foreground">
                       Asking ${r.askingPrice.toLocaleString()}
                     </div>
                     {r.notes && (
-                      <div className="text-xs text-muted-foreground mt-0.5">{r.notes}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {r.notes}
+                      </div>
                     )}
                     {r.adminNotes && (
                       <div className="text-xs text-amber-600 mt-1">
@@ -324,14 +354,16 @@ export function OwnerPropertyDetailPage() {
             <h2 className="font-semibold">Community Features</h2>
           </div>
           <div className="p-5 grid sm:grid-cols-2 gap-4">
-            {Object.entries(property.communityFeatures).map(([category, items]) => (
-              <div key={category}>
-                <h3 className="text-sm font-medium mb-1">{category}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {items as string}
-                </p>
-              </div>
-            ))}
+            {Object.entries(property.communityFeatures).map(
+              ([category, items]) => (
+                <div key={category}>
+                  <h3 className="text-sm font-medium mb-1">{category}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {items as string}
+                  </p>
+                </div>
+              ),
+            )}
           </div>
         </div>
       )}
@@ -366,7 +398,9 @@ function WeekStatusBadge({ status }: { status: string }) {
     not_listed: "bg-gray-100 text-gray-500",
   };
   return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${colors[status] ?? colors.not_listed}`}>
+    <span
+      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${colors[status] ?? colors.not_listed}`}
+    >
       {status.replace("_", " ")}
     </span>
   );
@@ -380,7 +414,9 @@ function RequestStatusBadge({ status }: { status: string }) {
     cancelled: "bg-gray-100 text-gray-500",
   };
   return (
-    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${styles[status] ?? styles.pending}`}>
+    <span
+      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${styles[status] ?? styles.pending}`}
+    >
       {status}
     </span>
   );

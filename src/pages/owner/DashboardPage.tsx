@@ -16,11 +16,16 @@ import {
 } from "lucide-react";
 import { useSiteFlags } from "@/lib/siteContext";
 import { resortTheme } from "@/components/owner/portalTheme";
+import {
+  ResortSwitch,
+  useAssociationSite,
+} from "@/components/owner/ResortSwitch";
 
 export function OwnerDashboardPage() {
   const stats = useQuery(api.owner.dashboardStats);
   const requests = useQuery(api.owner.listSaleRequests);
-  const { siteSlug, siteName } = useSiteFlags();
+  const { siteName } = useSiteFlags();
+  const { siteSlug, setSiteSlug, resorts, multi } = useAssociationSite();
   const portal = useQuery(api.ownerPortal.overview, { siteSlug });
   const theme = resortTheme(siteSlug);
   const matches = useQuery(api.marketplaceMatches.myMatches, {});
@@ -36,6 +41,13 @@ export function OwnerDashboardPage() {
   }
 
   const recentRequests = requests?.slice(0, 5) ?? [];
+
+  // With the toggle present, the heading must follow the selection rather than
+  // the hostname the owner happened to sign in through.
+  const resortName =
+    resorts.find(
+      (r: { siteSlug: string; name: string }) => r.siteSlug === siteSlug,
+    )?.name ?? siteName;
 
   return (
     <div className="space-y-6">
@@ -61,7 +73,7 @@ export function OwnerDashboardPage() {
             : "Owner Portal"}
         </h1>
         <p className="text-sm text-white/75 mt-1 relative">
-          Your ownership at {siteName}, all in one place.
+          Your ownership at {resortName}, all in one place.
         </p>
       </div>
 
@@ -95,7 +107,7 @@ export function OwnerDashboardPage() {
                 .map((m: any) =>
                   m.kind === "trade"
                     ? `Trade for week ${m.weekNumber}`
-                    : `Wants to buy week ${m.weekNumber}`
+                    : `Wants to buy week ${m.weekNumber}`,
                 )
                 .join(" · ")}
               {matches.length > 2 ? ` · +${matches.length - 2} more` : ""}
@@ -147,7 +159,7 @@ export function OwnerDashboardPage() {
             <div>
               <h3 className="font-semibold mb-1">My Weeks</h3>
               <p className="text-sm text-muted-foreground">
-                View your weeks and list them for sale
+                View your weeks and list them for sale or trade
               </p>
             </div>
             <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -163,7 +175,7 @@ export function OwnerDashboardPage() {
               <p className="text-sm text-muted-foreground">
                 {stats.newInquiryCount > 0
                   ? `${stats.newInquiryCount} new inquiry${stats.newInquiryCount > 1 ? "ies" : ""} to review`
-                  : "View and respond to buyer inquiries"}
+                  : "View and respond to buyer and trade inquiries"}
               </p>
             </div>
             <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -173,7 +185,16 @@ export function OwnerDashboardPage() {
 
       {/* Association shortcuts — the content that used to be ten accordions */}
       <div>
-        <h2 className="font-semibold mb-3">Your association</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h2 className="font-semibold">Your association</h2>
+          {multi && (
+            <ResortSwitch
+              resorts={resorts}
+              value={siteSlug}
+              onChange={setSiteSlug}
+            />
+          )}
+        </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <TileLink
             to="/owner/documents"

@@ -88,12 +88,50 @@ async function withUrls(ctx: any, docs: Doc<"ownerDocuments">[]) {
 }
 
 /** Newest first within a category; an explicit sortOrder wins. */
+/**
+ * Documents the two resorts both publish, in the order they should appear.
+ *
+ * Ordering used to fall back to each document's date, which is a property of
+ * when the resort last revised its PDF — so the same four "arriving and
+ * staying" links came out in a different order at Spicebush and Swallowtail
+ * [scott, 2026-09-13]. Owners in both resorts see both portals, so the order
+ * has to be a property of the document, not of its revision date.
+ *
+ * Matched loosely on the title: the two resorts name these slightly
+ * differently and the list should survive a rename.
+ */
+const DOC_ORDER: RegExp[] = [
+  /resort calendar/i,
+  /checking in|check-in|directions/i,
+  /late.?arrival/i,
+  /outdoor activit/i,
+  /master deed|bylaw/i,
+  /site plan/i,
+  /floor plan/i,
+  /hoa (weeks|resale)/i,
+  /board of directors list/i,
+];
+
+function docRank(title: string) {
+  const i = DOC_ORDER.findIndex((re) => re.test(title));
+  // Anything unrecognised sorts after the known set, by date, as before.
+  return i === -1 ? DOC_ORDER.length : i;
+}
+
 function orderDocs(docs: Doc<"ownerDocuments">[]) {
   return [...docs].sort((a, b) => {
     const ao = a.sortOrder ?? 0;
     const bo = b.sortOrder ?? 0;
     if (ao !== bo) return ao - bo;
-    return (b.documentDate ?? 0) - (a.documentDate ?? 0);
+
+    const ar = docRank(a.title);
+    const br = docRank(b.title);
+    if (ar !== br) return ar - br;
+
+    const ad = a.documentDate ?? 0;
+    const bd = b.documentDate ?? 0;
+    if (ad !== bd) return bd - ad;
+    return a.title.localeCompare(b.title);
   });
 }
 
@@ -149,10 +187,80 @@ export const getSettings = query({
  * One call for the whole portal home screen. Saves the client from firing six
  * gated queries that each repeat the same auth lookup.
  */
-export const overview = query({
+/**
+ * Which resorts this owner may read association content for.
+ *
+ * Ownership is not scoped to a portal — an owner can hold weeks at both
+ * Spicebush and Swallowtail, and signing into either portal already shows all
+ * of their weeks. Association content is the exception: two associations, two
+ * boards, two sets of bylaws, so it stays per-resort [scott, 2026-09-13]. This
+ * is what lets such an owner switch between them without a second login.
+ *
+ * Always includes the portal they are signed into, so a single-resort owner
+ * sees exactly one entry and no switcher appears.
+ */
+export const myResorts = query({
   args: { siteSlug: v.string() },
   handler: async (ctx, { siteSlug }) => {
     const viewer = await requirePortalViewer(ctx);
+
+    const weeks = await ctx.db
+      .query("weeks")
+      .withIndex("by_owner", (q: any) => q.eq("ownerId", viewer._id))
+      .collect();
+
+    const slugs = new Set<string>([siteSlug]);
+    for (const w of weeks) {
+      const property: any = await ctx.db.get(w.propertyId);
+      const community: any = property?.communityId
+        ? await ctx.db.get(property.communityId)
+        : null;
+      // Only the two resorts that have portals. A week in Racquet Club or
+      // Plantation Club carries no association portal of its own.
+      if (community?.slug === "spicebush") slugs.add("spicebush");
+      if (community?.slug === "swallowtail-at-sea-pines") slugs.add("swallowtail");
+    }
+
+    const sites = await ctx.db.query("sites").collect();
+    return [...slugs].map((slug) => ({
+      siteSlug: slug,
+      name:
+        sites.find((s: any) => s.slug === slug)?.name ??
+        (slug === "swallowtail" ? "Swallowtail" : "Spicebush"),
+    }));
+  },
+});
+
+export const overview = query({
+  args: { siteSlug: v.string(), portalSlug: v.optional(v.string()) },
+  handler: async (ctx, { siteSlug, portalSlug }) => {
+    const viewer = await requirePortalViewer(ctx);
+
+    // Reading another resort's association content requires owning a week
+    // there. The switcher only offers permitted resorts, but the check has to
+    // live here — the argument comes from the client.
+    if (portalSlug && siteSlug !== portalSlug) {
+      const weeks = await ctx.db
+        .query("weeks")
+        .withIndex("by_owner", (q: any) => q.eq("ownerId", viewer._id))
+        .collect();
+      let allowed = false;
+      for (const w of weeks) {
+        const property: any = await ctx.db.get(w.propertyId);
+        const community: any = property?.communityId
+          ? await ctx.db.get(property.communityId)
+          : null;
+        const slug =
+          community?.slug === "swallowtail-at-sea-pines"
+            ? "swallowtail"
+            : community?.slug;
+        if (slug === siteSlug) {
+          allowed = true;
+          break;
+        }
+      }
+      if (!allowed) throw new Error("You do not own a week at that resort");
+    }
     const [docs, board, settings] = await Promise.all([
       ctx.db
         .query("ownerDocuments")

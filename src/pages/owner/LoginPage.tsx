@@ -63,7 +63,9 @@ export function OwnerLoginPage() {
       } else if (mode === "reset") {
         await signIn("password", { email, flow: "reset" });
         setMode("resetVerify");
-        setNotice(`We sent a reset code to ${email}. It expires in 20 minutes.`);
+        setNotice(
+          `We sent a reset code to ${email}. It expires in 20 minutes.`,
+        );
       } else {
         await signIn("password", {
           email,
@@ -79,7 +81,9 @@ export function OwnerLoginPage() {
       } else if (mode === "reset") {
         // Deliberately generic: don't reveal whether an account exists.
         setMode("resetVerify");
-        setNotice(`If an account exists for ${email}, a reset code is on its way.`);
+        setNotice(
+          `If an account exists for ${email}, a reset code is on its way.`,
+        );
       } else {
         setError("That code was incorrect or has expired. Request a new one.");
       }
@@ -130,7 +134,9 @@ export function OwnerLoginPage() {
 
           {mode === "signIn" && (
             <div>
-              <label className="block text-sm font-medium mb-1.5">Password</label>
+              <label className="block text-sm font-medium mb-1.5">
+                Password
+              </label>
               <input
                 type="password"
                 value={password}

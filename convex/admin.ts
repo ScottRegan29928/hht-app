@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 // ── Helper: format phone to (xxx) xxx-xxxx ──
 function formatPhone(value?: string): string | undefined {
@@ -54,7 +55,7 @@ async function requireSuperAdmin(ctx: any) {
 // ── Helper: check week-scoped permission ──
 function requireWeekPermission(
   profile: { role: string },
-  listingType: string | undefined
+  listingType: string | undefined,
 ) {
   if (profile.role === "admin") return; // full admin can do anything
   const lt = listingType ?? "both";
@@ -80,10 +81,10 @@ export const dashboardStats = query({
     const RENTAL_TYPES = ["rent", "both"];
     const SALE_TYPES = ["sale", "both"];
     const availableRentalWeeks = availableWeeks.filter((w) =>
-      RENTAL_TYPES.includes(w.listingType ?? "rent")
+      RENTAL_TYPES.includes(w.listingType ?? "rent"),
     );
     const availableSaleWeeks = availableWeeks.filter((w) =>
-      SALE_TYPES.includes(w.listingType ?? "sale")
+      SALE_TYPES.includes(w.listingType ?? "sale"),
     );
     const inquiries = await ctx.db.query("inquiries").collect();
     const newInquiries = inquiries.filter((i) => i.status === "new");
@@ -410,7 +411,7 @@ export const createWeek = mutation({
     propertyId: v.id("properties"),
     weekNumber: v.number(),
     listingType: v.optional(
-      v.union(v.literal("rent"), v.literal("sale"), v.literal("both"))
+      v.union(v.literal("rent"), v.literal("sale"), v.literal("both")),
     ),
     price: v.optional(v.number()),
     rentPrice: v.optional(v.number()),
@@ -421,7 +422,7 @@ export const createWeek = mutation({
       v.literal("pending"),
       v.literal("sold"),
       v.literal("rented"),
-      v.literal("not_listed")
+      v.literal("not_listed"),
     ),
     year: v.optional(v.number()),
     isAnnual: v.optional(v.boolean()),
@@ -432,7 +433,11 @@ export const createWeek = mutation({
     const { profile } = await requireAdmin(ctx);
     requireWeekPermission(profile, args.listingType);
     const { ownerId, ...rest } = args;
-    const insertData: any = { ...rest, createdAt: Date.now(), updatedAt: Date.now() };
+    const insertData: any = {
+      ...rest,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
     if (ownerId) insertData.ownerId = ownerId;
     return await ctx.db.insert("weeks", insertData);
   },
@@ -444,7 +449,7 @@ export const updateWeek = mutation({
     id: v.id("weeks"),
     weekNumber: v.optional(v.number()),
     listingType: v.optional(
-      v.union(v.literal("rent"), v.literal("sale"), v.literal("both"))
+      v.union(v.literal("rent"), v.literal("sale"), v.literal("both")),
     ),
     price: v.optional(v.number()),
     rentPrice: v.optional(v.number()),
@@ -456,8 +461,8 @@ export const updateWeek = mutation({
         v.literal("pending"),
         v.literal("sold"),
         v.literal("rented"),
-        v.literal("not_listed")
-      )
+        v.literal("not_listed"),
+      ),
     ),
     year: v.optional(v.number()),
     isAnnual: v.optional(v.boolean()),
@@ -511,7 +516,7 @@ export const listInquiries = query({
           }
         }
         return { ...inq, propertyAddress, communityName };
-      })
+      }),
     );
     return enriched.sort((a, b) => b.createdAt - a.createdAt);
   },
@@ -524,7 +529,7 @@ export const updateInquiryStatus = mutation({
     status: v.union(
       v.literal("new"),
       v.literal("contacted"),
-      v.literal("closed")
+      v.literal("closed"),
     ),
   },
   handler: async (ctx, { id, status }) => {
@@ -651,13 +656,14 @@ export const setUserRole = mutation({
       v.literal("admin_rental"),
       v.literal("admin_sales"),
       v.literal("owner"),
-      v.literal("renter")
+      v.literal("renter"),
     ),
   },
   handler: async (ctx, { profileId, role }) => {
     const { profile } = await requireAdmin(ctx);
     // Only full admins can change roles
-    if (profile.role !== "admin") throw new Error("Only full admins can manage roles");
+    if (profile.role !== "admin")
+      throw new Error("Only full admins can manage roles");
     await ctx.db.patch(profileId, { role });
   },
 });
@@ -681,7 +687,7 @@ export const listSaleRequests = query({
             ownerName:
               ownerProfile?.displayName ?? ownerProfile?.email ?? "Unknown",
           };
-        })
+        }),
     );
   },
 });
@@ -719,6 +725,16 @@ export const reviewSaleRequest = mutation({
     }
 
     await ctx.db.patch(requestId, updates);
+
+    // Approving a sale request has to put the week in front of other owners.
+    // Approval used to stop at the `weeks` row, so an approved listing never
+    // reached the marketplace — two systems that never met [scott,
+    // 2026-09-13]. Rejecting pulls it back out again.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.marketplace.syncListingForSaleRequest,
+      { requestId },
+    );
   },
 });
 
@@ -763,14 +779,20 @@ export const listOwners = query({
             .query("weeks")
             .withIndex("by_owner", (q: any) => q.eq("ownerId", owner._id))
             .collect();
-          const propertyIds = [...new Set(ownedWeeks.map((w: any) => String(w.propertyId)))];
-          const properties = (await Promise.all(
-            propertyIds.map((id) => ctx.db.get(id as any))
-          )).filter(Boolean) as any[];
+          const propertyIds = [
+            ...new Set(ownedWeeks.map((w: any) => String(w.propertyId))),
+          ];
+          const properties = (
+            await Promise.all(propertyIds.map((id) => ctx.db.get(id as any)))
+          ).filter(Boolean) as any[];
 
           return {
             ...owner,
-            fullName: [owner.firstName, owner.lastName].filter(Boolean).join(" ") || owner.displayName || owner.email || "—",
+            fullName:
+              [owner.firstName, owner.lastName].filter(Boolean).join(" ") ||
+              owner.displayName ||
+              owner.email ||
+              "—",
             propertyCount: properties.length,
             weekCount: ownedWeeks.length,
             properties: properties.map((p: any) => ({
@@ -779,7 +801,7 @@ export const listOwners = query({
             })),
             isLinked: !!owner.userId,
           };
-        })
+        }),
     );
   },
 });
@@ -797,17 +819,19 @@ export const getOwner = query({
       .query("weeks")
       .withIndex("by_owner", (q: any) => q.eq("ownerId", ownerId))
       .collect();
-    const propertyIds = [...new Set(ownedWeeks.map((w: any) => String(w.propertyId)))];
-    const properties = (await Promise.all(
-      propertyIds.map((id) => ctx.db.get(id as any))
-    )).filter(Boolean) as any[];
+    const propertyIds = [
+      ...new Set(ownedWeeks.map((w: any) => String(w.propertyId))),
+    ];
+    const properties = (
+      await Promise.all(propertyIds.map((id) => ctx.db.get(id as any)))
+    ).filter(Boolean) as any[];
 
     // Enrich properties with community name + owned week count
     const enrichedProperties = await Promise.all(
       properties.map(async (p: any) => {
         const community = await ctx.db.get(p.communityId);
         const weeksForProp = ownedWeeks.filter(
-          (w: any) => String(w.propertyId) === String(p._id)
+          (w: any) => String(w.propertyId) === String(p._id),
         );
         return {
           _id: p._id,
@@ -817,12 +841,15 @@ export const getOwner = query({
           isActive: p.isActive,
           ownedWeekCount: weeksForProp.length,
         };
-      })
+      }),
     );
 
     return {
       ...owner,
-      fullName: [owner.firstName, owner.lastName].filter(Boolean).join(" ") || owner.displayName || "—",
+      fullName:
+        [owner.firstName, owner.lastName].filter(Boolean).join(" ") ||
+        owner.displayName ||
+        "—",
       isLinked: !!owner.userId,
       properties: enrichedProperties,
     };
@@ -959,7 +986,11 @@ export const searchOwners = query({
     return filtered.map((o) => ({
       _id: o._id,
       userId: o.userId,
-      fullName: [o.firstName, o.lastName].filter(Boolean).join(" ") || o.displayName || o.email || "—",
+      fullName:
+        [o.firstName, o.lastName].filter(Boolean).join(" ") ||
+        o.displayName ||
+        o.email ||
+        "—",
       email: o.email,
     }));
   },
@@ -972,12 +1003,13 @@ export const resetOwnerPassword = mutation({
     await requireAdmin(ctx);
     const owner = await ctx.db.get(ownerId);
     if (!owner || owner.role !== "owner") throw new Error("Owner not found");
-    if (!owner.userId) throw new Error("Owner has not registered yet — send welcome letter instead");
+    if (!owner.userId)
+      throw new Error(
+        "Owner has not registered yet — send welcome letter instead",
+      );
 
     // Delete existing auth sessions for this user to force re-login
-    const sessions = await ctx.db
-      .query("authSessions")
-      .collect();
+    const sessions = await ctx.db.query("authSessions").collect();
     for (const s of sessions) {
       if ((s as any).userId === owner.userId) {
         await ctx.db.delete(s._id);
@@ -987,7 +1019,10 @@ export const resetOwnerPassword = mutation({
     // Delete existing auth accounts (password) so they can re-register
     const accounts = await ctx.db.query("authAccounts").collect();
     for (const a of accounts) {
-      if ((a as any).userId === owner.userId && (a as any).provider === "password") {
+      if (
+        (a as any).userId === owner.userId &&
+        (a as any).provider === "password"
+      ) {
         await ctx.db.delete(a._id);
       }
     }
@@ -1063,7 +1098,11 @@ export const listAdminUsers = query({
     return admins.map((p: any) => ({
       _id: p._id,
       userId: p.userId,
-      displayName: p.displayName ?? [p.firstName, p.lastName].filter(Boolean).join(" ") ?? p.email ?? "—",
+      displayName:
+        p.displayName ??
+        [p.firstName, p.lastName].filter(Boolean).join(" ") ??
+        p.email ??
+        "—",
       email: p.email,
       firstName: p.firstName,
       lastName: p.lastName,
@@ -1146,7 +1185,8 @@ export const deleteAdminUser = mutation({
   args: { profileId: v.id("userProfiles") },
   handler: async (ctx, { profileId }) => {
     const { profile: myProfile } = await requireSuperAdmin(ctx);
-    if (profileId === myProfile._id) throw new Error("You cannot delete yourself");
+    if (profileId === myProfile._id)
+      throw new Error("You cannot delete yourself");
     const target = await ctx.db.get(profileId);
     if (!target || !ADMIN_ROLES.includes(target.role))
       throw new Error("Admin user not found");

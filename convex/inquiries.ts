@@ -40,7 +40,9 @@ export const submit = mutation({
       v.literal("rental"),
       v.literal("general"),
       // Owner-portal comment card; routed to the resort regime managers.
-      v.literal("comment_card")
+      v.literal("comment_card"),
+      // Owner-portal board volunteer form [scott, 2026-09-13].
+      v.literal("board_nomination")
     ),
     siteSlug: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
@@ -78,7 +80,7 @@ export const submit = mutation({
     // Notify by email. A form submission that only lands in a table nobody
     // watches is the same as a form that does not work.
     await ctx.scheduler.runAfter(0, internal.inquiries.notify, {
-      inquiryId: id,
+      inquiryId: String(id),
       routedTo,
       type: args.type,
       siteSlug: args.siteSlug,
@@ -162,6 +164,8 @@ const TYPE_LABEL: Record<string, string> = {
   rental: "Rental inquiry",
   general: "Contact form",
   comment_card: "Owner comment card",
+  board_nomination: "Board volunteer form",
+  sale_request: "Owner sale request",
 };
 
 /**
@@ -172,7 +176,8 @@ const TYPE_LABEL: Record<string, string> = {
  */
 export const notify = internalAction({
   args: {
-    inquiryId: v.id("inquiries"),
+    // Accepts any record id: sale requests reuse this mailer.
+    inquiryId: v.string(),
     routedTo: v.string(),
     type: v.string(),
     siteSlug: v.optional(v.string()),

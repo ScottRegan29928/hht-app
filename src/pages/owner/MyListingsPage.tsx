@@ -1,6 +1,12 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  formatOwnerWeekRange,
+  getRemainingWeeksInYear,
+  getSelectableYears,
+} from "@/lib/weekCalendar";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useSiteFlags } from "@/lib/siteContext";
@@ -8,6 +14,13 @@ import { ListingCard } from "@/components/owner/ListingCard";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 type Kind = "for_sale" | "want_to_buy" | "trade";
+
+// Week numbers for the "week wanted" field on a Want to Buy listing, which is
+// not tied to a year.
+const WEEK_NUMBERS = Array.from({ length: 52 }, (_, i) => i + 1);
+// Years that still have weeks left — includes the current year, which a
+// fixed list did not [scott, 2026-09-13].
+const SELECTABLE_YEARS = getSelectableYears();
 
 const KIND_LABEL: Record<Kind, string> = {
   for_sale: "For Sale",
@@ -25,6 +38,10 @@ const STATUS_STYLE: Record<string, string> = {
 export function OwnerMyListingsPage() {
   const { siteSlug } = useSiteFlags();
   const listings = useQuery(api.marketplace.myListings);
+  // The weeks this owner actually holds. Listings for sale or trade must come
+  // from this list — an owner cannot list a week that is not theirs
+  // [scott, 2026-09-13]. Enforced on the server too; this is the usable half.
+  const ownedWeeks = useQuery(api.owner.listOwnedWeeks);
   const createListing = useMutation(api.marketplace.createListing);
   const setStatus = useMutation(api.marketplace.setListingStatus);
   const updateListing = useMutation(api.marketplace.updateListing);
@@ -39,14 +56,44 @@ export function OwnerMyListingsPage() {
   const [communitySlug, setCommunitySlug] = useState(defaultCommunity);
   const [unitNumber, setUnitNumber] = useState("");
   const [weekLabel, setWeekLabel] = useState("");
+  // Which owned week is selected, as "unit|week". want_to_buy has no such
+  // selection: you ask for a week precisely because you do not own it.
+  const [ownedKey, setOwnedKey] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const prefilled = useRef(false);
+
+  // Unit|week keys the owner already has an active for-sale listing against.
+  const alreadyListed = new Set(
+    (listings ?? [])
+      .filter((l: any) => l.kind === "for_sale" && l.status === "active")
+      .map((l: any) => `${l.unitNumber ?? ""}|${l.weekNumber ?? ""}`),
+  );
+
+  // Desired "week|year" pairs already covered by an active trade listing for
+  // the owned week currently selected. An owner may offer the same week
+  // against several different weeks, but not twice against the same one
+  // [scott, 2026-09-13].
+  const alreadyWanted = new Set(
+    (listings ?? [])
+      .filter(
+        (l: any) =>
+          l.kind === "trade" &&
+          l.status === "active" &&
+          `${l.unitNumber ?? ""}|${l.weekNumber ?? ""}` === ownedKey &&
+          l._id !== editingId,
+      )
+      .map((l: any) => `${l.desiredWeekNumber ?? ""}|${l.desiredYear ?? ""}`),
+  );
   const [askingPrice, setAskingPrice] = useState("");
   const [desiredWeekLabel, setDesiredWeekLabel] = useState("");
+  const [desiredYear, setDesiredYear] = useState(String(SELECTABLE_YEARS[0]));
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // Non-null while editing an existing listing; the same form serves both, so
   // the fields and validation can never drift apart between create and edit.
-  const [editingId, setEditingId] =
-    useState<Id<"marketplaceListings"> | null>(null);
+  const [editingId, setEditingId] = useState<Id<"marketplaceListings"> | null>(
+    null,
+  );
 
   const touchedCommunity = useRef(false);
   useEffect(() => {
@@ -59,8 +106,10 @@ export function OwnerMyListingsPage() {
     setEditingId(null);
     setUnitNumber("");
     setWeekLabel("");
+    setOwnedKey("");
     setAskingPrice("");
     setDesiredWeekLabel("");
+    setDesiredYear(String(SELECTABLE_YEARS[0]));
     setNotes("");
     touchedCommunity.current = false;
     setCommunitySlug(defaultCommunity);
@@ -74,8 +123,10 @@ export function OwnerMyListingsPage() {
     setCommunitySlug(l.communitySlug ?? defaultCommunity);
     setUnitNumber(l.unitNumber ?? "");
     setWeekLabel(l.weekLabel ?? "");
+    setOwnedKey(`${l.unitNumber ?? ""}|${l.weekNumber ?? ""}`);
     setAskingPrice(l.askingPrice ? String(l.askingPrice) : "");
     setDesiredWeekLabel(l.desiredWeekLabel ?? "");
+    setDesiredYear(String(l.desiredYear ?? SELECTABLE_YEARS[0]));
     setNotes(l.notes ?? "");
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -84,7 +135,7 @@ export function OwnerMyListingsPage() {
   const handleRemove = async (listingId: Id<"marketplaceListings">) => {
     if (
       !window.confirm(
-        "Remove this listing permanently? To take it down but keep it for later, use Withdraw instead."
+        "Remove this listing permanently? To take it down but keep it for later, use Withdraw instead.",
       )
     ) {
       return;
@@ -97,14 +148,44 @@ export function OwnerMyListingsPage() {
     }
   };
 
+  /**
+   * "Trade My Week" on My Weeks links here with the week already chosen, so
+   * the owner does not have to find it again in the drop-down. Runs once, and
+   * only when the owned-week list has loaded — otherwise the selection is set
+   * before the options exist and the drop-down renders empty.
+   */
+  useEffect(() => {
+    if (prefilled.current || !ownedWeeks) return;
+    const kindParam = searchParams.get("kind");
+    const unit = searchParams.get("unit");
+    const week = searchParams.get("week");
+    if (!kindParam && !week) return;
+
+    prefilled.current = true;
+    if (kindParam === "trade" || kindParam === "for_sale") setKind(kindParam);
+    const match = ownedWeeks.find(
+      (o: any) =>
+        String(o.weekNumber) === week &&
+        (!unit || String(o.unitNumber ?? "") === unit),
+    );
+    if (match) {
+      setOwnedKey(`${match.unitNumber ?? ""}|${match.weekNumber}`);
+      setUnitNumber(String(match.unitNumber ?? ""));
+      setWeekLabel(String(match.weekNumber));
+      setShowForm(true);
+    }
+    // Clear the params so a refresh doesn't reopen the form unexpectedly.
+    setSearchParams({}, { replace: true });
+  }, [ownedWeeks, searchParams, setSearchParams]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (kind !== "want_to_buy" && !unitNumber.trim()) {
-      toast.error("Please enter the unit number you own");
+    if (kind !== "want_to_buy" && !ownedKey) {
+      toast.error("Please select which of your weeks you want to list");
       return;
     }
-    if (!weekLabel.trim()) {
-      toast.error("Please enter the week");
+    if (kind === "want_to_buy" && !weekLabel.trim()) {
+      toast.error("Please choose the week you are looking for");
       return;
     }
     setSubmitting(true);
@@ -119,7 +200,7 @@ export function OwnerMyListingsPage() {
         await updateListing({
           listingId: editingId,
           kind,
-          communitySlug,
+          communitySlug: communitySlug || undefined,
           unitNumber: unitNumber.trim() || undefined,
           weekLabel: weekLabel.trim(),
           weekNumber,
@@ -128,7 +209,10 @@ export function OwnerMyListingsPage() {
           // different from leaving the field untouched.
           clearPrice: kind === "for_sale" && !askingPrice,
           desiredWeekLabel:
-            kind === "trade" ? desiredWeekLabel.trim() || "Flexible" : undefined,
+            kind === "trade"
+              ? desiredWeekLabel.trim() || "Flexible"
+              : undefined,
+          desiredYear: kind === "trade" ? Number(desiredYear) : undefined,
           notes: notes.trim() || undefined,
         });
         toast.success("Listing updated");
@@ -139,13 +223,14 @@ export function OwnerMyListingsPage() {
       await createListing({
         originSiteSlug: siteSlug,
         kind,
-        communitySlug,
+        communitySlug: communitySlug || undefined,
         unitNumber: unitNumber.trim() || undefined,
         weekLabel: weekLabel.trim(),
         weekNumber,
         askingPrice: price,
         desiredWeekLabel:
           kind === "trade" ? desiredWeekLabel.trim() || "Flexible" : undefined,
+        desiredYear: kind === "trade" ? Number(desiredYear) : undefined,
         notes: notes.trim() || undefined,
       });
       toast.success("Listing posted to both owner portals");
@@ -159,7 +244,7 @@ export function OwnerMyListingsPage() {
 
   const changeStatus = async (
     listingId: Id<"marketplaceListings">,
-    status: "active" | "closed" | "withdrawn"
+    status: "active" | "closed" | "withdrawn",
   ) => {
     try {
       await setStatus({ listingId, status });
@@ -168,7 +253,7 @@ export function OwnerMyListingsPage() {
           ? "Marked as closed"
           : status === "withdrawn"
             ? "Listing withdrawn"
-            : "Listing reposted for another year"
+            : "Listing reposted for another year",
       );
     } catch (err: any) {
       toast.error(err.message || "Could not update the listing");
@@ -220,7 +305,7 @@ export function OwnerMyListingsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1.5">
-                Community
+                {kind === "for_sale" ? "Community" : "Community you want"}
               </label>
               <select
                 value={communitySlug}
@@ -230,38 +315,111 @@ export function OwnerMyListingsPage() {
                 }}
                 className="w-full px-3 py-2.5 rounded-lg border text-sm bg-background"
               >
+                {/* A trade names the community the owner wants, and that can
+                    genuinely be either — the two resorts trade with each other
+                    [scott, 2026-09-13]. For a sale the community is a fact
+                    about the unit, so "Either" is not offered. */}
+                {kind !== "for_sale" && (
+                  <option value="">Either community</option>
+                )}
                 <option value="spicebush">Spicebush</option>
                 <option value="swallowtail-at-sea-pines">Swallowtail</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                Unit number
-                {kind === "want_to_buy" && (
-                  <span className="text-muted-foreground font-normal">
-                    {" "}
-                    (optional)
-                  </span>
+            {kind === "want_to_buy" ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Unit number
+                    <span className="text-muted-foreground font-normal">
+                      {" "}
+                      (optional)
+                    </span>
+                  </label>
+                  <input
+                    value={unitNumber}
+                    onChange={(e) => setUnitNumber(e.target.value)}
+                    placeholder="583"
+                    className="w-full px-3 py-2.5 rounded-lg border text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Week wanted
+                  </label>
+                  <select
+                    value={weekLabel}
+                    onChange={(e) => setWeekLabel(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg border text-sm bg-background"
+                  >
+                    <option value="">Any week</option>
+                    {WEEK_NUMBERS.map((w) => (
+                      <option key={w} value={String(w)}>
+                        Week {w}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  Your week
+                </label>
+                {ownedWeeks === undefined ? (
+                  <div className="h-11 rounded-lg border bg-slate-50 animate-pulse" />
+                ) : ownedWeeks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground border rounded-lg px-3 py-2.5 bg-slate-50">
+                    Our records do not show any weeks in your name yet. Please
+                    contact the resort office so your ownership can be added.
+                  </p>
+                ) : (
+                  <select
+                    value={ownedKey}
+                    onChange={(e) => {
+                      setOwnedKey(e.target.value);
+                      const w = ownedWeeks.find(
+                        (o: any) =>
+                          `${o.unitNumber ?? ""}|${o.weekNumber}` ===
+                          e.target.value,
+                      );
+                      if (w) {
+                        setUnitNumber(String(w.unitNumber ?? ""));
+                        setWeekLabel(String(w.weekNumber));
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg border text-sm bg-white"
+                  >
+                    <option value="">Select the week you own…</option>
+                    {ownedWeeks.map((o: any) => {
+                      // A week already listed for sale cannot be listed again;
+                      // showing it as selectable invites an error message
+                      // instead of an answer [scott, 2026-09-13]. Editing the
+                      // existing listing is the way to change it.
+                      const taken =
+                        kind === "for_sale" &&
+                        alreadyListed.has(
+                          `${o.unitNumber ?? ""}|${o.weekNumber}`,
+                        ) &&
+                        !editingId;
+                      return (
+                        <option
+                          key={o.weekId}
+                          value={`${o.unitNumber ?? ""}|${o.weekNumber}`}
+                          disabled={taken}
+                        >
+                          {o.propertyAddress} — Week {o.weekNumber} ({o.year})
+                          {taken ? " (already listed)" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
                 )}
-              </label>
-              <input
-                value={unitNumber}
-                onChange={(e) => setUnitNumber(e.target.value)}
-                placeholder="583"
-                className="w-full px-3 py-2.5 rounded-lg border text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                {kind === "want_to_buy" ? "Week wanted" : "Week"}
-              </label>
-              <input
-                value={weekLabel}
-                onChange={(e) => setWeekLabel(e.target.value)}
-                placeholder="23, or 23 & 24"
-                className="w-full px-3 py-2.5 rounded-lg border text-sm"
-              />
-            </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You can only list weeks recorded in your name.
+                </p>
+              </div>
+            )}
 
             {kind === "for_sale" && (
               <div>
@@ -292,12 +450,58 @@ export function OwnerMyListingsPage() {
                 <label className="block text-sm font-medium mb-1.5">
                   Week you want
                 </label>
-                <input
-                  value={desiredWeekLabel}
-                  onChange={(e) => setDesiredWeekLabel(e.target.value)}
-                  placeholder="48, or Flexible"
-                  className="w-full px-3 py-2.5 rounded-lg border text-sm"
-                />
+                {/* Year first, then week: the week list is derived from the
+                    year, so the current year offers only the weeks still to
+                    come rather than dates that have already passed
+                    [scott, 2026-09-13]. */}
+                <div className="flex gap-2">
+                  <select
+                    value={desiredYear}
+                    onChange={(e) => {
+                      setDesiredYear(e.target.value);
+                      // The chosen week may not exist in the new year, so the
+                      // selection is cleared rather than left dangling.
+                      setDesiredWeekLabel("");
+                    }}
+                    aria-label="Year you want"
+                    className="w-28 shrink-0 px-3 py-2.5 rounded-lg border text-sm bg-background"
+                  >
+                    {SELECTABLE_YEARS.map((y: number) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={desiredWeekLabel}
+                    onChange={(e) => setDesiredWeekLabel(e.target.value)}
+                    aria-label="Week you want"
+                    className="flex-1 min-w-0 px-3 py-2.5 rounded-lg border text-sm bg-background"
+                  >
+                    <option value="">Flexible</option>
+                    {getRemainingWeeksInYear(Number(desiredYear)).map(
+                      (w: { weekNumber: number; year: number }) => {
+                        const taken = alreadyWanted.has(
+                          `${w.weekNumber}|${w.year}`,
+                        );
+                        return (
+                          <option
+                            key={w.weekNumber}
+                            value={String(w.weekNumber)}
+                            disabled={taken}
+                          >
+                            Week {w.weekNumber} &mdash;{" "}
+                            {formatOwnerWeekRange(w.weekNumber, w.year)}
+                            {taken ? " (already listed)" : ""}
+                          </option>
+                        );
+                      },
+                    )}
+                  </select>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This listing closes itself once that week has passed.
+                </p>
               </div>
             )}
           </div>

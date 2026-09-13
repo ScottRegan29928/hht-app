@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 // ── Helper: require owner role ──
 async function requireOwner(ctx: any) {
@@ -111,21 +112,19 @@ export const dashboardStats = query({
       .withIndex("by_owner", (q: any) => q.eq("ownerId", profile._id))
       .collect();
     const pendingRequests = saleRequests.filter(
-      (r: any) => r.status === "pending"
+      (r: any) => r.status === "pending",
     );
     const approvedRequests = saleRequests.filter(
-      (r: any) => r.status === "approved"
+      (r: any) => r.status === "approved",
     );
 
     // Inquiries for owned properties
     const propertyIdSet = new Set(propertyIds);
     const allInquiries = await ctx.db.query("inquiries").collect();
     const myInquiries = allInquiries.filter(
-      (inq: any) => inq.propertyId && propertyIdSet.has(String(inq.propertyId))
+      (inq: any) => inq.propertyId && propertyIdSet.has(String(inq.propertyId)),
     );
-    const newInquiries = myInquiries.filter(
-      (inq: any) => inq.status === "new"
-    );
+    const newInquiries = myInquiries.filter((inq: any) => inq.status === "new");
 
     return {
       ownedWeeks: ownedWeeks.length,
@@ -166,7 +165,7 @@ export const listOwnedWeeks = query({
         const activeSaleRequest =
           saleRequests
             .filter(
-              (r: any) => r.status === "pending" || r.status === "approved"
+              (r: any) => r.status === "pending" || r.status === "approved",
             )
             .sort((a: any, b: any) => b.createdAt - a.createdAt)[0] ?? null;
 
@@ -176,13 +175,15 @@ export const listOwnedWeeks = query({
           const photoRecords = await ctx.db
             .query("propertyPhotos")
             .withIndex("by_property", (q: any) =>
-              q.eq("propertyId", property._id)
+              q.eq("propertyId", property._id),
             )
             .collect();
           const primary =
             photoRecords.find((p: any) => p.isPrimary) ?? photoRecords[0];
           if (primary?.storageId) {
             photoUrl = await ctx.storage.getUrl(primary.storageId);
+          } else if (primary?.externalUrl) {
+            photoUrl = primary.externalUrl;
           } else if (property?.photoUrls?.[0]) {
             photoUrl = property.photoUrls[0];
           }
@@ -195,6 +196,9 @@ export const listOwnedWeeks = query({
           propertyId: week.propertyId,
           propertyAddress: property?.address ?? "Unknown",
           propertySlug: property?.slug,
+          // Needed by the listing form: a listing is identified by unit +
+          // week, and the ownership check on the server matches on both.
+          unitNumber: property?.unitNumber,
           communityName: community?.name ?? "Unknown",
           bedrooms: property?.bedrooms,
           bathrooms: property?.bathrooms,
@@ -210,7 +214,7 @@ export const listOwnedWeeks = query({
               }
             : null,
         };
-      })
+      }),
     );
 
     return results.sort((a, b) => {
@@ -243,12 +247,12 @@ export const submitSaleRequest = mutation({
       .withIndex("by_week", (q: any) => q.eq("weekId", args.weekId))
       .collect();
     const activeRequest = existing.find(
-      (r: any) => r.status === "pending" || r.status === "approved"
+      (r: any) => r.status === "pending" || r.status === "approved",
     );
     if (activeRequest)
       throw new Error("A sale request already exists for this week");
 
-    return await ctx.db.insert("saleRequests", {
+    const requestId = await ctx.db.insert("saleRequests", {
       weekId: args.weekId,
       propertyId: week.propertyId,
       ownerId: profile._id,
@@ -258,6 +262,75 @@ export const submitSaleRequest = mutation({
       status: "pending",
       createdAt: Date.now(),
     });
+
+    // A request nobody is told about is a request nobody acts on: it used to
+    // sit in the database with no admin screen and no alert [scott,
+    // 2026-09-13]. The screen exists now; this is the nudge.
+    const property: any = await ctx.db.get(week.propertyId);
+    await ctx.scheduler.runAfter(0, internal.inquiries.notify, {
+      inquiryId: String(requestId),
+      routedTo: "asutton@cglhhi.com",
+      type: "sale_request",
+      name:
+        [profile.firstName, profile.lastName].filter(Boolean).join(" ") ||
+        profile.displayName ||
+        profile.email ||
+        "Owner",
+      email: profile.email ?? "",
+      message: [
+        `${property?.address ?? "Unknown"} — Week ${week.weekNumber}`,
+        args.askingPrice > 0
+          ? `Asking: $${args.askingPrice.toLocaleString()}`
+          : "Asking: contact for price",
+        args.notes ? `Notes: ${args.notes}` : "",
+        "Review it under Sale Requests in the management portal.",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    });
+
+    return requestId;
+  },
+});
+
+// ── Edit an existing sale request ──
+/**
+ * Owners could withdraw a listing but not correct it, so fixing a typo in the
+ * price meant withdrawing and starting over [scott, 2026-09-13].
+ *
+ * Status is deliberately left alone. An owner sets their own price without
+ * broker approval, so a price change does not send an approved listing back to
+ * the queue — it would take a live listing down over an edit.
+ */
+export const updateSaleRequest = mutation({
+  args: {
+    requestId: v.id("saleRequests"),
+    askingPrice: v.number(),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { profile } = await requireOwner(ctx);
+    const request = await ctx.db.get(args.requestId);
+    if (!request) throw new Error("Request not found");
+    if (String(request.ownerId) !== String(profile._id))
+      throw new Error("You can only edit your own listings");
+    if (request.status !== "pending" && request.status !== "approved")
+      throw new Error("This listing can no longer be edited");
+    if (args.askingPrice < 0)
+      throw new Error("Asking price cannot be negative");
+
+    await ctx.db.patch(args.requestId, {
+      askingPrice: args.askingPrice,
+      notes: args.notes,
+      updatedAt: Date.now(),
+    });
+    // A price change on an approved listing must reach the marketplace copy.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.marketplace.syncListingForSaleRequest,
+      { requestId: args.requestId },
+    );
+    return args.requestId;
   },
 });
 
@@ -276,6 +349,13 @@ export const withdrawSaleRequest = mutation({
       status: "cancelled",
       updatedAt: Date.now(),
     });
+    // Withdrawing has to pull the week out of the marketplace too, or the
+    // owner sees it gone from My Weeks while other owners still see it listed.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.marketplace.syncListingForSaleRequest,
+      { requestId },
+    );
   },
 });
 
@@ -298,7 +378,7 @@ export const listSaleRequests = query({
             ...r,
             propertyAddress: property?.address ?? "Unknown",
           };
-        })
+        }),
     );
   },
 });
@@ -328,12 +408,10 @@ export const listInquiries = query({
     const allInquiries = await ctx.db.query("inquiries").collect();
     return allInquiries
       .filter(
-        (inq: any) => inq.propertyId && propertyIdSet.has(String(inq.propertyId))
+        (inq: any) =>
+          inq.propertyId && propertyIdSet.has(String(inq.propertyId)),
       )
-      .sort(
-        (a: any, b: any) =>
-          (b._creationTime ?? 0) - (a._creationTime ?? 0)
-      )
+      .sort((a: any, b: any) => (b._creationTime ?? 0) - (a._creationTime ?? 0))
       .map((inq: any) => ({
         ...inq,
         propertyAddress:
@@ -346,10 +424,15 @@ export const listInquiries = query({
 export const updateInquiryStatus = mutation({
   args: {
     inquiryId: v.id("inquiries"),
+    // The portal says "Responded"; the table says "contacted". Both are
+    // accepted here and normalised below — this mutation used to write
+    // "responded" straight through, which the schema rejects, so Mark
+    // Responded failed every time it was clicked [found 2026-09-13].
     status: v.union(
       v.literal("new"),
       v.literal("responded"),
-      v.literal("closed")
+      v.literal("contacted"),
+      v.literal("closed"),
     ),
     ownerNotes: v.optional(v.string()),
   },
@@ -365,12 +448,16 @@ export const updateInquiryStatus = mutation({
         .withIndex("by_owner", (q: any) => q.eq("ownerId", profile._id))
         .collect();
       const ownsProperty = ownedWeeks.some(
-        (w: any) => String(w.propertyId) === String(inquiry.propertyId)
+        (w: any) => String(w.propertyId) === String(inquiry.propertyId),
       );
       if (!ownsProperty) throw new Error("Not your inquiry");
     }
 
-    const updates: any = { status, updatedAt: Date.now() };
+    const stored = status === "responded" ? "contacted" : status;
+    const updates: any = { status: stored };
+    // `inquiries` has respondedAt, not updatedAt; writing updatedAt was the
+    // second reason this mutation failed.
+    if (stored === "contacted") updates.respondedAt = Date.now();
     if (ownerNotes !== undefined) updates.ownerNotes = ownerNotes;
     await ctx.db.patch(inquiryId, updates);
   },

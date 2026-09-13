@@ -2,6 +2,10 @@ import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useSiteFlags } from "@/lib/siteContext";
+import {
+  ResortSwitch,
+  useAssociationSite,
+} from "@/components/owner/ResortSwitch";
 import { FileText, Download, Search } from "lucide-react";
 
 /**
@@ -25,15 +29,16 @@ function yearOf(ms?: number | null) {
 }
 
 export function OwnerDocumentsPage() {
-  const { siteSlug } = useSiteFlags();
-  const data = useQuery(api.ownerPortal.overview, { siteSlug });
+  const { siteSlug, portalSlug, setSiteSlug, resorts, multi } =
+    useAssociationSite();
+  const data = useQuery(api.ownerPortal.overview, { siteSlug, portalSlug });
   const [tab, setTab] = useState<TabKey>("association");
   const [q, setQ] = useState("");
 
   const groups = data?.documents ?? {};
   const available = useMemo(
     () => TABS.filter((t) => (groups[t.key]?.length ?? 0) > 0),
-    [groups]
+    [groups],
   );
   // Land on a tab that actually has documents for this resort.
   const activeTab = available.some((t) => t.key === tab)
@@ -41,7 +46,7 @@ export function OwnerDocumentsPage() {
     : (available[0]?.key ?? "association");
 
   const docs = (groups[activeTab] ?? []).filter((d: any) =>
-    q.trim() ? d.title.toLowerCase().includes(q.trim().toLowerCase()) : true
+    q.trim() ? d.title.toLowerCase().includes(q.trim().toLowerCase()) : true,
   );
 
   if (data === undefined) {
@@ -59,6 +64,15 @@ export function OwnerDocumentsPage() {
         <p className="text-sm text-muted-foreground mt-1">
           {data.documentCount} documents, available only to owners.
         </p>
+        {multi && (
+          <div className="pt-1">
+            <ResortSwitch
+              resorts={resorts}
+              value={siteSlug}
+              onChange={setSiteSlug}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">

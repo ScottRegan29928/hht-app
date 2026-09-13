@@ -116,3 +116,34 @@ export const COMMUNITY_LABELS: Record<string, string> = {
   spicebush: "Spicebush",
   "swallowtail-at-sea-pines": "Swallowtail",
 };
+
+/**
+ * Community badge colors.
+ *
+ * The pool is joint, so every list mixes both resorts and "which resort is
+ * this?" is the first question a reader asks [scott, 2026-09-13]. Each resort
+ * gets its own badge, drawn from its portal accent, so the answer is readable
+ * before any text is.
+ */
+export const COMMUNITY_BADGES: Record<
+  string,
+  { label: string; className: string }
+> = {
+  spicebush: {
+    label: "Spicebush",
+    className: "bg-[#FBEDE9] text-[#8E3623] border-[#E8C3B8]",
+  },
+  "swallowtail-at-sea-pines": {
+    label: "Swallowtail",
+    className: "bg-[#FDF3E0] text-[#8A5F10] border-[#E8D3A4]",
+  },
+};
+
+export function communityBadge(slug?: string) {
+  return (
+    (slug && COMMUNITY_BADGES[slug]) || {
+      label: "Sea Pines",
+      className: "bg-slate-100 text-slate-700 border-slate-200",
+    }
+  );
+}

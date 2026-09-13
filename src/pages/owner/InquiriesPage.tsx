@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
-import { MessageSquare, Check, Archive, RotateCcw } from "lucide-react";
+import { MessageSquare, Check, Archive, RotateCcw, Send } from "lucide-react";
 import { toast } from "sonner";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -13,20 +13,28 @@ export function OwnerInquiriesPage() {
   if (inquiries === undefined) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-pulse text-muted-foreground">Loading inquiries…</div>
+        <div className="animate-pulse text-muted-foreground">
+          Loading inquiries…
+        </div>
       </div>
     );
   }
 
-  const filtered = filter === "all" ? inquiries : inquiries.filter((i: any) => i.status === filter);
+  const filtered =
+    filter === "all"
+      ? inquiries
+      : inquiries.filter((i: any) => i.status === filter);
   const counts = {
     all: inquiries.length,
     new: inquiries.filter((i: any) => i.status === "new").length,
-    responded: inquiries.filter((i: any) => i.status === "responded").length,
+    contacted: inquiries.filter((i: any) => i.status === "contacted").length,
     closed: inquiries.filter((i: any) => i.status === "closed").length,
   };
 
-  const handleStatusChange = async (id: Id<"inquiries">, status: "new" | "responded" | "closed") => {
+  const handleStatusChange = async (
+    id: Id<"inquiries">,
+    status: "new" | "contacted" | "closed",
+  ) => {
     try {
       await updateStatus({ inquiryId: id, status });
       toast.success(`Inquiry marked as ${status}`);
@@ -46,7 +54,7 @@ export function OwnerInquiriesPage() {
 
       {/* Filter tabs */}
       <div className="flex gap-1 bg-muted/50 rounded-lg p-1 w-fit">
-        {(["all", "new", "responded", "closed"] as const).map((tab) => (
+        {(["all", "new", "contacted", "closed"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
@@ -82,7 +90,9 @@ export function OwnerInquiriesPage() {
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold">{inq.name ?? "Unknown"}</span>
+                    <span className="font-semibold">
+                      {inq.name ?? "Unknown"}
+                    </span>
                     <InquiryStatusBadge status={inq.status} />
                   </div>
                   <div className="text-sm text-muted-foreground">
@@ -110,18 +120,23 @@ export function OwnerInquiriesPage() {
                 </div>
               )}
 
+              {/* Conversation so far, then the reply box. An inquiry that has
+                  been answered should show what was said — otherwise the next
+                  person to open it cannot tell [scott, 2026-09-13]. */}
+              <InquiryThread inquiryId={inq._id} />
+
               {/* Actions */}
               <div className="flex items-center gap-2">
                 {inq.status === "new" && (
                   <button
-                    onClick={() => handleStatusChange(inq._id, "responded")}
+                    onClick={() => handleStatusChange(inq._id, "contacted")}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200 transition-colors"
                   >
                     <Check className="w-3 h-3" />
                     Mark Responded
                   </button>
                 )}
-                {inq.status === "responded" && (
+                {inq.status === "contacted" && (
                   <button
                     onClick={() => handleStatusChange(inq._id, "closed")}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
@@ -148,14 +163,112 @@ export function OwnerInquiriesPage() {
   );
 }
 
+function InquiryThread({ inquiryId }: { inquiryId: Id<"inquiries"> }) {
+  const replies = useQuery(api.inquiryReplies.listForInquiry, { inquiryId });
+  const sendReply = useMutation(api.inquiryReplies.reply);
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const submit = async () => {
+    if (!body.trim()) {
+      toast.error("Please write a reply before sending");
+      return;
+    }
+    setSending(true);
+    try {
+      await sendReply({ inquiryId, body });
+      toast.success("Reply sent");
+      setBody("");
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Could not send the reply");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="mb-3">
+      {(replies ?? []).length > 0 && (
+        <ul className="space-y-2 mb-3">
+          {replies!.map((r: any) => (
+            <li
+              key={r._id}
+              className="text-sm border-l-2 border-primary/40 pl-3 py-1"
+            >
+              <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground mb-0.5">
+                <span className="font-medium text-foreground">
+                  {r.authorName}
+                </span>
+                <span>{new Date(r.sentAt).toLocaleString()}</span>
+                {/* Delivery is shown, not assumed: a reply that failed to send
+                    still needs answering. */}
+                {r.emailedAt ? (
+                  <span className="text-emerald-600">delivered</span>
+                ) : r.emailError ? (
+                  <span className="text-rose-600" title={r.emailError}>
+                    not delivered
+                  </span>
+                ) : (
+                  <span>sending…</span>
+                )}
+              </div>
+              <p className="whitespace-pre-wrap">{r.body}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {open ? (
+        <div className="space-y-2">
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={4}
+            placeholder="Write your reply. It is emailed to them, and replies come back to your own address."
+            className="w-full px-3 py-2.5 rounded-lg border text-sm"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={submit}
+              disabled={sending}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium disabled:opacity-60"
+            >
+              <Send className="w-3 h-3" />
+              {sending ? "Sending…" : "Send reply"}
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              className="px-3 py-1.5 rounded-lg border text-xs"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium hover:bg-muted/50"
+        >
+          <MessageSquare className="w-3 h-3" />
+          {(replies ?? []).length > 0 ? "Reply again" : "Reply"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function InquiryStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     new: "bg-blue-100 text-blue-700",
-    responded: "bg-green-100 text-green-700",
+    contacted: "bg-green-100 text-green-700",
     closed: "bg-gray-100 text-gray-500",
   };
   return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[status] ?? styles.new}`}>
+    <span
+      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[status] ?? styles.new}`}
+    >
       {status}
     </span>
   );

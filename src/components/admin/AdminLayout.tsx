@@ -20,6 +20,7 @@ import {
   Search,
   DollarSign,
   KeyRound,
+  Tag,
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
@@ -31,6 +32,7 @@ const navItems = [
   { label: "Weeks", path: "/management/weeks", icon: Calendar },
   { label: "Owners", path: "/management/owners", icon: Users },
   { label: "Inquiries", path: "/management/inquiries", icon: MessageSquare },
+  { label: "Sale Requests", path: "/management/sale-requests", icon: Tag },
   { label: "Pages", path: "/management/pages", icon: FileText },
   { label: "Blog", path: "/management/blog", icon: Newspaper },
   { label: "SEO", path: "/management/seo", icon: Search },
@@ -88,8 +90,7 @@ export function AdminLayout() {
   }
 
   const isSuperUser = user.isSuperUser;
-  const displayName =
-    user.profile.displayName ?? user.profile.email ?? "Admin";
+  const displayName = user.profile.displayName ?? user.profile.email ?? "Admin";
   const initials = displayName
     .split(" ")
     .map((w: string) => w[0])
@@ -104,7 +105,10 @@ export function AdminLayout() {
 
   // Build nav items — add Users page for super admins
   const allNavItems = isSuperUser
-    ? [...navItems, { label: "Admin Users", path: "/management/users", icon: Shield }]
+    ? [
+        ...navItems,
+        { label: "Admin Users", path: "/management/users", icon: Shield },
+      ]
     : navItems;
 
   return (

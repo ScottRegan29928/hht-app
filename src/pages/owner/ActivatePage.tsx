@@ -24,10 +24,7 @@ export function OwnerActivatePage() {
   const { signIn } = useAuthActions();
   const accept = useMutation(api.ownerInvites.accept);
 
-  const invite = useQuery(
-    api.ownerInvites.lookup,
-    token ? { token } : "skip"
-  );
+  const invite = useQuery(api.ownerInvites.lookup, token ? { token } : "skip");
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -68,13 +65,16 @@ export function OwnerActivatePage() {
           accepted = true;
         } catch (err) {
           lastErr = err;
-          if (!/not authenticated/i.test(String((err as any)?.message ?? err))) {
+          if (
+            !/not authenticated/i.test(String((err as any)?.message ?? err))
+          ) {
             throw err;
           }
           await new Promise((r) => setTimeout(r, 400));
         }
       }
-      if (!accepted) throw lastErr ?? new Error("Could not complete activation");
+      if (!accepted)
+        throw lastErr ?? new Error("Could not complete activation");
 
       navigate("/owner", { replace: true });
     } catch (err: any) {
@@ -82,7 +82,7 @@ export function OwnerActivatePage() {
       setError(
         /already|exists/i.test(msg)
           ? "An account already exists for this email. Use Sign in, or reset your password."
-          : "We could not finish setting up your access. Please try again or ask The Club Group for a fresh invitation."
+          : "We could not finish setting up your access. Please try again or ask The Club Group for a fresh invitation.",
       );
       setBusy(false);
     }
@@ -92,7 +92,9 @@ export function OwnerActivatePage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-xl font-semibold">{brand.wordmarkTop ?? "Owner Portal"}</h1>
+          <h1 className="text-xl font-semibold">
+            {brand.wordmarkTop ?? "Owner Portal"}
+          </h1>
         </div>
         <div className="bg-background border rounded-xl p-6 shadow-sm">
           {children}
@@ -112,7 +114,7 @@ export function OwnerActivatePage() {
         <Link to="/ownerlogin" className="text-sm text-primary hover:underline">
           Already have access? Sign in
         </Link>
-      </div>
+      </div>,
     );
   }
 
@@ -120,7 +122,7 @@ export function OwnerActivatePage() {
     return shell(
       <p className="text-sm text-center text-muted-foreground animate-pulse">
         Checking your invitation…
-      </p>
+      </p>,
     );
   }
 
@@ -143,7 +145,7 @@ export function OwnerActivatePage() {
         <Link to="/ownerlogin" className="text-sm text-primary hover:underline">
           Go to sign in
         </Link>
-      </div>
+      </div>,
     );
   }
 
@@ -202,6 +204,6 @@ export function OwnerActivatePage() {
         Owner listings, documents and contact details are visible only to
         signed-in owners.
       </p>
-    </>
+    </>,
   );
 }
