@@ -719,9 +719,6 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
   useEffect(() => {
     if (saved === undefined) return;
     setF({
-      votingEnabled: saved?.votingEnabled ?? false,
-      votingLabel: saved?.votingLabel ?? "",
-      votingUrl: saved?.votingUrl ?? "",
       rentIntro: saved?.rentIntro ?? "",
       rentContactName: saved?.rentContactName ?? "",
       rentContactPhones: (saved?.rentContactPhones ?? []).join(", "),
@@ -757,9 +754,6 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
     try {
       await save({
         siteSlug,
-        votingEnabled: !!f.votingEnabled,
-        votingLabel: f.votingLabel || undefined,
-        votingUrl: f.votingUrl || undefined,
         rentIntro: f.rentIntro || undefined,
         rentContactName: f.rentContactName || undefined,
         rentContactPhones: f.rentContactPhones
@@ -812,35 +806,6 @@ function SettingsTab({ siteSlug }: { siteSlug: string }) {
 
   return (
     <div className="space-y-5">
-      <Section
-        title="Voting banner"
-        hint="Shows across the top of every portal page while open."
-      >
-        <label className="flex items-center gap-2.5 text-sm">
-          <input
-            type="checkbox"
-            checked={f.votingEnabled}
-            onChange={(e) => setF({ ...f, votingEnabled: e.target.checked })}
-            className="h-4 w-4"
-          />
-          Voting is open
-        </label>
-        {f.votingEnabled && (
-          <div className="grid gap-3 sm:grid-cols-2 mt-3">
-            <Text
-              label="Banner text"
-              value={f.votingLabel}
-              onChange={set("votingLabel")}
-            />
-            <Text
-              label="Voting link"
-              value={f.votingUrl}
-              onChange={set("votingUrl")}
-            />
-          </div>
-        )}
-      </Section>
-
       <Section title="Renting an additional week">
         <Area label="Intro" value={f.rentIntro} onChange={set("rentIntro")} />
         <div className="grid gap-3 sm:grid-cols-2">

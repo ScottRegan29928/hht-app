@@ -17,7 +17,6 @@ import {
   Users,
   Info,
   MessageSquarePlus,
-  Vote,
   Bell,
   Sparkles,
   Megaphone,
@@ -388,24 +387,6 @@ export function OwnerLayout() {
               </div>
             );
           })}
-          {portal?.votingEnabled && portal.votingUrl && (
-            <a
-              href={portal.votingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 mb-5 px-4 py-3 rounded-xl text-white hover:brightness-110 transition-all shadow-sm"
-              style={{
-                backgroundImage: `linear-gradient(100deg, ${theme.inkDeep} 0%, ${theme.ink} 100%)`,
-                boxShadow: `inset 4px 0 0 0 ${theme.accent}`,
-              }}
-            >
-              <Vote className="w-5 h-5 shrink-0" />
-              <span className="text-sm font-semibold">
-                {portal.votingLabel ?? "Association voting is open"}
-              </span>
-              <span className="ml-auto text-sm underline">Cast your vote</span>
-            </a>
-          )}
           <Outlet />
         </main>
       </div>
