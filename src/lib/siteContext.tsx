@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { brandForSlug } from "./siteBrand";
+import { slugForHostname, SLUG_TO_NAME, FALLBACK_SLUG } from "./siteHosts";
 
 /** Per-site favicons. Only sites with supplied artwork appear here. */
 const SITE_FAVICONS: Record<string, { icon: string; apple?: string }> = {
@@ -50,9 +51,15 @@ export type SiteScope = {
   communityIds: string[] | null;
 } | null;
 
-const SiteContext = createContext<{ scope: SiteScope; loading: boolean }>({
+const SiteContext = createContext<{
+  scope: SiteScope;
+  loading: boolean;
+  /** Slug derived from the hostname; correct on the first paint. */
+  hostSlug: string;
+}>({
   scope: null,
   loading: true,
+  hostSlug: FALLBACK_SLUG,
 });
 
 const SLUG_TO_DOMAIN: Record<string, string> = {
@@ -100,18 +107,20 @@ function resolveHostname(): string {
 
 export function SiteProvider({ children }: { children: ReactNode }) {
   const hostname = resolveHostname();
+  const hostSlug = slugForHostname(hostname);
   const scope = useQuery(api.sites.scopeForHostname, { hostname }) as SiteScope;
 
   // Keep the browser tab title on the resolved site rather than the build's
   // static index.html title, which would otherwise say "Hilton Head" on all four.
   useEffect(() => {
-    if (scope?.site?.name) document.title = scope.site.name;
-  }, [scope?.site?.name]);
+    document.title =
+      scope?.site?.name ?? SLUG_TO_NAME[hostSlug] ?? "Hilton Head Timeshares";
+  }, [scope?.site?.name, hostSlug]);
 
   // Per-site favicon. All four sites are served from one build and therefore
   // one index.html, so the icon has to be swapped at runtime; sites without
   // their own icon keep the default from index.html.
-  const slug = scope?.site?.slug;
+  const slug = scope?.site?.slug ?? hostSlug;
   useEffect(() => {
     const icon = slug ? SITE_FAVICONS[slug] : undefined;
     if (!icon) return;
@@ -131,7 +140,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
   return (
     <SiteContext.Provider
-      value={{ scope: scope ?? null, loading: scope === undefined }}
+      value={{ scope: scope ?? null, loading: scope === undefined, hostSlug }}
     >
       {children}
     </SiteContext.Provider>
@@ -150,13 +159,14 @@ export function useSiteCommunityIds(): string[] | null {
 
 /** Convenience: feature flags with safe defaults before the query resolves. */
 export function useSiteFlags() {
-  const { scope } = useSite();
+  const { scope, hostSlug } = useSite();
   return {
     ownerPortalEnabled: scope?.site.ownerPortalEnabled ?? false,
     marketplaceEnabled: scope?.site.marketplaceEnabled ?? false,
     rentalsEnabled: scope?.site.rentalsEnabled ?? true,
-    siteName: scope?.site.name ?? "Hilton Head Timeshares",
-    siteSlug: scope?.site.slug ?? "mhht",
+    siteName:
+      scope?.site.name ?? SLUG_TO_NAME[hostSlug] ?? "Hilton Head Timeshares",
+    siteSlug: scope?.site.slug ?? hostSlug,
   };
 }
 
@@ -181,6 +191,8 @@ export function useSitePayment() {
 
 /** Convenience: brand copy (wordmark, hero, footer) for the current site. */
 export function useSiteBrand() {
-  const { scope } = useSite();
-  return brandForSlug(scope?.site.slug);
+  const { scope, hostSlug } = useSite();
+  // Host-derived slug first: branding must be right on the very first paint,
+  // or the site visibly flashes another sister site's home page.
+  return brandForSlug(scope?.site.slug ?? hostSlug);
 }
