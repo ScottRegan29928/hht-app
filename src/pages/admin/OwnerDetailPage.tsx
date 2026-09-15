@@ -36,7 +36,6 @@ export function OwnerDetailPage() {
   const deleteOwner = useMutation(api.admin.deleteOwner);
   const resetPassword = useMutation(api.admin.resetOwnerPassword);
   const sendInvite = useAction(api.ownerInvites.sendInvite);
-  const sendResetEmail = useAction(api.email.sendPasswordResetEmail);
 
   const [form, setForm] = useState({
     firstName: "",
@@ -116,17 +115,18 @@ export function OwnerDetailPage() {
     if (!ownerId) return;
     try {
       const result = await resetPassword({ ownerId: ownerId as Id<"userProfiles"> });
-      // Also send reset email
+      // Resetting deletes the password account, and self-registration is off,
+      // so an activation invite is the only route back in.
       try {
-        await sendResetEmail({ to: result.email, firstName: owner?.firstName || undefined });
+        await sendInvite({ profileId: ownerId as Id<"userProfiles"> });
         setActionMsg({
           type: "success",
-          text: `Password reset and email sent to ${result.email}.`,
+          text: `Password reset. Activation link sent to ${result.email}.`,
         });
       } catch {
         setActionMsg({
-          type: "success",
-          text: `Password reset. Email notification failed — tell ${result.email} to re-register.`,
+          type: "error",
+          text: `Password reset, but the invite email failed — use Send invite to retry.`,
         });
       }
     } catch (e: any) {

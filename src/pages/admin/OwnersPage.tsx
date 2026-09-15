@@ -31,7 +31,6 @@ export function OwnersPage() {
   const deleteOwner = useMutation(api.admin.deleteOwner);
   const resetPassword = useMutation(api.admin.resetOwnerPassword);
   const sendInvite = useAction(api.ownerInvites.sendInvite);
-  const sendResetEmail = useAction(api.email.sendPasswordResetEmail);
   const [actionMsg, setActionMsg] = useState<{ id: string; type: "success" | "error"; text: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
@@ -111,11 +110,15 @@ export function OwnersPage() {
     try {
       setActionMsg({ id: owner._id, type: "success", text: "Resetting…" });
       const result = await resetPassword({ ownerId: owner._id as Id<"userProfiles"> });
+      // Resetting deletes the password account, and self-registration is off,
+      // so an activation invite is the only way back in. (The old
+      // api.email.sendPasswordResetEmail told them to "Sign Up", which does
+      // not exist, and mailed from an unauthenticated public action.)
       try {
-        await sendResetEmail({ to: result.email, firstName: owner.firstName || undefined });
-        setActionMsg({ id: owner._id, type: "success", text: `Password reset & email sent to ${result.email}` });
+        await sendInvite({ profileId: owner._id as Id<"userProfiles"> });
+        setActionMsg({ id: owner._id, type: "success", text: `Password reset. Activation link sent to ${result.email}` });
       } catch {
-        setActionMsg({ id: owner._id, type: "success", text: `Password reset. Email failed — tell ${result.email} to re-register.` });
+        setActionMsg({ id: owner._id, type: "error", text: `Password reset, but the invite email failed — resend it from this row.` });
       }
       setTimeout(() => setActionMsg(null), 5000);
     } catch (e: any) {

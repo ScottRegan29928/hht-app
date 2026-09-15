@@ -11,6 +11,10 @@ import { Email } from "@convex-dev/auth/providers/Email";
  * There is intentionally no admin-side "set this user's password" tool: the
  * code goes to the mailbox, so nobody (including Viktor) handles a plaintext
  * password on someone else's behalf.
+ *
+ * ⚠ EXEMPT from the pre-launch email hold (convex/goLive.ts, "password_reset"):
+ * this is the only way a locked-out user gets back in, and it mails the person
+ * who just asked for it — never the client. Do not gate it.
  */
 const FROM_EMAIL = "Hilton Head Timeshares <noreply@lead-works.com>";
 

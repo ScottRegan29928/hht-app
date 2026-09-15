@@ -198,6 +198,11 @@ async function resolveHost(site: {
 }
 
 /** Admin-facing: build a token, then email the link. */
+/**
+ * ⚠ EXEMPT from the pre-launch email hold (convex/goLive.ts, "owner_invite"):
+ * invites are how owners get portal access at all, and they go to the single
+ * owner an admin just clicked. Holding these would lock the demo out.
+ */
 export const sendInvite = action({
   args: { profileId: v.id("userProfiles"), siteSlug: v.optional(v.string()) },
   handler: async (

@@ -8,6 +8,7 @@ import {
 } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import { isEmailHeld, heldEmailNote } from "./goLive";
 
 // Inquiry rows hold customer PII (name, email, phone, free-text message), so
 // every read and write below the public `submit` is admin-gated. Mirrors the
@@ -41,12 +42,6 @@ function formatPhone(value?: string): string | undefined {
  */
 const MAINTENANCE_EMAIL = "frontdesk@cglhhi.com";
 
-/**
- * Inquiry types recorded but not emailed until the sites go live. Everything
- * else mails immediately — RESEND_API_KEY is configured, so these really do
- * reach the client.
- */
-const HOLD_UNTIL_GO_LIVE = new Set<string>(["maintenance"]);
 
 export const submit = mutation({
   args: {
@@ -79,11 +74,9 @@ export const submit = mutation({
     /**
      * Maintenance requests go to the front desk [scott, 2026-09-15].
      *
-     * ⚠ Recorded but deliberately NOT emailed yet. Scott's standing rule on
-     * the new destination addresses is "Do not add these notifications until
-     * we go live", so the address is stored on the row and the mailer is
-     * skipped below. Wiring it up at go-live means deleting one condition,
-     * not working out where it should have gone.
+     * ⚠ Like every other inquiry type, recorded but NOT emailed before launch
+     * ("Do not add these notifications until we go live"). The address is
+     * stored on the row so go-live needs no routing archaeology.
      */
     if (args.type === "maintenance") {
       routedTo = MAINTENANCE_EMAIL;
@@ -110,9 +103,9 @@ export const submit = mutation({
     // Notify by email. A form submission that only lands in a table nobody
     // watches is the same as a form that does not work.
     //
-    // ⚠ Except maintenance requests, which are held until go-live per Scott.
-    // They are visible in the management portal in the meantime.
-    if (!HOLD_UNTIL_GO_LIVE.has(args.type)) {
+    // ⚠ Pre-launch every one of these is held inside `notify` itself, so the
+    // routing address is still computed and stored on the row and go-live is
+    // a one-flag change. Submissions stay visible in the management portal.
     await ctx.scheduler.runAfter(0, internal.inquiries.notify, {
       inquiryId: String(id),
       routedTo,
@@ -123,7 +116,6 @@ export const submit = mutation({
       phone: args.phone,
       message: args.message,
     });
-    }
 
     return id;
   },
@@ -222,6 +214,12 @@ export const notify = internalAction({
     message: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
+    // ⚠ Pre-launch: record only. One flag in convex/goLive.ts controls this.
+    if (isEmailHeld("inquiry")) {
+      console.info(heldEmailNote("inquiry", args.routedTo));
+      return;
+    }
+
     const apiKey = (globalThis as any).process?.env?.RESEND_API_KEY as
       | string
       | undefined;

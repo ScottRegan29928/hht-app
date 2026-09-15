@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import { isEmailHeld, heldEmailNote } from "./goLive";
 
 /**
  * Replying to a buyer inquiry from inside the portal.
@@ -161,6 +162,18 @@ export const send = internalAction({
     original: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // ⚠ Pre-launch: the reply is saved and shown in the portal thread, but no
+    // mail leaves. Recorded as an explicit reason so nobody reads the reply as
+    // delivered. One flag in convex/goLive.ts controls this.
+    if (isEmailHeld("inquiry_reply")) {
+      console.info(heldEmailNote("inquiry_reply", args.to));
+      await ctx.runMutation(internal.inquiryReplies.markEmailed, {
+        replyId: args.replyId,
+        emailError: "held until go-live (not sent)",
+      });
+      return;
+    }
+
     const apiKey = (globalThis as any).process?.env?.RESEND_API_KEY as
       | string
       | undefined;

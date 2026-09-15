@@ -6,6 +6,7 @@ import {
 } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { isEmailHeld, heldEmailNote } from "./goLive";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { expandWeeks } from "./marketplace";
@@ -356,6 +357,19 @@ export const sendEmail = internalAction({
       { matchId }
     );
     if (!data) return null;
+
+    // ⚠ Pre-launch: match alerts go to REAL owner addresses from the uploaded
+    // owner list, so they are the highest-risk mail in the app. The in-portal
+    // notification still appears; only the email is held.
+    if (isEmailHeld("marketplace_match")) {
+      console.info(heldEmailNote("marketplace_match", data.ownerEmail ?? "owner"));
+      await ctx.runMutation(internal.marketplaceMatches.recordEmail, {
+        matchId,
+        error: "held until go-live (not sent)",
+      });
+      return null;
+    }
+
     if (!apiKey) {
       console.warn("RESEND_API_KEY not set; match alert email skipped");
       await ctx.runMutation(internal.marketplaceMatches.recordEmail, {
