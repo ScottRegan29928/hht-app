@@ -35,7 +35,7 @@ const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
  * label the owner sees.
  */
 /**
- * Friday anchor for week 1 of each year, from the official 2025-2029 resort
+ * Friday anchor for week 1 of each year, from the official 2025-2040 resort
  * calendar. Weeks run Friday to Friday and the dates shift every year, so a
  * week number only becomes a date once paired with a year.
  *
@@ -49,6 +49,16 @@ const WEEK1_FRIDAY: Record<number, string> = {
   2028: "2028-01-14",
   2029: "2029-01-12",
   2030: "2030-01-11",
+  2031: "2031-01-10",
+  2032: "2032-01-09",
+  2033: "2033-01-14",
+  2034: "2034-01-13",
+  2035: "2035-01-12",
+  2036: "2036-01-11",
+  2037: "2037-01-09",
+  2038: "2038-01-08",
+  2039: "2039-01-14",
+  2040: "2040-01-13",
 };
 
 /** Milliseconds at the END of the given week, or null if the year is unknown. */
