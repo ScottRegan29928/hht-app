@@ -33,6 +33,21 @@ function formatPhone(value?: string): string | undefined {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
+/**
+ * Where maintenance requests will go at go-live [scott, 2026-09-15].
+ *
+ * Note the domain: cglhhi.com, which Scott confirmed. clubgrouphhi.com is
+ * The Club Group's public property-management website and serves no mail.
+ */
+const MAINTENANCE_EMAIL = "frontdesk@cglhhi.com";
+
+/**
+ * Inquiry types recorded but not emailed until the sites go live. Everything
+ * else mails immediately — RESEND_API_KEY is configured, so these really do
+ * reach the client.
+ */
+const HOLD_UNTIL_GO_LIVE = new Set<string>(["maintenance"]);
+
 export const submit = mutation({
   args: {
     type: v.union(
@@ -42,7 +57,9 @@ export const submit = mutation({
       // Owner-portal comment card; routed to the resort regime managers.
       v.literal("comment_card"),
       // Owner-portal board volunteer form [scott, 2026-09-13].
-      v.literal("board_nomination")
+      v.literal("board_nomination"),
+      // Owner-portal maintenance request [scott, 2026-09-15].
+      v.literal("maintenance")
     ),
     siteSlug: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
@@ -58,6 +75,19 @@ export const submit = mutation({
     // lisafleming@lighthouserealtyhhi.com. Restore the per-type split when the
     // client confirms the real destinations.
     let routedTo = "asutton@cglhhi.com";
+
+    /**
+     * Maintenance requests go to the front desk [scott, 2026-09-15].
+     *
+     * ⚠ Recorded but deliberately NOT emailed yet. Scott's standing rule on
+     * the new destination addresses is "Do not add these notifications until
+     * we go live", so the address is stored on the row and the mailer is
+     * skipped below. Wiring it up at go-live means deleting one condition,
+     * not working out where it should have gone.
+     */
+    if (args.type === "maintenance") {
+      routedTo = MAINTENANCE_EMAIL;
+    }
 
     // Comment cards are resort operations, not sales: the printed card tells
     // owners to email the resort regime address, so keep that destination.
@@ -79,6 +109,10 @@ export const submit = mutation({
 
     // Notify by email. A form submission that only lands in a table nobody
     // watches is the same as a form that does not work.
+    //
+    // ⚠ Except maintenance requests, which are held until go-live per Scott.
+    // They are visible in the management portal in the meantime.
+    if (!HOLD_UNTIL_GO_LIVE.has(args.type)) {
     await ctx.scheduler.runAfter(0, internal.inquiries.notify, {
       inquiryId: String(id),
       routedTo,
@@ -89,6 +123,7 @@ export const submit = mutation({
       phone: args.phone,
       message: args.message,
     });
+    }
 
     return id;
   },

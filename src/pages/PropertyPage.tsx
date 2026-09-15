@@ -24,6 +24,8 @@ import { InquiryForm } from "@/components/property/InquiryForm";
 import { lockedModeFor, siteSells } from "@/lib/siteCapabilities";
 import { useSiteFlags } from "@/lib/siteContext";
 import { PropertyMap } from "@/components/property/PropertyMap";
+import { FridayNote } from "../components/property/FridayNote";
+import { DescriptionSections } from "../components/property/DescriptionSections";
 import { FeatureGrid } from "@/components/property/FeatureGrid";
 import { AvailabilityCalendar, useBookedDates } from "@/components/AvailabilityCalendar";
 import { useState, useMemo } from "react";
@@ -198,14 +200,9 @@ export function PropertyPage() {
               <h2 className="text-xl font-semibold font-[family-name:var(--font-display)] mb-3">
                 About This Villa
               </h2>
-              <div className="text-muted-foreground leading-relaxed space-y-4">
-                {property.description
-                  .split(/\n+/)
-                  .filter((p: string) => p.trim())
-                  .map((paragraph: string, i: number) => (
-                    <p key={i}>{paragraph.trim()}</p>
-                  ))}
-              </div>
+              {/* Headings and bullet lists get their own sections rather than
+                  being flattened into identical paragraphs [scott, 2026-09-15]. */}
+              <DescriptionSections description={property.description} />
             </div>
           )}
 
@@ -359,6 +356,10 @@ export function PropertyPage() {
                         Weeks for Purchase
                       </h3>
                     </div>
+
+                    {/* Friday-to-Friday, stated on every sales surface
+                        [scott, 2026-09-15]. */}
+                    <FridayNote />
 
                     {saleWeeks.length > 0 ? (
                       <div className="max-h-96 overflow-y-auto space-y-2 pr-1">

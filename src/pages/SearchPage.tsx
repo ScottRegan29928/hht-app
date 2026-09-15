@@ -11,6 +11,7 @@ import { IslandMap } from "@/components/map/IslandMap";
 import { CalendarView } from "@/components/search/CalendarView";
 import { computeFacets } from "@/lib/facets";
 import { cn } from "@/lib/utils";
+import { FridayNote } from "@/components/property/FridayNote";
 
 type ViewMode = "grid" | "map" | "calendar";
 
@@ -182,6 +183,8 @@ export function SearchPage() {
               ? subtitle
               : `${properties.length} ${properties.length === 1 ? "property" : "properties"} found`}
           </p>
+          {/* Friday-to-Friday, on the sales search only [scott, 2026-09-15]. */}
+          {isBuy && <FridayNote className="mt-2 max-w-xl" />}
         </div>
         <div className="flex items-center gap-2">
           {/* Mobile filter toggle */}

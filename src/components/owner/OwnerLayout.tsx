@@ -20,6 +20,7 @@ import {
   Bell,
   Sparkles,
   Megaphone,
+  Wrench,
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, useEffect, useRef } from "react";
@@ -58,6 +59,11 @@ const navGroups: {
         label: "Comment Card",
         path: "/owner/comment-card",
         icon: MessageSquarePlus,
+      },
+      {
+        label: "Maintenance",
+        path: "/owner/maintenance",
+        icon: Wrench,
       },
     ],
   },

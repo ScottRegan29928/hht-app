@@ -144,6 +144,14 @@ const schema = defineSchema({
     ),
     // Amenities (flat list for search filtering)
     amenityTags: v.optional(v.array(v.string())),
+    /**
+     * Admin decisions on the twelve curated search facets [scott, 2026-09-15].
+     * Sparse: `{ patio: true, tennis: false }`. Absent facets fall through to
+     * the HostAway/community derivation in convex/searchFacets.ts. This field
+     * is OURS — HostAway never writes it, so it stays editable in the admin
+     * portal while imported fields are locked.
+     */
+    facetOverrides: v.optional(v.record(v.string(), v.boolean())),
     // Visual feature categories (scraped from WP)
     featureCategories: v.optional(
       v.object({
@@ -297,7 +305,10 @@ const schema = defineSchema({
       v.literal("comment_card"),
       // Owner-portal board volunteer form, replacing the printable PDF
       // [scott, 2026-09-13]. Long answers live in `message`.
-      v.literal("board_nomination")
+      v.literal("board_nomination"),
+      // Owner-portal maintenance request, routed to the front desk
+      // [scott, 2026-09-15].
+      v.literal("maintenance")
     ),
     // Which of the four sister sites the enquiry came from.
     siteSlug: v.optional(v.string()),

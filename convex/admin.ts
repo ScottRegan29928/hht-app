@@ -1,5 +1,11 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  stripHostawayOwned,
+  isHostawayLinked,
+  HOSTAWAY_OWNED_FIELDS,
+} from "./hostawayFields";
+import { explainFacets, FACET_IDS } from "./searchFacets";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -196,6 +202,19 @@ export const getProperty = query({
       communitySlug: community?.slug ?? "",
       weeks: weeks.sort((a, b) => a.weekNumber - b.weekNumber),
       photos: photos.sort((a, b) => a.sortOrder - b.sortOrder),
+      // Item 7: the editor greys out imported fields, and needs to know
+      // whether this property is HostAway-linked at all [scott, 2026-09-15].
+      hostawayLinked: isHostawayLinked(property),
+      hostawayLockedFields: isHostawayLinked(property)
+        ? [...HOSTAWAY_OWNED_FIELDS]
+        : [],
+      // Item 1: per-facet derived / override / effective state, so the admin
+      // can see WHY a facet is on before overriding it.
+      facets: explainFacets(
+        property.amenityTags,
+        community?.amenities,
+        property.facetOverrides,
+      ),
     };
   },
 });
@@ -283,14 +302,42 @@ export const updateProperty = mutation({
     bedTypes: v.optional(v.array(v.string())),
     roomType: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
+    // Ours, never HostAway's — see convex/searchFacets.ts.
+    facetOverrides: v.optional(v.record(v.string(), v.boolean())),
   },
   handler: async (ctx, { id, ...fields }) => {
     await requireAdmin(ctx);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Property not found");
-    const updates: any = { ...fields, updatedAt: Date.now() };
-    if (fields.address) {
-      updates.slug = fields.address
+
+    /**
+     * Enforce the HostAway lock server-side [scott, 2026-09-15].
+     *
+     * Greying the inputs out in the editor is presentation only; anything
+     * holding a stale client or calling this mutation directly could still
+     * write a field the next sync would overwrite. Throwing rather than
+     * quietly dropping the field: a silent no-op is exactly the failure mode
+     * that cost us a debugging round on the trade listings.
+     */
+    const { allowed, rejected } = stripHostawayOwned(fields, isHostawayLinked(existing));
+    if (rejected.length > 0) {
+      throw new Error(
+        `These fields are imported from HostAway and cannot be edited here: ${rejected.join(", ")}. Edit them in HostAway instead.`,
+      );
+    }
+
+    // Guard the facet ids too, so a typo can't create a filter nobody matches.
+    if (allowed.facetOverrides) {
+      for (const key of Object.keys(allowed.facetOverrides)) {
+        if (!FACET_IDS.includes(key)) {
+          throw new Error(`Unknown search facet: ${key}`);
+        }
+      }
+    }
+
+    const updates: any = { ...allowed, updatedAt: Date.now() };
+    if (allowed.address) {
+      updates.slug = allowed.address
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");

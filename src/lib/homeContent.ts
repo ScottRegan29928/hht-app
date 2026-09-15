@@ -70,23 +70,30 @@ export type HomeContentInput = {
 const RENT_HREF = "/search?type=rent";
 const BUY_HREF = "/search?type=buy";
 
-// Amenity keys for the Heritage tiles. Water Views needs the raw HostAway tags
-// OR-ed in or it matches 3 properties instead of 37.
+// Amenity keys for the Heritage tiles.
+//
+// ⚠ These MUST be ids from the curated taxonomy in convex/searchFacets.ts.
+// They previously OR-ed together normalized keys and raw HostAway tags
+// ("water_views", "Waterview", "Golfcoursefront"). Once the filter moved to
+// the curated twelve, every one of those became an id the server no longer
+// recognizes, so each tile would have landed on an empty result set. The
+// OR-ing is also no longer needed: water_view and golf_course_view already
+// fold the tag variants in.
 const AMENITY_HREF = (keys: string[]) =>
   `${RENT_HREF}&amenities=${encodeURIComponent(keys.join(","))}`;
 
 const HERITAGE_TILES: TileItem[] = [
+  { label: "Water Views", imageUrl: "/tiles/hv/water.jpg", href: AMENITY_HREF(["water_view"]) },
   {
-    label: "Water Views",
-    imageUrl: "/tiles/hv/water.jpg",
-    href: AMENITY_HREF(["water_views", "Waterview", "Oceanview", "Waterfront", "Lakeview"]),
+    label: "Swimming Pool",
+    imageUrl: "/tiles/hv/swimming-pool.jpg",
+    href: AMENITY_HREF(["pool_heated", "pool_unheated"]),
   },
-  { label: "Swimming Pool", imageUrl: "/tiles/hv/swimming-pool.jpg", href: AMENITY_HREF(["pool"]) },
   { label: "Tennis Courts", imageUrl: "/tiles/hv/tennis.jpg", href: AMENITY_HREF(["tennis"]) },
   {
     label: "On Golf Course",
     imageUrl: "/tiles/hv/golf.jpg",
-    href: AMENITY_HREF(["on_golf_course", "Golfcoursefront", "Golfcourseview"]),
+    href: AMENITY_HREF(["golf_course_view"]),
   },
 ];
 

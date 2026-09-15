@@ -1,40 +1,7 @@
 import { v } from "convex/values";
 import { allowedCommunityIds } from "./sites";
 import { query, mutation } from "./_generated/server";
-
-/** Detect amenities from amenityTags (Hostaway), featureCategories text, + community amenities. */
-function detectAmenities(
-  featureCategories: Record<string, string | undefined> | undefined,
-  communityAmenities?: string[],
-  amenityTags?: string[],
-): string[] {
-  const result: string[] = [];
-
-  // Hostaway amenityTags (proper amenity names like "Pool", "Free WiFi")
-  if (amenityTags && amenityTags.length > 0) {
-    for (const a of amenityTags) {
-      if (!result.includes(a)) result.push(a);
-    }
-  }
-
-  // Text-based amenities from featureCategories (legacy property-level)
-  if (featureCategories) {
-    const text = Object.values(featureCategories).filter(Boolean).join(" ").toLowerCase();
-    if (/\bpool\b/.test(text) && !result.some(a => a.toLowerCase() === "pool")) result.push("pool");
-    if (/hot tub|jacuzzi|\bspa\b/.test(text) && !result.some(a => a.toLowerCase().includes("hot tub"))) result.push("hot_tub");
-    if (/tennis/.test(text) && !result.some(a => a.toLowerCase().includes("tennis"))) result.push("tennis");
-    if (/grill|bbq|barbecue/.test(text) && !result.some(a => a.toLowerCase().includes("grill") || a.toLowerCase().includes("bbq"))) result.push("grill");
-  }
-
-  // Community-level amenities (stored in DB, editable from admin)
-  if (communityAmenities && communityAmenities.length > 0) {
-    for (const a of communityAmenities) {
-      if (!result.includes(a)) result.push(a);
-    }
-  }
-
-  return result;
-}
+import { resolveFacets, FACET_IDS } from "./searchFacets";
 
 // ── Public Queries ──
 
@@ -222,7 +189,7 @@ export const listForFacets = query({
           hasRentalWeeks,
           hasSaleWeeks,
           availableWeeks: availableWeekNumbers,
-          amenities: detectAmenities(p.featureCategories as any, community?.amenities, p.amenityTags),
+          amenities: resolveFacets(p.amenityTags, community?.amenities, p.facetOverrides),
         };
       })
     );
@@ -383,7 +350,7 @@ export const search = query({
         }
       }
       properties = properties.filter((p) => {
-        const propAmenities = detectAmenities(p.featureCategories as any, commAmenityCache.get(p.communityId), p.amenityTags);
+        const propAmenities = resolveFacets(p.amenityTags, commAmenityCache.get(p.communityId), p.facetOverrides);
         const matcher = (amenityMode ?? "and") === "or"
           ? amenities.some((a) => propAmenities.includes(a))
           : amenities.every((a) => propAmenities.includes(a));
@@ -614,49 +581,43 @@ export const seed = mutation({
   },
 });
 
-// ── All unique amenities (for dynamic filter options) ──
+// ── Filterable search facets present in this site's inventory ──
+/**
+ * Returns facet ids from the curated twelve [scott, 2026-09-15], limited to
+ * those at least one property on this site actually matches.
+ *
+ * It no longer returns raw HostAway tag names. The old version dumped all 138
+ * distinct tags into the filter list; the taxonomy now lives in
+ * convex/searchFacets.ts and the UI labels come from there.
+ */
 export const allAmenities = query({
   args: { siteSlug: v.optional(v.string()) },
   handler: async (ctx, { siteSlug }) => {
     const allowedAmen = await allowedCommunityIds(ctx, siteSlug);
-    let communities = await ctx.db.query("communities").collect();
-    if (allowedAmen) {
-      communities = communities.filter((c) => allowedAmen.has(c._id as string));
-    }
-    const amenitySet = new Set<string>();
 
-    // Gather all community-level amenities
-    for (const c of communities) {
-      if (c.amenities) {
-        for (const a of c.amenities) amenitySet.add(a);
-      }
-    }
-
-    // Gather property-level amenityTags (from Hostaway sync)
     let properties = await ctx.db
       .query("properties")
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
     if (allowedAmen) {
-      properties = properties.filter((p) =>
-        allowedAmen.has(p.communityId as string)
-      );
+      properties = properties.filter((p) => allowedAmen.has(p.communityId as string));
     }
+
+    const commCache = new Map<string, string[]>();
+    const present = new Set<string>();
     for (const p of properties) {
-      if (p.amenityTags) {
-        for (const a of p.amenityTags) amenitySet.add(a);
+      const key = p.communityId as string;
+      if (!commCache.has(key)) {
+        const comm = await ctx.db.get(p.communityId);
+        commCache.set(key, comm?.amenities ?? []);
       }
-      // Legacy: text-detected amenities from featureCategories
-      if (p.featureCategories) {
-        const text = Object.values(p.featureCategories).filter(Boolean).join(" ").toLowerCase();
-        if (/\bpool\b/.test(text)) amenitySet.add("pool");
-        if (/hot tub|jacuzzi|\bspa\b/.test(text)) amenitySet.add("hot_tub");
-        if (/tennis/.test(text)) amenitySet.add("tennis");
-        if (/grill|bbq|barbecue/.test(text)) amenitySet.add("grill");
+      for (const f of resolveFacets(p.amenityTags, commCache.get(key), p.facetOverrides)) {
+        present.add(f);
       }
     }
 
-    return Array.from(amenitySet).sort();
+    // Curated order, not alphabetical-by-id.
+    return FACET_IDS.filter((id) => present.has(id));
   },
 });
 
@@ -749,7 +710,7 @@ export const searchWeeksForCalendar = query({
         }
       }
       properties = properties.filter((p) => {
-        const propAmenities = detectAmenities(p.featureCategories as any, commAmenityCache.get(p.communityId), p.amenityTags);
+        const propAmenities = resolveFacets(p.amenityTags, commAmenityCache.get(p.communityId), p.facetOverrides);
         return (args.amenityMode ?? "or") === "or"
           ? args.amenities!.some((a) => propAmenities.includes(a))
           : args.amenities!.every((a) => propAmenities.includes(a));

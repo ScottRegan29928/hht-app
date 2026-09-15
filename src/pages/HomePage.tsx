@@ -9,10 +9,12 @@ import { HeritageHero } from "@/components/home/HeritageHero";
 import { HeritageFilterTiles } from "@/components/home/HeritageFilterTiles";
 import { useSeo } from "../lib/seo";
 import { resolveHomeContent } from "@/lib/homeContent";
+import { FridayNote } from "@/components/property/FridayNote";
 import {
   currentHostname,
   lockedModeFor,
   resolveSearchHref,
+  siteSells,
 } from "@/lib/siteCapabilities";
 
 /**
@@ -192,6 +194,10 @@ export function HomePage() {
             >
               {content.map.intro}
             </p>
+            {/* Friday-to-Friday, on the sales-only flagship [scott, 2026-09-15]. */}
+            {!siteSells(siteSlug, "rent") && siteSells(siteSlug, "buy") && (
+              <FridayNote variant="card" className="mt-6 max-w-2xl mx-auto text-left" />
+            )}
           </div>
           <div className="rounded-2xl overflow-hidden border border-border shadow-lg">
             <IslandMap communities={communities ?? []} />

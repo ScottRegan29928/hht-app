@@ -12,8 +12,11 @@ import {
   GripVertical,
   Plus,
   X,
+  Lock,
 } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { HOSTAWAY_OWNED_FIELDS, HOSTAWAY_LOCK_NOTE } from "../../../convex/hostawayFields";
+import { SEARCH_FACETS } from "../../../convex/searchFacets";
 
 export function PropertyEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,9 +39,22 @@ export function PropertyEditPage() {
   const addPhoto = useMutation(api.admin.addPropertyPhoto);
   const deletePhoto = useMutation(api.admin.deletePropertyPhoto);
 
+  /**
+   * HostAway-imported fields are read-only here [scott, 2026-09-15]: they are
+   * overwritten by the 30-minute sync, so editing them only ever lost work.
+   * The server rejects them too (convex/hostawayFields.ts) — this just stops
+   * the editor from offering an edit that would be refused.
+   */
+  const hostawayLinked = !isNew && ((property as any)?.hostawayLinked ?? false);
+  const isLocked = (field: string) =>
+    hostawayLinked && (HOSTAWAY_OWNED_FIELDS as readonly string[]).includes(field);
+  const lockCls = (field: string) =>
+    isLocked(field) ? " bg-muted text-muted-foreground cursor-not-allowed" : "";
+
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [facetOverrides, setFacetOverrides] = useState<Record<string, boolean>>({});
 
   // Form state
   const [form, setForm] = useState({
@@ -109,6 +125,7 @@ export function PropertyEditPage() {
         roomType: (property as any).roomType ?? "",
         contactPhone: (property as any).contactPhone ?? "",
       });
+      setFacetOverrides(((property as any).facetOverrides ?? {}) as Record<string, boolean>);
     }
   }, [property, isNew]);
 
@@ -181,8 +198,11 @@ export function PropertyEditPage() {
         toast.success("Property created");
         navigate(`/management/properties/${newId}`);
       } else {
-        await updateProperty({
+        // Locked fields are stripped before sending: the server rejects them
+        // outright for HostAway-linked properties [scott, 2026-09-15].
+        const payload: Record<string, unknown> = {
           id: id as Id<"properties">,
+          facetOverrides,
           address: form.address,
           unitNumber: form.unitNumber,
           communityId: form.communityId as Id<"communities">,
@@ -200,7 +220,11 @@ export function PropertyEditPage() {
           cancellationPolicy: form.cancellationPolicy || undefined,
           checkInInfo: form.checkInInfo || undefined,
           ...rentalFields,
-        });
+        };
+        if (hostawayLinked) {
+          for (const f of HOSTAWAY_OWNED_FIELDS) delete payload[f];
+        }
+        await updateProperty(payload as any);
         toast.success("Property updated");
       }
     } catch (err: any) {
@@ -271,6 +295,22 @@ export function PropertyEditPage() {
         </button>
       </div>
 
+      {/* HostAway lock notice [scott, 2026-09-15] */}
+      {hostawayLinked && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-900">
+          <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">This property is synced from HostAway.</p>
+            <p className="mt-0.5 text-amber-800">
+              Greyed-out fields are imported and can only be changed in HostAway — the
+              sync rewrites them every 30 minutes. Everything still editable below
+              (search filters, policies, owner documents, featured status) belongs to
+              this site only.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Basic info */}
       <div className="bg-background rounded-xl border p-6 space-y-5">
         <h2 className="font-semibold text-lg">Basic Information</h2>
@@ -281,18 +321,20 @@ export function PropertyEditPage() {
             <input
               value={form.address}
               onChange={(e) => updateField("address", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("address")}`}
               placeholder="e.g. 2870 Swallowtail"
-            />
+            disabled={isLocked("address")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Unit Number</label>
             <input
               value={form.unitNumber}
               onChange={(e) => updateField("unitNumber", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("unitNumber")}`}
               placeholder="e.g. 2870"
-            />
+            disabled={isLocked("unitNumber")}
+              />
           </div>
         </div>
 
@@ -301,8 +343,9 @@ export function PropertyEditPage() {
           <select
             value={form.communityId}
             onChange={(e) => updateField("communityId", e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          >
+            className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("communityId")}`}
+          disabled={isLocked("communityId")}
+              >
             <option value="">Select community…</option>
             {communities?.map((c) => (
               <option key={c._id} value={c._id}>
@@ -321,9 +364,10 @@ export function PropertyEditPage() {
               type="number"
               value={form.bedrooms}
               onChange={(e) => updateField("bedrooms", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("bedrooms")}`}
               min={0}
-            />
+            disabled={isLocked("bedrooms")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Bathrooms</label>
@@ -332,9 +376,10 @@ export function PropertyEditPage() {
               step="0.5"
               value={form.bathrooms}
               onChange={(e) => updateField("bathrooms", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("bathrooms")}`}
               min={0}
-            />
+            disabled={isLocked("bathrooms")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Sleeps</label>
@@ -342,9 +387,10 @@ export function PropertyEditPage() {
               type="number"
               value={form.sleeps}
               onChange={(e) => updateField("sleeps", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("sleeps")}`}
               min={0}
-            />
+            disabled={isLocked("sleeps")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Sq Ft</label>
@@ -364,9 +410,10 @@ export function PropertyEditPage() {
             value={form.description}
             onChange={(e) => updateField("description", e.target.value)}
             rows={4}
-            className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+            className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y${lockCls("description")}`}
             placeholder="Property description…"
-          />
+          disabled={isLocked("description")}
+              />
         </div>
 
         <div className="flex items-center gap-6">
@@ -402,10 +449,11 @@ export function PropertyEditPage() {
               type="number"
               value={form.nightlyRate || ""}
               onChange={(e) => updateField("nightlyRate", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("nightlyRate")}`}
               placeholder="200"
               min={0}
-            />
+            disabled={isLocked("nightlyRate")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Cleaning Fee ($)</label>
@@ -413,10 +461,11 @@ export function PropertyEditPage() {
               type="number"
               value={form.cleaningFee || ""}
               onChange={(e) => updateField("cleaningFee", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("cleaningFee")}`}
               placeholder="217"
               min={0}
-            />
+            disabled={isLocked("cleaningFee")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Weekly Discount</label>
@@ -425,11 +474,12 @@ export function PropertyEditPage() {
               step="0.05"
               value={form.weeklyDiscount || ""}
               onChange={(e) => updateField("weeklyDiscount", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("weeklyDiscount")}`}
               placeholder="0.75 = 25% off"
               min={0}
               max={1}
-            />
+            disabled={isLocked("weeklyDiscount")}
+              />
             {form.weeklyDiscount > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
                 {Math.round((1 - form.weeklyDiscount) * 100)}% off weekly stays
@@ -443,11 +493,12 @@ export function PropertyEditPage() {
               step="0.05"
               value={form.monthlyDiscount || ""}
               onChange={(e) => updateField("monthlyDiscount", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("monthlyDiscount")}`}
               placeholder="0.5 = 50% off"
               min={0}
               max={1}
-            />
+            disabled={isLocked("monthlyDiscount")}
+              />
             {form.monthlyDiscount > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
                 {Math.round((1 - form.monthlyDiscount) * 100)}% off monthly stays
@@ -462,18 +513,20 @@ export function PropertyEditPage() {
             <input
               value={form.checkInTime}
               onChange={(e) => updateField("checkInTime", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("checkInTime")}`}
               placeholder="4:00 PM"
-            />
+            disabled={isLocked("checkInTime")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Check-out Time</label>
             <input
               value={form.checkOutTime}
               onChange={(e) => updateField("checkOutTime", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("checkOutTime")}`}
               placeholder="10:00 AM"
-            />
+            disabled={isLocked("checkOutTime")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Max Nights</label>
@@ -481,10 +534,11 @@ export function PropertyEditPage() {
               type="number"
               value={form.maxNights || ""}
               onChange={(e) => updateField("maxNights", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("maxNights")}`}
               placeholder="28"
               min={0}
-            />
+            disabled={isLocked("maxNights")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Check-in Type</label>
@@ -508,9 +562,10 @@ export function PropertyEditPage() {
               type="number"
               value={form.bedsCount || ""}
               onChange={(e) => updateField("bedsCount", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("bedsCount")}`}
               min={0}
-            />
+            disabled={isLocked("bedsCount")}
+              />
           </div>
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium mb-1.5">Bed Types</label>
@@ -527,9 +582,10 @@ export function PropertyEditPage() {
             <input
               value={form.roomType}
               onChange={(e) => updateField("roomType", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("roomType")}`}
               placeholder="Deluxe Villa"
-            />
+            disabled={isLocked("roomType")}
+              />
           </div>
         </div>
 
@@ -539,10 +595,82 @@ export function PropertyEditPage() {
             <input
               value={form.contactPhone}
               onChange={(e) => updateField("contactPhone", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("contactPhone")}`}
               placeholder="(843) 384-0230"
-            />
+            disabled={isLocked("contactPhone")}
+              />
           </div>
+        </div>
+      </div>
+
+      {/* Search filters — the curated twelve [scott, 2026-09-15] */}
+      <div className="bg-background rounded-xl border p-6 space-y-5">
+        <div>
+          <h2 className="font-semibold text-lg">Search Filters</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            These twelve are the only amenities visitors can filter by. Most are worked
+            out from HostAway and the community; set one explicitly when that guess is
+            wrong, or for the ones HostAway never supplies.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {SEARCH_FACETS.map((f) => {
+            const info = ((property as any)?.facets ?? []).find((x: any) => x.id === f.id);
+            const derived: boolean = info?.derived ?? false;
+            const override = facetOverrides[f.id];
+            const effective = override ?? derived;
+            const setOverride = (val: boolean | undefined) => {
+              setFacetOverrides((prev) => {
+                const next = { ...prev };
+                if (val === undefined) delete next[f.id];
+                else next[f.id] = val;
+                return next;
+              });
+            };
+            return (
+              <div
+                key={f.id}
+                className="flex items-start justify-between gap-3 rounded-lg border p-3"
+              >
+                <div className="min-w-0">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={effective}
+                      onChange={(e) =>
+                        // Checking back to the derived value clears the override
+                        // rather than pinning it, so later HostAway changes still
+                        // flow through.
+                        setOverride(e.target.checked === derived ? undefined : e.target.checked)
+                      }
+                      className="rounded border-input"
+                    />
+                    {f.label}
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {override !== undefined ? (
+                      <>
+                        Set manually to <strong>{override ? "yes" : "no"}</strong>
+                        {" · "}
+                        <button
+                          type="button"
+                          onClick={() => setOverride(undefined)}
+                          className="underline hover:text-foreground"
+                        >
+                          use imported value ({derived ? "yes" : "no"})
+                        </button>
+                      </>
+                    ) : derived ? (
+                      "From HostAway or the community"
+                    ) : (
+                      f.note ?? "Not set"
+                    )}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -555,9 +683,10 @@ export function PropertyEditPage() {
             <input
               value={form.bookingUrl}
               onChange={(e) => updateField("bookingUrl", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50${lockCls("bookingUrl")}`}
               placeholder="https://…"
-            />
+            disabled={isLocked("bookingUrl")}
+              />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Calendar URL</label>

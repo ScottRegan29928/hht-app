@@ -156,7 +156,21 @@ function SharedFooter() {
           </div>
         </div>
 
-        <div className="mt-10 pt-8 border-t border-primary-foreground/10 text-center">
+        <div className="mt-10 pt-8 border-t border-primary-foreground/10 text-center space-y-3">
+          {/* Property-management referral, on all four sites [scott, 2026-09-15].
+              clubgrouphhi.com is The Club Group's own management site — note it
+              is NOT cglhhi.com, which is the email domain and serves no site. */}
+          <p className="text-sm text-primary-foreground/70">
+            Looking for property management?{" "}
+            <a
+              href="https://clubgrouphhi.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-primary-foreground transition-colors"
+            >
+              The Club Group manages Hilton Head properties
+            </a>
+          </p>
           <p className="text-xs text-primary-foreground/40">
             © {new Date().getFullYear()} {brand.legalName}. All rights
             reserved.

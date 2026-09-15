@@ -5,6 +5,7 @@ import { SlidersHorizontal, X, Check, ChevronDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getNext52Weeks, formatWeekRange } from "@/lib/weekCalendar";
 import { useSiteFlags } from "@/lib/siteContext";
+import { facetLabel } from "../../../convex/searchFacets";
 
 export interface AvailableFacets {
   communities: Set<string>;
@@ -15,29 +16,16 @@ export interface AvailableFacets {
   amenities: Set<string>;
 }
 
-/** Convert snake_case amenity key to display label */
-function amenityLabel(key: string): string {
-  const LABELS: Record<string, string> = {
-    pool: "Swimming Pool",
-    hot_tub: "Hot Tub",
-    tennis: "Tennis Court",
-    grill: "Grill Area",
-    near_harbour_town: "Near Harbour Town",
-    near_beach_club: "Near Beach Club",
-    on_golf_course: "On Golf Course",
-    beach_access: "Beach Access",
-    bike_trails: "Bike Trails",
-    fitness_center: "Fitness Center",
-    golf: "Golf",
-    lagoon_views: "Lagoon Views",
-    marina: "Marina",
-    nature_trails: "Nature Trails",
-    playground: "Playground",
-    shopping: "Shopping",
-    water_views: "Water Views",
-  };
-  return LABELS[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
+/**
+ * Labels come from the single curated taxonomy [scott, 2026-09-15].
+ *
+ * This used to be a hand-kept LABELS map with a snake_case-to-Title-Case
+ * fallback, which is how raw HostAway tags ("Baking sheet") leaked into the
+ * filter list looking like real facets. There is nothing to fall back to now:
+ * an unknown id means server and client disagree, and facetLabel returns the
+ * id so that shows up instead of being silently prettified.
+ */
+const amenityLabel = facetLabel;
 
 interface SearchFiltersProps {
   communitySlugs: string[];

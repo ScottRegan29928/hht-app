@@ -13,6 +13,7 @@ import {
   MessageSquarePlus,
   Store,
   BellRing,
+  Wrench,
 } from "lucide-react";
 import { useSiteFlags } from "@/lib/siteContext";
 import { resortTheme } from "@/components/owner/portalTheme";
@@ -227,6 +228,12 @@ export function OwnerDashboardPage() {
             icon={MessageSquarePlus}
             title="Comment Card"
             sub="Tell us about your stay"
+          />
+          <TileLink
+            to="/owner/maintenance"
+            icon={Wrench}
+            title="Maintenance"
+            sub="Report something that needs fixing"
           />
         </div>
       </div>

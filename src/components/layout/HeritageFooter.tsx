@@ -121,6 +121,23 @@ export function HeritageFooter() {
       {/* ── Dark bar ── */}
       <div className="bg-[#0c2b3e] px-[30px] py-[10px]">
         <div className="max-w-7xl mx-auto">
+          {/* Property-management referral, on all four sites
+              [scott, 2026-09-15]. Heritage has its own footer component, so
+              adding this to the shared Footer only covered three of them. */}
+          <p
+            className="text-center text-[14px] leading-[25.2px] text-white/80 pb-1"
+            style={{ fontFamily: "Quicksand, ui-sans-serif, system-ui, sans-serif", fontWeight: 400 }}
+          >
+            Looking for property management?{" "}
+            <a
+              href="https://clubgrouphhi.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white underline underline-offset-2 hover:no-underline"
+            >
+              The Club Group manages Hilton Head properties
+            </a>
+          </p>
           <p
             className="text-center text-[14px] leading-[25.2px] text-white"
             style={{ fontFamily: "Quicksand, ui-sans-serif, system-ui, sans-serif", fontWeight: 400 }}
