@@ -112,8 +112,8 @@ const ACTIVITY = /^(.+?)\s*[—–-]\s*((?:\d{3}[-.])?\d{3}[-.]\d{4})$/;
 
 function telHref(printed: string) {
   const digits = printed.replace(/\D/g, "");
-  // The resorts print 7-digit local numbers. Prefix the island's area code so
-  // the number is tappable; the printed form is left exactly as written.
+  // Numbers are stored with the 843 area code [scott, 2026-09-15]. The
+  // 7-digit fallback stays for anything an admin types the old way.
   return `tel:+1${digits.length === 7 ? "843" : ""}${digits}`;
 }
 

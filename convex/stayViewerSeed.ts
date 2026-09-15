@@ -17,15 +17,16 @@ import { v } from "convex/values";
  *     truncated mid-clause). Since both resorts describe the identical drive
  *     to the identical gate, Swallowtail's body is the Spicebush text with the
  *     villa name changed, rather than a faithful copy of a corrupt file.
- *  2. Activity phone numbers are printed as 7 digits in the PDF. They are
- *     kept exactly as printed and labelled as local Hilton Head numbers; the
- *     renderer adds the 843 area code only to make them tappable.
+ *  2. Activity phone numbers are printed as 7 digits in the PDF. Scott
+ *     [2026-09-15] asked for the 843 area code shown in full and every number
+ *     live, so they are stored as 843-NNN-NNNN. The toll is $10 without a
+ *     pass [scott, 2026-09-15]; the PDFs still say $1.25.
  *
  * Re-runnable: skips a document that already carries a viewer unless `force`,
  * so an admin edit in the portal is never clobbered by a redeploy.
  */
 
-const DIRECTIONS = (villa: string) => `I-95 to SC Exit 8 (Highway 278), travel east, following the signs to Hilton Head. Travel approximately 30 miles. Cross 2 bridges onto Hilton Head Island. Get in the left lane to exit onto the Cross Island Expressway. Travel through the toll ($1.25), and cross the bridge. This road becomes Palmetto Bay Road. Stay in the right lane as you approach the traffic circle, bearing right onto Greenwood Drive.
+const DIRECTIONS = (villa: string) => `I-95 to SC Exit 8 (Highway 278), travel east, following the signs to Hilton Head. Travel approximately 30 miles. Cross 2 bridges onto Hilton Head Island. Get in the left lane to exit onto the Cross Island Expressway. Travel through the toll ($10 without a pass), and cross the bridge. This road becomes Palmetto Bay Road. Stay in the right lane as you approach the traffic circle, bearing right onto Greenwood Drive.
 
 Gate passes are required for entrance into Sea Pines and are picked up at The Sea Pines Welcome Center, located on the right just before the Sea Pines Main Gate. The gate pass pick-up window is at the rear of the Welcome Center. Drive up to the pass window and give the attendant your name — your vehicle pass will be waiting.
 
@@ -41,34 +42,34 @@ If you need additional help, use the telephone located inside the breezeway. Cal
 
 Our office reopens at 7:00 a.m. for any additional questions you may have.`;
 
-const OUTDOOR = `Alligator Adventure — 842-1979
+const OUTDOOR = `Alligator Adventure — 843-842-1979
 Come aboard our safe and stable safari boat for a chance to see the American alligator in its natural habitat.
 
-Charter Fishing — 671-4534
+Charter Fishing — 843-671-4534
 Sportfishing with Hilton Head's best: redfish, tarpon, cobia, king mackerel, barracuda, Spanish mackerel, sharks, bluefish and amberjack. 4-8 hour charters.
 
-Environmental Tours — 671-4386
+Environmental Tours — 843-671-4386
 Explore, discover and learn. Join us for a dolphin, nature, sunset or beachcombing tour. Customized trips are also available.
 
-Horseback Riding — 671-2586
+Horseback Riding — 843-671-2586
 Explore the Sea Pines Forest Preserve on horseback and enjoy the natural beauty of Sea Pines. Pony rides are also available at Lawton Stables for children 8 and under; please call for more information.
 
-Kayak Expeditions — 842-1979
+Kayak Expeditions — 843-842-1979
 Calm water paddling, guided tours and rentals are available, in singles and doubles.
 
-Parasailing — 671-4386
+Parasailing — 843-671-4386
 Get an eagle's eye view of Hilton Head and the surrounding area with H2O Sports. See up to 20 miles in every direction. Fun for all ages and the whole family.
 
-Sailboats — 671-4386
+Sailboats — 843-671-4386
 Sail away on a Stiletto catamaran cruise, or rent a sailboat for yourself. Powerboats are also available for rent.
 
-Water Ski — 671-4386
+Water Ski — 843-671-4386
 Experience the calm waters of Bull Creek skiing, knee boarding and wakeboarding. No experience needed.
 
-Wave Runners — 671-4386
+Wave Runners — 843-671-4386
 Take off on an all-new Yamaha wave runner and experience the vast waters for yourself. Enjoy our large riding area.
 
-Some activities may vary depending on the season. Numbers shown are local Hilton Head numbers — dial 843 first.`;
+Some activities may vary depending on the season.`;
 
 const CALENDAR_INTRO = `Weeks run Friday to Friday, so the calendar dates for your week shift slightly each year. Pick a year below to see the exact dates, or look up which week a particular date falls in.`;
 
