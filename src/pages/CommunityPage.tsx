@@ -6,6 +6,7 @@ import { useSiteFlags } from "../lib/siteContext";
 import { MapPin, ArrowLeft, Home } from "lucide-react";
 import { IslandMap } from "@/components/map/IslandMap";
 import { PropertyCard } from "@/components/property/PropertyCard";
+import { lockedModeFor } from "@/lib/siteCapabilities";
 import { SearchFilters } from "@/components/search/SearchFilters";
 import { computeFacets } from "@/lib/facets";
 
@@ -243,7 +244,11 @@ export function CommunityPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
                 {properties.map((property) => (
-                  <PropertyCard key={property._id} property={property} />
+                  <PropertyCard
+                    key={property._id}
+                    property={property}
+                    mode={lockedModeFor(siteSlug) ?? undefined}
+                  />
                 ))}
               </div>
             )}

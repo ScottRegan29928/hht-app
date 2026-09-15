@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
+import { currentHostname, linkForMode } from "@/lib/siteCapabilities";
 import { HeritageFooter } from "./HeritageFooter";
 
 export function Footer() {
@@ -16,6 +17,10 @@ export function Footer() {
 function SharedFooter() {
   const { siteSlug } = useSiteFlags();
   const navPages = useQuery(api.content.listNavPages, { siteSlug });
+  // Same rule as the nav: a half this site doesn't sell links to its sister
+  // site, as a real anchor [scott, 2026-09-15].
+  const rentLink = linkForMode(siteSlug, "rent", currentHostname());
+  const buyLink = linkForMode(siteSlug, "buy", currentHostname());
   const posts = useQuery(api.content.listPosts, { siteSlug, limit: 1 });
   const hasPosts = !!posts && posts.length > 0;
   const brand = useSiteBrand();
@@ -53,26 +58,44 @@ function SharedFooter() {
             </h3>
             <ul className="space-y-2.5">
               <li>
-                <Link
-                  to="/search?type=rent"
-                  className="text-sm hover:text-primary-foreground transition-colors"
-                >
-                  Find a Rental
-                </Link>
+                {rentLink.external ? (
+                  <a
+                    href={rentLink.href}
+                    className="text-sm hover:text-primary-foreground transition-colors"
+                  >
+                    Find a Rental
+                  </a>
+                ) : (
+                  <Link
+                    to={rentLink.href}
+                    className="text-sm hover:text-primary-foreground transition-colors"
+                  >
+                    Find a Rental
+                  </Link>
+                )}
               </li>
               <li>
-                <Link
-                  to="/search?type=buy"
-                  className="text-sm hover:text-primary-foreground transition-colors"
-                >
-                  Buy a Week
-                </Link>
+                {buyLink.external ? (
+                  <a
+                    href={buyLink.href}
+                    className="text-sm hover:text-primary-foreground transition-colors"
+                  >
+                    Buy a Week
+                  </a>
+                ) : (
+                  <Link
+                    to={buyLink.href}
+                    className="text-sm hover:text-primary-foreground transition-colors"
+                  >
+                    Buy a Week
+                  </Link>
+                )}
               </li>
               {/* Admin-managed pages for THIS site. Replaces a hardcoded
                   link to the old myhiltonheadtimeshare.com WordPress page,
                   which sent Spicebush and Swallowtail visitors to another
                   brand entirely. */}
-              {(navPages ?? []).map((pg) => (
+              {(navPages ?? []).map((pg: { slug: string; label: string }) => (
                 <li key={pg.slug}>
                   <Link
                     to={`/${pg.slug}`}

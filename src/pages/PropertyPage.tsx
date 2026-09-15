@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { PhotoGallery } from "@/components/property/PhotoGallery";
 import { InquiryForm } from "@/components/property/InquiryForm";
+import { lockedModeFor, siteSells } from "@/lib/siteCapabilities";
+import { useSiteFlags } from "@/lib/siteContext";
 import { PropertyMap } from "@/components/property/PropertyMap";
 import { FeatureGrid } from "@/components/property/FeatureGrid";
 import { AvailabilityCalendar, useBookedDates } from "@/components/AvailabilityCalendar";
@@ -33,8 +35,13 @@ export function PropertyPage() {
   const [searchParams] = useSearchParams();
   const property = useQuery(api.properties.getBySlug, { slug: slug ?? "" });
 
-  // Mode from URL: buy, rent, or unset
-  const mode = searchParams.get("mode") ?? null;
+  // Mode from URL: buy, rent, or unset. A single-purpose site overrides it —
+  // hht must never show a booking panel and hv must never show weeks for sale
+  // [scott, 2026-09-15] — which also retires the neutral "both actions"
+  // branch on those two sites.
+  const { siteSlug } = useSiteFlags();
+  const lockedMode = lockedModeFor(siteSlug);
+  const mode = lockedMode ?? searchParams.get("mode") ?? null;
   const isBuy = mode === "buy";
   const isRent = mode === "rent";
 
@@ -202,11 +209,14 @@ export function PropertyPage() {
             </div>
           )}
 
-          {/* Availability Calendar */}
+          {/* Availability Calendar — rental machinery, so sales-only sites
+              don't show it [scott, 2026-09-15]. */}
+          {siteSells(siteSlug, "rent") && (
           <AvailabilityCalendar
             propertyId={property._id}
             selectedRange={isRent && checkIn && checkOut ? { checkIn, checkOut } : undefined}
           />
+          )}
 
           {/* Amenities (from Hostaway sync) */}
           {property.amenityTags && property.amenityTags.length > 0 ? (

@@ -9,6 +9,39 @@ import { HeritageHero } from "@/components/home/HeritageHero";
 import { HeritageFilterTiles } from "@/components/home/HeritageFilterTiles";
 import { useSeo } from "../lib/seo";
 import { resolveHomeContent } from "@/lib/homeContent";
+import {
+  currentHostname,
+  lockedModeFor,
+  resolveSearchHref,
+} from "@/lib/siteCapabilities";
+
+/**
+ * Home CTA that follows the site's half of the business: a "Find a Rental"
+ * button on sales-only hht points at Heritage Vacations, and vice versa
+ * [scott, 2026-09-15].
+ */
+function HomeCta({
+  siteSlug,
+  href,
+  className,
+  children,
+}: {
+  siteSlug: string;
+  href: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const link = resolveSearchHref(siteSlug, href, currentHostname());
+  return link.external ? (
+    <a href={link.href} className={className}>
+      {children}
+    </a>
+  ) : (
+    <Link to={link.href} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 export function HomePage() {
   const { siteSlug } = useSiteFlags();
@@ -246,7 +279,11 @@ export function HomePage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredProperties.slice(0, 6).map((property) => (
-                <PropertyCard key={property._id} property={property} />
+                <PropertyCard
+                    key={property._id}
+                    property={property}
+                    mode={lockedModeFor(siteSlug) ?? undefined}
+                  />
               ))}
             </div>
           </div>
@@ -265,20 +302,22 @@ export function HomePage() {
               {content.closing.body}
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to={content.closing.primaryHref}
+              <HomeCta
+                siteSlug={siteSlug}
+                href={content.closing.primaryHref}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:bg-white/90 transition-colors"
               >
                 <Calendar className="w-4 h-4" />
                 {content.closing.primaryLabel}
-              </Link>
-              <Link
-                to={content.closing.secondaryHref}
+              </HomeCta>
+              <HomeCta
+                siteSlug={siteSlug}
+                href={content.closing.secondaryHref}
                 className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary-foreground/30 rounded-lg font-semibold hover:bg-primary-foreground/10 transition-colors"
               >
                 <Key className="w-4 h-4" />
                 {content.closing.secondaryLabel}
-              </Link>
+              </HomeCta>
             </div>
           </div>
         </section>

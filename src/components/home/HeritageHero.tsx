@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  currentHostname,
+  resolveSearchHref,
+} from "@/lib/siteCapabilities";
 import type { HomeContent } from "@/lib/homeContent";
+import { useSiteFlags } from "@/lib/siteContext";
 
 /**
  * Heritage Vacations hero banner.
@@ -38,6 +43,39 @@ const SLIDE_MS = 6000;
 const SHADOW_H1 = "2px 2px 5px #014e6c";
 const SHADOW_BODY = "2px 2px 3px #014e6c";
 const GOLD = "#968751";
+
+/**
+ * A hero CTA that may point at the sister site: rentals-only Heritage sends
+ * "Buy a Week" to My Hilton Head Timeshare, and vice versa [scott,
+ * 2026-09-15]. react-router cannot handle the absolute URL, so those render
+ * as real anchors.
+ */
+function CtaLink({
+  href,
+  className,
+  style,
+  children,
+}: {
+  href: string;
+  className: string;
+  style: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const { siteSlug } = useSiteFlags();
+  const link = resolveSearchHref(siteSlug, href, currentHostname());
+  if (link.external) {
+    return (
+      <a href={link.href} className={className} style={style}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link to={link.href} className={className} style={style}>
+      {children}
+    </Link>
+  );
+}
 
 export function HeritageHero({ content }: { content: HomeContent }) {
   const hero = content.hero;
@@ -111,8 +149,8 @@ export function HeritageHero({ content }: { content: HomeContent }) {
 
             {/* Two CTAs per Scott: rentals first, sales second. */}
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link
-                to={hero.primaryHref}
+              <CtaLink
+                href={hero.primaryHref}
                 className="inline-flex items-center justify-center border border-white text-white transition-opacity hover:opacity-90"
                 style={{
                   backgroundColor: GOLD,
@@ -124,9 +162,9 @@ export function HeritageHero({ content }: { content: HomeContent }) {
                 }}
               >
                 {hero.primaryLabel}
-              </Link>
-              <Link
-                to={hero.secondaryHref}
+              </CtaLink>
+              <CtaLink
+                href={hero.secondaryHref}
                 className="inline-flex items-center justify-center border border-white text-white bg-white/10 backdrop-blur-[2px] transition-colors hover:bg-white/20"
                 style={{
                   fontFamily: "Quicksand, ui-sans-serif, system-ui, sans-serif",
@@ -137,7 +175,7 @@ export function HeritageHero({ content }: { content: HomeContent }) {
                 }}
               >
                 {hero.secondaryLabel}
-              </Link>
+              </CtaLink>
             </div>
           </div>
         </div>

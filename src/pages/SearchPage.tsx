@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useSiteFlags } from "../lib/siteContext";
+import { lockedModeFor } from "@/lib/siteCapabilities";
 import { Search, LayoutGrid, Map as MapIcon, Calendar, ListFilter } from "lucide-react";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { SearchFilters } from "@/components/search/SearchFilters";
@@ -20,6 +21,11 @@ function parseMulti(val: string | null): string[] {
 
 export function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  // hht sells weeks, hv rents villas; neither may search the other half
+  // [scott, 2026-09-15]. Locking the mode here also hides the Rent/Buy
+  // toggle, which only renders when no mode is fixed.
+  const { siteSlug } = useSiteFlags();
+  const lockedMode = lockedModeFor(siteSlug);
   const [communitySlugs, setCommunitySlugs] = useState<string[]>(
     parseMulti(searchParams.get("community"))
   );
@@ -29,9 +35,13 @@ export function SearchPage() {
   const [bedrooms, setBedrooms] = useState<string[]>(
     parseMulti(searchParams.get("beds"))
   );
-  const [listingTypes, setListingTypes] = useState<string[]>(
-    parseMulti(searchParams.get("type"))
+  const [listingTypes, setListingTypesRaw] = useState<string[]>(
+    lockedMode ? [lockedMode] : parseMulti(searchParams.get("type"))
   );
+  // On a single-purpose site the mode is not a filter the visitor owns.
+  const setListingTypes = lockedMode
+    ? () => {}
+    : setListingTypesRaw;
   const [amenities, setAmenities] = useState<string[]>(
     parseMulti(searchParams.get("amenities"))
   );
@@ -50,7 +60,6 @@ export function SearchPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const { siteSlug } = useSiteFlags();
   const communities = useQuery(api.communities.list, { siteSlug });
   const facetData = useQuery(api.properties.listForFacets, { siteSlug });
 
@@ -142,7 +151,7 @@ export function SearchPage() {
     setCommunitySlugs([]);
     setWeekNumbers([]);
     setBedrooms([]);
-    setListingTypes([]);
+    if (!lockedMode) setListingTypesRaw([]);
     setAmenities([]);
     setAmenityMode("or");
     setCheckIn("");

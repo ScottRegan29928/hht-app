@@ -5,14 +5,52 @@ import { ContactPanel } from "./ContactPanel";
 import { cn } from "@/lib/utils";
 import { HeaderSearchBar } from "@/components/search/HeaderSearchBar";
 import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
+import { currentHostname, linkForMode } from "@/lib/siteCapabilities";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
-const baseNavLinks = [
-  { href: "/", label: "Home" },
-  { href: "/search?type=rent", label: "Find a Rental" },
-  { href: "/search?type=buy", label: "Buy a Week" },
-];
+/**
+ * Both flagship sites keep both items; the half a site doesn't sell points at
+ * its sister site instead [scott, 2026-09-15].
+ */
+function baseNavLinks(siteSlug: string, hostname: string) {
+  const rent = linkForMode(siteSlug, "rent", hostname);
+  const buy = linkForMode(siteSlug, "buy", hostname);
+  return [
+    { href: "/", label: "Home", external: false },
+    { href: rent.href, label: "Find a Rental", external: rent.external },
+    { href: buy.href, label: "Buy a Week", external: buy.external },
+  ];
+}
+
+type NavItem = { href: string; label: string; external: boolean };
+
+/**
+ * A cross-site nav item has to be a real anchor: react-router would treat the
+ * absolute URL as an in-app path and render this site's 404 instead.
+ */
+function NavItemLink({
+  item,
+  className,
+  onClick,
+}: {
+  item: NavItem;
+  className: string;
+  onClick?: () => void;
+}) {
+  if (item.external) {
+    return (
+      <a href={item.href} className={className} onClick={onClick}>
+        {item.label}
+      </a>
+    );
+  }
+  return (
+    <Link to={item.href} className={className} onClick={onClick}>
+      {item.label}
+    </Link>
+  );
+}
 
 export function Header() {
   const brand = useSiteBrand();
@@ -24,9 +62,15 @@ export function Header() {
   const posts = useQuery(api.content.listPosts, { siteSlug, limit: 1 });
 
   const navLinks = [
-    ...baseNavLinks,
-    ...(navPages ?? []).map((p) => ({ href: `/${p.slug}`, label: p.label })),
-    ...(posts && posts.length > 0 ? [{ href: "/blog", label: "News" }] : []),
+    ...baseNavLinks(siteSlug, currentHostname()),
+    ...(navPages ?? []).map((pg: { slug: string; label: string }) => ({
+      href: `/${pg.slug}`,
+      label: pg.label,
+      external: false,
+    })),
+    ...(posts && posts.length > 0
+      ? [{ href: "/blog", label: "News", external: false }]
+      : []),
   ];
   const [mobileOpen, setMobileOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -127,9 +171,9 @@ export function Header() {
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
-              <Link
+              <NavItemLink
                 key={link.href}
-                to={link.href}
+                item={link}
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                   lightOnDark
@@ -141,9 +185,7 @@ export function Header() {
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
-              >
-                {link.label}
-              </Link>
+              />
             ))}
             {/* Contact opens a slide-in form [scott, 2026-09-08]. */}
             <button
@@ -223,9 +265,9 @@ export function Header() {
               : "border-border"
           )}>
             {navLinks.map((link) => (
-              <Link
+              <NavItemLink
                 key={link.href}
-                to={link.href}
+                item={link}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   "block px-4 py-3 rounded-lg text-sm font-medium transition-colors",
@@ -236,9 +278,7 @@ export function Header() {
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
-              >
-                {link.label}
-              </Link>
+              />
             ))}
             <button
               type="button"

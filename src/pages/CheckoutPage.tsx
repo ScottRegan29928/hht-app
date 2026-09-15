@@ -18,6 +18,13 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+import {
+  currentHostname,
+  siteForMode,
+  siteSells,
+  sisterSiteUrl,
+} from "@/lib/siteCapabilities";
+import { useSiteFlags } from "@/lib/siteContext";
 
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -41,6 +48,7 @@ function formatDateRange(start: string, end: string) {
 
 export function CheckoutPage() {
   const [params] = useSearchParams();
+  const { siteSlug } = useSiteFlags();
 
   // Determine checkout mode from URL params
   const weekId = params.get("weekId");
@@ -87,6 +95,41 @@ export function CheckoutPage() {
     phone: "",
     notes: "",
   });
+
+  // ── Checkout this site doesn't handle ──
+  // hht sells weeks only, hv rents only [scott, 2026-09-15]. Reachable only
+  // by a stale link now, but it must not be able to create the booking.
+  const wrongSide = isRental
+    ? !siteSells(siteSlug, "rent")
+    : !!weekId && !siteSells(siteSlug, "buy");
+  if (wrongSide) {
+    const other = siteForMode(isRental ? "rent" : "buy");
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center max-w-sm px-4">
+          <AlertCircle className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+          <h2 className="text-lg font-semibold mb-1">
+            {isRental ? "Rentals are handled elsewhere" : "Sales are handled elsewhere"}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            {isRental
+              ? "Vacation rentals for Sea Pines are booked through Heritage Vacations."
+              : "Timeshare weeks for sale are listed on My Hilton Head Timeshare."}
+          </p>
+          <a
+            href={sisterSiteUrl(
+              other,
+              isRental ? "/search?type=rent" : "/search?type=buy",
+              currentHostname()
+            )}
+            className="inline-flex items-center gap-2 text-primary hover:underline text-sm"
+          >
+            Continue there <ArrowLeft className="w-4 h-4 rotate-180" />
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   // ── No valid params ──
   if (!weekId && !isRental) {

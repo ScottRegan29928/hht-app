@@ -146,7 +146,10 @@ export const seedSites = internalMutation({
         communitySlugs: undefined,
         ownerPortalEnabled: false,
         marketplaceEnabled: false,
-        rentalsEnabled: true,
+        // Sales only [scott, 2026-09-15]; rentals live on Heritage. The UI
+        // gates on src/lib/siteCapabilities.ts (synchronous, no flash) — this
+        // flag is kept in step so the two can't disagree.
+        rentalsEnabled: false,
         marketplacePool: undefined,
         sortOrder: 2,
       },

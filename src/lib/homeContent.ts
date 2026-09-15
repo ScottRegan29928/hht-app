@@ -168,8 +168,17 @@ export function defaultHomeContent(siteSlug: string): HomeContent {
     // No hero banner: the map section is the hero and carries the headline
     // and intro [scott, 2026-09-10].
     d.map.heading = "Your Island Getaway Awaits";
+    // Sales-only as of 2026-09-15, so the rental half of Scott's original
+    // wording moves out; rentals now live on Heritage Vacations.
     d.map.intro =
-      "Discover luxury timeshare villas in the heart of Sea Pines. Purchase a week or rent the perfect vacation home on Hilton Head Island. Click a community on the map to browse available villas and timeshare weeks.";
+      "Discover luxury timeshare villas in the heart of Sea Pines. Purchase your week on Hilton Head Island. Click a community on the map to browse available timeshare weeks.";
+    d.closing.heading = "Ready to Own Your Piece of Paradise?";
+    d.closing.body =
+      "Find the week that fits your family, in the community you already love. Looking to rent instead? Heritage Vacations handles our vacation rentals.";
+    d.closing.primaryLabel = "Buy a Week";
+    d.closing.primaryHref = BUY_HREF;
+    d.closing.secondaryLabel = "Find a Rental";
+    d.closing.secondaryHref = RENT_HREF;
     return d;
   }
 

@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { useSiteFlags } from "@/lib/siteContext";
+import { lockedModeFor } from "@/lib/siteCapabilities";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,6 +21,8 @@ import { cn } from "@/lib/utils";
 export function HeaderSearchBar({ dark = false }: { dark?: boolean }) {
   const navigate = useNavigate();
   const { siteSlug } = useSiteFlags();
+  const searchMode = lockedModeFor(siteSlug) ?? "rent";
+  const showDates = searchMode === "rent";
   // Where is a dropdown of this site's communities, alphabetical [scott, 2026-09-10].
   // communities.list is already site-scoped server-side, so a scoped site can
   // never list a sister site's communities here.
@@ -41,8 +44,9 @@ export function HeaderSearchBar({ dark = false }: { dark?: boolean }) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const params = new URLSearchParams();
-    // Dates only make sense for rentals, so a dated search is a rental search.
-    params.set("type", checkIn || checkOut ? "rent" : "rent");
+    // The pill searches whatever this site sells. hht is sales-only as of
+    // 2026-09-15, so it searches weeks for sale, not rentals.
+    params.set("type", searchMode);
     // SearchPage round-trips `community` as a comma-joined slug list.
     if (community) params.set("community", community);
     if (checkIn) params.set("checkIn", checkIn);
@@ -82,9 +86,12 @@ export function HeaderSearchBar({ dark = false }: { dark?: boolean }) {
         </select>
       </Segment>
 
+      {/* When — check-in/check-out is a rental idea, so it's hidden on a
+          sales-only site [scott, 2026-09-15]. */}
+      {showDates && (
+        <>
       <Divider dark={dark} />
 
-      {/* When */}
       <Segment label="When" dark={dark} className="sm:flex-[1.3]">
         <div className="flex items-center gap-1">
           <input
@@ -112,6 +119,8 @@ export function HeaderSearchBar({ dark = false }: { dark?: boolean }) {
           />
         </div>
       </Segment>
+        </>
+      )}
 
       <Divider dark={dark} />
 
