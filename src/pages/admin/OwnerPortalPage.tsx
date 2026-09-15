@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   Plus,
   Trash2,
+  Pencil,
   Upload,
   FileText,
   ExternalLink,
@@ -103,6 +104,8 @@ function DocumentsTab({ siteSlug }: { siteSlug: string }) {
   const generateUploadUrl = useMutation(api.admin.generateUploadUrl);
 
   const [category, setCategory] = useState<Category>("association");
+  // Inline content editor: which document's viewer/body is open for editing.
+  const [editing, setEditing] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [year, setYear] = useState("");
   const [busy, setBusy] = useState(false);
@@ -217,7 +220,8 @@ function DocumentsTab({ siteSlug }: { siteSlug: string }) {
       ) : (
         <ul className="border rounded-xl divide-y">
           {list.map((d: any) => (
-            <li key={d._id} className="flex items-center gap-3 px-4 py-3">
+            <li key={d._id} className="px-4 py-3">
+              <div className="flex items-center gap-3">
               <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="flex-1 text-sm font-medium">{d.title}</span>
               {!d.published && (
@@ -265,6 +269,13 @@ function DocumentsTab({ siteSlug }: { siteSlug: string }) {
                 )}
               </button>
               <button
+                onClick={() => setEditing(editing === d._id ? null : d._id)}
+                className="text-muted-foreground hover:text-foreground"
+                title="Edit how this opens"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button
                 onClick={() => {
                   if (!confirm(`Delete “${d.title}”?`)) return;
                   void remove({ id: d._id }).then(() =>
@@ -276,10 +287,122 @@ function DocumentsTab({ siteSlug }: { siteSlug: string }) {
               >
                 <Trash2 className="w-4 h-4" />
               </button>
+              </div>
+              {editing === d._id && (
+                <DocViewerEditor
+                  doc={d}
+                  siteSlug={siteSlug}
+                  onDone={() => setEditing(null)}
+                />
+              )}
             </li>
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/**
+ * How a document opens in the owner portal, and the text it shows.
+ *
+ * Scott, 2026-09-15: the "Arriving and staying" documents should open a real
+ * screen rather than hand over a PDF. Which viewer to use and the wording it
+ * shows are data, so The Club Group changes both here without a deploy.
+ */
+function DocViewerEditor({
+  doc,
+  siteSlug,
+  onDone,
+}: {
+  doc: any;
+  siteSlug: string;
+  onDone: () => void;
+}) {
+  const upsert = useMutation(api.ownerPortal.upsertDocument);
+  const [viewer, setViewer] = useState<string>(doc.viewer ?? "");
+  const [body, setBody] = useState<string>(doc.body ?? "");
+  const [hideDownload, setHideDownload] = useState<boolean>(!!doc.hideDownload);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await upsert({
+        id: doc._id,
+        siteSlug,
+        category: doc.category,
+        title: doc.title,
+        viewer: (viewer || undefined) as any,
+        // Sending "" would store an empty body; undefined clears it instead.
+        body: body.trim() ? body : undefined,
+        hideDownload,
+      });
+      toast.success("Saved");
+      onDone();
+    } catch {
+      toast.error("Could not save that");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="mt-3 rounded-xl border bg-muted/30 p-4 space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium mb-1.5">Opens as</label>
+          <select
+            value={viewer}
+            onChange={(e) => setViewer(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg bg-background text-sm"
+          >
+            <option value="">Download only</option>
+            <option value="content">The text, formatted</option>
+            <option value="calendar">Week and date picker</option>
+            <option value="directions">Directions with map buttons</option>
+          </select>
+        </div>
+        <label className="flex items-center gap-2 text-sm sm:mt-7">
+          <input
+            type="checkbox"
+            checked={hideDownload}
+            onChange={(e) => setHideDownload(e.target.checked)}
+          />
+          Hide the download button
+        </label>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1.5">
+          Content shown in the portal
+        </label>
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={8}
+          placeholder="Leave blank to show the file only. Blank lines separate paragraphs."
+          className="w-full px-3 py-2 border rounded-lg bg-background text-sm font-mono leading-relaxed"
+        />
+        <p className="text-xs text-muted-foreground mt-1.5">
+          Blank lines separate paragraphs. In directions, each paragraph becomes
+          a numbered step. A line ending in a phone number — like “Charter
+          Fishing — 671-4534” — becomes a tappable activity heading.
+        </p>
+      </div>
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={onDone}
+          className="px-3.5 py-2 rounded-lg border text-sm font-medium"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => void save()}
+          disabled={saving}
+          className="px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
     </div>
   );
 }

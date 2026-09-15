@@ -12,10 +12,18 @@ import {
   CloudLightning,
   KeyRound,
   Tag,
+  CalendarDays,
+  Navigation,
   ExternalLink,
   Download,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import {
+  StayDocDialog,
+  type StayDoc,
+} from "@/components/owner/StayDocDialog";
+import { resortTheme } from "@/components/owner/portalTheme";
 
 /**
  * Everything about being here: check-in and late arrival, the resort calendar,
@@ -35,7 +43,11 @@ export function OwnerResortInfoPage() {
     resorts.find(
       (r: { siteSlug: string; name: string }) => r.siteSlug === siteSlug,
     )?.name ?? portalName;
+  const theme = resortTheme(siteSlug);
   const data = useQuery(api.ownerPortal.overview, { siteSlug, portalSlug });
+  // Which "Arriving and staying" document is open, if any. Declared with the
+  // other hooks — the loading early-return below is after this point.
+  const [openDoc, setOpenDoc] = useState<StayDoc | null>(null);
 
   if (data === undefined) {
     return (
@@ -73,19 +85,58 @@ export function OwnerResortInfoPage() {
       {stayDocs.length > 0 && (
         <Card icon={KeyRound} title="Arriving and staying">
           <ul className="grid sm:grid-cols-2 gap-2">
-            {stayDocs.map((d: any) => (
-              <li key={d._id}>
-                <a
-                  href={d.url ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 px-3.5 py-3 rounded-lg border hover:bg-muted/40 transition-colors text-sm font-medium"
-                >
-                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                  {d.title}
-                </a>
-              </li>
-            ))}
+            {stayDocs.map((d: any) => {
+              const Icon =
+                d.viewer === "calendar"
+                  ? CalendarDays
+                  : d.viewer === "directions"
+                    ? Navigation
+                    : FileText;
+              // A document with a viewer opens in the portal; anything else is
+              // still a plain download [scott, 2026-09-15].
+              const inner = (
+                <>
+                  <Icon
+                    className="w-4 h-4 shrink-0"
+                    style={{ color: theme.accent }}
+                  />
+                  <span className="min-w-0 truncate">{d.title}</span>
+                  <span className="ml-auto text-xs text-muted-foreground shrink-0">
+                    {d.viewer === "calendar"
+                      ? "Pick a week"
+                      : d.viewer === "directions"
+                        ? "Get directions"
+                        : d.viewer === "content"
+                          ? "Read"
+                          : "Download"}
+                  </span>
+                </>
+              );
+              const cls =
+                "w-full flex items-center gap-2.5 px-3.5 py-3 rounded-lg border bg-white hover:bg-muted/40 transition-colors text-sm font-medium text-left";
+              return (
+                <li key={d._id}>
+                  {d.viewer ? (
+                    <button
+                      type="button"
+                      onClick={() => setOpenDoc(d as StayDoc)}
+                      className={cls}
+                    >
+                      {inner}
+                    </button>
+                  ) : (
+                    <a
+                      href={d.url ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cls}
+                    >
+                      {inner}
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </Card>
       )}
@@ -189,6 +240,11 @@ export function OwnerResortInfoPage() {
           </ul>
         </Card>
       )}
+      <StayDocDialog
+        doc={openDoc}
+        siteSlug={siteSlug}
+        onClose={() => setOpenDoc(null)}
+      />
     </div>
   );
 }

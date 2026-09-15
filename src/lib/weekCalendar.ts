@@ -4327,7 +4327,40 @@ export function getWeeksForYear(year: number): WeekDate[] {
 }
 
 /** Get available years */
-export const AVAILABLE_YEARS = [2026, 2027, 2028, 2029, 2030];
+// Derived, not a literal: the table now runs well past the hand-written
+// [2026..2030] this used to hold.
+export const AVAILABLE_YEARS = Array.from(
+  new Set(WEEK_CALENDAR.map((w) => w.year)),
+)
+  .filter((y) => y >= new Date().getFullYear())
+  .sort((a, b) => a - b);
+
+/**
+ * Week-years worth showing in the calendar, earliest first. A year whose last
+ * week has already ended is dropped — owners look forward, not back.
+ */
+export function getCalendarYears(): number[] {
+  const today = new Date().toISOString().slice(0, 10);
+  const lastEnd = new Map<number, string>();
+  for (const w of WEEK_CALENDAR) {
+    const prev = lastEnd.get(w.year);
+    if (!prev || w.endDate > prev) lastEnd.set(w.year, w.endDate);
+  }
+  return Array.from(lastEnd.entries())
+    .filter(([, end]) => end >= today)
+    .map(([year]) => year)
+    .sort((a, b) => a - b);
+}
+
+/**
+ * Which week does a calendar date fall in? Weeks run Friday noon to Friday,
+ * so a date is "in" the week whose span contains it.
+ */
+export function findWeekForDate(date: string): WeekDate | null {
+  return (
+    WEEK_CALENDAR.find((w) => date >= w.startDate && date < w.endDate) ?? null
+  );
+}
 
 /** Format a week date range for display: "Sep 11 – Sep 18, 2026" */
 export function formatWeekRange(weekNumber: number, year: number): string {

@@ -781,6 +781,24 @@ const schema = defineSchema({
     // uploads that disappear at cutover. externalUrl is the fallback.
     storageId: v.optional(v.id("_storage")),
     externalUrl: v.optional(v.string()),
+    // How the document opens in the portal [scott, 2026-09-15]: "more 2026
+    // rather than 1980". Absent = plain download link, which is still right
+    // for minutes, newsletters and deeds. The others open a real screen and
+    // treat the PDF as a takeaway rather than the only way in.
+    viewer: v.optional(
+      v.union(
+        v.literal("content"),     // the text of the document, formatted
+        v.literal("calendar"),    // interactive year / week / date picker
+        v.literal("directions")   // steps plus Google Maps and Waze buttons
+      )
+    ),
+    // The document's text, so it can be read without downloading anything.
+    // Plain text; blank lines separate paragraphs. Editable in the admin
+    // portal, like every other piece of portal copy.
+    body: v.optional(v.string()),
+    // Late-Arrival Procedure is read on a phone in a dark parking lot; a
+    // download link there is noise [scott, 2026-09-15].
+    hideDownload: v.optional(v.boolean()),
     // Sort key for archives: newest first. Not a publish date.
     documentDate: v.optional(v.number()),
     sortOrder: v.optional(v.number()),

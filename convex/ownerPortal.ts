@@ -79,6 +79,11 @@ async function withUrls(ctx: any, docs: Doc<"ownerDocuments">[]) {
       documentDate: d.documentDate,
       sortOrder: d.sortOrder,
       published: d.published,
+      // How the document opens, and its text. This projection is explicit, so
+      // a new field must be added here or the portal never sees it.
+      viewer: d.viewer ?? null,
+      body: d.body ?? null,
+      hideDownload: d.hideDownload ?? false,
       url: d.storageId
         ? await ctx.storage.getUrl(d.storageId)
         : (d.externalUrl ?? null),
@@ -316,6 +321,15 @@ export const upsertDocument = mutation({
     title: v.string(),
     storageId: v.optional(v.id("_storage")),
     externalUrl: v.optional(v.string()),
+    viewer: v.optional(
+      v.union(
+        v.literal("content"),
+        v.literal("calendar"),
+        v.literal("directions")
+      )
+    ),
+    body: v.optional(v.string()),
+    hideDownload: v.optional(v.boolean()),
     documentDate: v.optional(v.number()),
     sortOrder: v.optional(v.number()),
     published: v.optional(v.boolean()),
@@ -324,8 +338,10 @@ export const upsertDocument = mutation({
     await requireAdmin(ctx);
     const title = args.title.trim();
     if (!title) throw new Error("A document needs a title");
-    if (!args.id && !args.storageId && !args.externalUrl) {
-      throw new Error("Upload a file or provide a link");
+    // A document may now be pure content: a viewer with body text and no file
+    // at all is a complete document [scott, 2026-09-15].
+    if (!args.id && !args.storageId && !args.externalUrl && !args.body?.trim()) {
+      throw new Error("Upload a file, provide a link, or write the content");
     }
     const now = Date.now();
     if (args.id) {
@@ -339,6 +355,9 @@ export const upsertDocument = mutation({
       title,
       storageId: args.storageId,
       externalUrl: args.externalUrl,
+      viewer: args.viewer,
+      body: args.body,
+      hideDownload: args.hideDownload,
       documentDate: args.documentDate,
       sortOrder: args.sortOrder,
       published: args.published ?? true,
