@@ -150,12 +150,31 @@ html[data-site="spicebush"] .sb-footer {
  * bar [zoe, 2026-09-16]. Full-bleed out of the footer container with the
  * 50vw margin trick; the footer clips overflow so no horizontal scroll.
  */
-html[data-site="spicebush"] .sb-footer .sb-referral {
+html[data-site="spicebush"] .sb-footer :is(.sb-referral, .sb-copyright) {
   background-color: #891f11;
   color: #fff;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-  padding: 1rem 1.5rem;
+}
+
+/* One continuous band: the referral pads the top, the copyright the bottom, and
+   the space-y gap between them is zeroed out [zoe, 2026-09-16]. */
+html[data-site="spicebush"] .sb-footer .sb-referral {
+  padding: 1rem 1.5rem 0.4rem;
+  /* space-y-3 puts its 12px on this element's margin-bottom, not the sibling's top. */
+  margin-bottom: 0 !important;
+  margin-block-end: 0 !important;
+}
+
+html[data-site="spicebush"] .sb-footer .sb-copyright {
+  /* Beats Tailwind's space-y margin, and the negative bottom margin eats the
+     footer container's py-12 so the band reaches the very bottom edge. */
+  /* Tailwind v4 space-y sets the logical margin-block-start, so zero that too. */
+  margin-top: 0 !important;
+  margin-block-start: 0 !important;
+  margin-bottom: -3rem;
+  padding: 0 1.5rem 3.6rem;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 html[data-site="spicebush"] .sb-footer .sb-referral a {

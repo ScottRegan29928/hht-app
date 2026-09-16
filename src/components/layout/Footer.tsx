@@ -176,7 +176,7 @@ function SharedFooter() {
               The Club Group manages Hilton Head properties
             </a>
           </p>
-          <p className="text-xs text-primary-foreground/40">
+          <p className="sb-copyright text-xs text-primary-foreground/40">
             © {new Date().getFullYear()} {brand.legalName}. All rights
             reserved.
           </p>
