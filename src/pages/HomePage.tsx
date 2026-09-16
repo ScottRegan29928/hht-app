@@ -6,6 +6,7 @@ import { IslandMap } from "@/components/map/IslandMap";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { useSiteFlags, useSiteBrand } from "@/lib/siteContext";
 import { HeritageHero } from "@/components/home/HeritageHero";
+import { SpicebushHero } from "@/components/home/SpicebushHero";
 import { HeritageFilterTiles } from "@/components/home/HeritageFilterTiles";
 import { useSeo } from "../lib/seo";
 import { resolveHomeContent } from "@/lib/homeContent";
@@ -78,6 +79,8 @@ export function HomePage() {
           front ends are designed (Scott's ordering: hv, hht, then Sea Pines). */}
       {siteSlug === "heritage" ? (
         <HeritageHero content={content} />
+      ) : siteSlug === "spicebush" ? (
+        <SpicebushHero content={content} />
       ) : siteSlug === "mhht" ? null : (
         <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-20 sm:pb-24">

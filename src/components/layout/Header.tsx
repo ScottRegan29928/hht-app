@@ -84,7 +84,10 @@ export function Header() {
   // mhht carries an Airbnb-style search pill under the nav [scott, 2026-09-10],
   // which makes the "Search Properties" button redundant there.
   const headerSearch = siteSlug === "mhht";
-  const overlay = heritage && isHome;
+  // Spicebush's hero is a recreation of spicebushatseapines.com, where the
+  // header sits transparently ON the photo [zoe, 2026-09-16]. Homepage only.
+  const spicebush = siteSlug === "spicebush";
+  const overlay = (heritage || spicebush) && isHome;
   // Scott supplied the full-color logo (2026-09-08), so the solid inner-page
   // header goes back to the normal light bar with the color lockup. Only the
   // transparent hero overlay is light-on-dark, and it uses the white logo.
@@ -261,7 +264,12 @@ export function Header() {
             // Over the photo the panel needs its own surface or the links
             // are unreadable against the hero image.
             overlay
-              ? "border-white/25 bg-[rgba(1,78,108,0.92)] -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8"
+              ? cn(
+                  "border-white/25",
+                  // Heritage's panel is teal; Spicebush's brand is the maroon
+                  // and charcoal from spicebushatseapines.com.
+                  spicebush ? "bg-[rgba(37,41,43,0.94)]" : "bg-[rgba(1,78,108,0.92)]"
+                ) + " -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8"
               : "border-border"
           )}>
             {navLinks.map((link) => (

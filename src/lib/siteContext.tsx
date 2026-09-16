@@ -11,6 +11,10 @@ const SITE_FAVICONS: Record<string, { icon: string; apple?: string }> = {
     icon: "/brand/hv/favicon-32.png",
     apple: "/brand/hv/apple-touch-icon.png",
   },
+  spicebush: {
+    icon: "/brand/spicebush/favicon-32.png",
+    apple: "/brand/spicebush/apple-touch-icon.png",
+  },
 };
 
 /**

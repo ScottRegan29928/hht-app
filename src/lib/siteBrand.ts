@@ -8,6 +8,11 @@
  *
  * Inventory scoping is enforced on the server (see convex/sites.ts); nothing
  * here affects which properties a site can show.
+ *
+ * ⚠ 2026-09-16: Spicebush is being restyled to match its existing brand
+ * (spicebushatseapines.com) at Zoe's request, starting with the logo and hero.
+ * Until Swallowtail gets the same treatment from its own old site, the two are
+ * no longer pixel-identical. Flagged to Zoe.
  */
 
 export type SiteBrand = {
@@ -91,6 +96,15 @@ export const SITE_BRAND: Record<string, SiteBrand> = {
     legalName: "Swallowtail at Sea Pines",
   },
   spicebush: {
+    // The client's own butterfly lockup, carried over from
+    // spicebushatseapines.com so the new site keeps the established brand
+    // [zoe, 2026-09-16]. White on the transparent hero overlay, green on the
+    // solid inner-page header.
+    logo: {
+      color: "/brand/spicebush/logo-green.png",
+      white: "/brand/spicebush/logo-white.png",
+      className: "h-[64px] sm:h-[92px] w-auto",
+    },
     phoneDisplay: "843.363.5699",
     phoneHref: "tel:8433635699",
     wordmarkTop: "Spicebush",

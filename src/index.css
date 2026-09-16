@@ -1,6 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Quicksand:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Quicksand:wght@400;500;600&family=Cinzel:wght@400;500;600&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
+
+/*
+ * Spicebush at Sea Pines brand fonts.
+ *
+ * Cinzel (headings/buttons) comes from Google above. "Brushine" is the script
+ * accent used in the spicebushatseapines.com hero; it is the client's own
+ * licensed font file, copied from their WordPress uploads so the new site
+ * renders the same lockup.
+ */
+@font-face {
+  font-family: Brushine;
+  src: url("/fonts/brushine.woff2") format("woff2"),
+       url("/fonts/brushine.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 @custom-variant dark (&:is(.dark *));
 
