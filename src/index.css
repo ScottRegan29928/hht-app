@@ -128,6 +128,23 @@ html[data-site="spicebush"] .sb-sand-section {
  * type on the teal primary, so the type goes dark here and the two buttons take
  * the site's maroon/blue pair instead of the white-on-teal pair.
  */
+/*
+ * Footer runs the old site's shells-on-driftwood photo, and the logo there is
+ * much larger than the app default [zoe, 2026-09-16]. The photo is dark enough
+ * on its own, so no scrim, but a matching background-color covers tall footers.
+ */
+html[data-site="spicebush"] .sb-footer {
+  background-color: #2b2320;
+  background-image: url("/brand/spicebush/footer.jpg");
+  background-size: cover;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+}
+
+html[data-site="spicebush"] .sb-footer img {
+  height: 118px;
+}
+
 html[data-site="spicebush"] .sb-closing :is(h2, p) {
   color: #222;
 }

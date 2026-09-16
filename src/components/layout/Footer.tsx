@@ -25,7 +25,12 @@ function SharedFooter() {
   const hasPosts = !!posts && posts.length > 0;
   const brand = useSiteBrand();
   return (
-    <footer className="bg-foreground text-primary-foreground/80">
+    <footer
+      className={[
+        "text-primary-foreground/80",
+        siteSlug === "spicebush" ? "sb-footer" : "bg-foreground",
+      ].join(" ")}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* Brand */}
