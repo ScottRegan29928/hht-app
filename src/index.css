@@ -102,8 +102,13 @@ html[data-site="spicebush"] .sb-sand-section {
   background-size: cover;
   background-position: 50% 0%;
   background-repeat: no-repeat;
-  /* Clear of the wood bar so the heading never sits on it. */
-  padding-top: 5.5rem;
+  /* Old site puts 120px between the section top and the heading [zoe, 2026-09-16]. */
+  padding-top: 7.5rem;
+}
+
+/* Old site headings are Cinzel 400, not bold [zoe, 2026-09-16]. */
+html[data-site="spicebush"] .sb-sand-section :is(h1, h2, h3) {
+  font-weight: 400;
 }
 
 @custom-variant dark (&:is(.dark *));
