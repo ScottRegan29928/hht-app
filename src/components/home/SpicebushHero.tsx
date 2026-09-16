@@ -1,105 +1,31 @@
 import { Link } from "react-router-dom";
-import {
-  currentHostname,
-  resolveSearchHref,
-} from "@/lib/siteCapabilities";
+import { ArrowRight, Calendar, Key, Waves } from "lucide-react";
 import type { HomeContent } from "@/lib/homeContent";
-import { useSiteFlags } from "@/lib/siteContext";
+import { useSiteBrand } from "@/lib/siteContext";
 
 /**
- * Spicebush at Sea Pines hero banner.
+ * Spicebush at Sea Pines hero.
  *
- * A measured recreation of the hero on spicebushatseapines.com [zoe,
- * 2026-09-16] — the client's existing brand, applied to the new build without
- * changing any functionality.
+ * This is the SHARED hero's content — eyebrow, headline, intro, and both CTAs,
+ * unchanged — laid over the hero photograph from spicebushatseapines.com.
+ * Zoe asked for the background image and the logo from the old site and for
+ * everything else in the hero to stay as it was [zoe, 2026-09-16], so do not
+ * reintroduce the old site's headline or single button here.
  *
- * Values below come from the live site's computed styles, not from eyeballing,
- * so don't "tidy" them into round numbers:
- *   section        min-height 550px, padding 0 30px 60px, content centered
- *   background     Hero-Background.jpg, cover, 50% 0%, NO scrim
- *   h1             Cinzel 400, 40px / 1.2, letter-spacing 2px, white
- *   accent         "the Dream" in Brushine 70px, same color
- *   button         #891F11, Cinzel 500, 18px, ls 2px, padding 17px 40px,
- *                  radius 2px, text-transform capitalize
- *   button target  /vacation-rentals/ on the old site → the new rental search
+ * The image is `content.hero.images[0]`, so it stays editable in the backend.
  */
-
-const MAROON = "#891F11";
-const CINZEL = 'Cinzel, ui-serif, Georgia, serif';
-/**
- * The phrase the old site sets in the script face. Kept as a constant so the
- * headline stays editable in the backend: whatever text an admin saves, this
- * phrase is scripted if it appears and the headline renders plainly if it
- * doesn't.
- */
-const SCRIPT_PHRASE = "the Dream";
-
-/** Splits a headline line into plain/script/plain runs. */
-function renderLine(line: string, key: number) {
-  const i = line.indexOf(SCRIPT_PHRASE);
-  if (i === -1) return <span key={key}>{line}</span>;
-  return (
-    <span key={key}>
-      {line.slice(0, i)}
-      <span
-        className="text-[52px] sm:text-[70px]"
-        style={{ fontFamily: "Brushine, cursive" }}
-      >
-        {SCRIPT_PHRASE}
-      </span>
-      {line.slice(i + SCRIPT_PHRASE.length)}
-    </span>
-  );
-}
-
-/**
- * A hero CTA that may point at a sister site. Spicebush handles both rentals
- * and sales, so today this resolves in-app, but going through the same helper
- * as the other sites keeps it correct if that ever changes.
- */
-function CtaLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  const { siteSlug } = useSiteFlags();
-  const link = resolveSearchHref(siteSlug, href, currentHostname());
-  const className =
-    "inline-flex items-center justify-center text-white transition-opacity hover:opacity-90";
-  const style: React.CSSProperties = {
-    backgroundColor: MAROON,
-    fontFamily: CINZEL,
-    fontWeight: 500,
-    fontSize: "18px",
-    letterSpacing: "2px",
-    textTransform: "capitalize",
-    padding: "17px 40px",
-    borderRadius: "2px",
-  };
-  if (link.external) {
-    return (
-      <a href={link.href} className={className} style={style}>
-        {children}
-      </a>
-    );
-  }
-  return (
-    <Link to={link.href} className={className} style={style}>
-      {children}
-    </Link>
-  );
-}
-
 export function SpicebushHero({ content }: { content: HomeContent }) {
+  const brand = useSiteBrand();
   const hero = content.hero;
   const image = hero.images[0] ?? "/brand/spicebush/hero.jpg";
+  const lines = hero.headlineLines.length
+    ? hero.headlineLines
+    : [brand.headlineTop, brand.headlineAccent];
 
   return (
     <section
-      className="relative w-full overflow-hidden min-h-[550px] flex items-center justify-center px-[30px] pb-[60px] pt-[150px] sm:pt-[190px]"
-      aria-label="Spicebush at Sea Pines"
+      className="relative w-full overflow-hidden"
+      aria-label={brand.legalName}
       style={{
         backgroundImage: `url(${image})`,
         backgroundSize: "cover",
@@ -107,35 +33,58 @@ export function SpicebushHero({ content }: { content: HomeContent }) {
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* The live site runs no scrim over this photo. A soft top gradient keeps
-          the white nav legible without darkening the picture the client picked. */}
+      {/* Enough scrim to keep white copy readable on a bright beach photo,
+          plus a little extra behind the transparent header. */}
+      <div className="absolute inset-0 bg-black/35" aria-hidden="true" />
       <div
-        className="absolute inset-x-0 top-0 h-48 pointer-events-none"
+        className="absolute inset-x-0 top-0 h-40"
         style={{
-          background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.28), rgba(0,0,0,0))",
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0))",
         }}
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-[900px] text-center">
-        <h1
-          className="text-white text-[28px] leading-[1.2] sm:text-[40px]"
-          style={{ fontFamily: CINZEL, fontWeight: 400, letterSpacing: "2px" }}
-        >
-          {(hero.headlineLines.length
-            ? hero.headlineLines
-            : ["Live the Dream You\u2019ve Only Imagined"]
-          ).map((line, i) => (
-            <span key={i}>
-              {i > 0 && <br />}
-              {renderLine(line, i)}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16 sm:pt-40 sm:pb-24">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-2 text-white/85 mb-4">
+            <Waves className="w-5 h-5" />
+            <span className="text-sm font-medium tracking-wide uppercase">
+              {hero.eyebrow || brand.eyebrow}
             </span>
-          ))}
-        </h1>
+          </div>
 
-        <div className="mt-8 flex justify-center">
-          <CtaLink href={hero.primaryHref}>{hero.primaryLabel}</CtaLink>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] font-[family-name:var(--font-display)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
+            {lines.map((line, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
+          </h1>
+
+          <p className="mt-6 text-lg sm:text-xl text-white/90 max-w-xl leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]">
+            {hero.intro || brand.intro}
+          </p>
+
+          {/* Both entry points, rentals first [scott, 2026-09-08]. */}
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link
+              to={hero.primaryHref}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-md"
+            >
+              <Calendar className="w-4 h-4" />
+              {hero.primaryLabel}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              to={hero.secondaryHref}
+              className="inline-flex items-center gap-2 px-6 py-3 border-2 border-white text-white rounded-lg font-semibold hover:bg-white/15 transition-colors"
+            >
+              <Key className="w-4 h-4" />
+              {hero.secondaryLabel}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </div>
     </section>

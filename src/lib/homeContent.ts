@@ -172,12 +172,9 @@ export function defaultHomeContent(siteSlug: string): HomeContent {
   }
 
   if (siteSlug === "spicebush") {
-    // Recreated from spicebushatseapines.com [zoe, 2026-09-16]. The script
-    // accent in SpicebushHero keys off the phrase "the Dream", so keep it in
-    // the headline if you edit this.
-    d.hero.headlineLines = ["Live the Dream You\u2019ve Only Imagined"];
-    d.hero.primaryLabel = "Find Your Perfect Rental";
-    d.hero.primaryHref = RENT_HREF;
+    // The hero photograph from spicebushatseapines.com, used as the hero
+    // background. The copy and both CTAs stay as they were — Zoe wants only
+    // the background image and the logo carried over [zoe, 2026-09-16].
     d.hero.images = ["/brand/spicebush/hero.jpg"];
     return d;
   }
