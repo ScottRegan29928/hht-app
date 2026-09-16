@@ -66,14 +66,22 @@ html[data-site="spicebush"] button.border-white {
      companion to the maroon button [zoe, 2026-09-16]. */
   background-color: oklch(0.3 0.07 220);
   color: #fff;
-  /* Kill the white outline so the top inset highlight is the only white edge,
-     exactly like the maroon button. Transparent rather than 0-width keeps the
-     box the same size, so the two buttons stay the same height. */
+  /* Kill the white outline so the top highlight is the only white edge, exactly
+     like the maroon button. Transparent rather than 0-width keeps the box the
+     same size, so the two buttons stay the same height. Because an inset shadow
+     paints inside the border, the highlight here is a 1px gradient stripe on the
+     background instead: backgrounds fill the border box, so it reaches the true
+     top edge corner to corner, like the maroon button's inset highlight. */
   border-color: transparent;
+  background-image: linear-gradient(#fff, #fff);
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  background-position: left top;
+  /* background-origin defaults to the padding box, which would inset the stripe
+     by the 2px border. Anchor it to the border box so it sits flush. */
+  background-origin: border-box;
   border-radius: 2px;
-  box-shadow:
-    inset 0 1px 0 0 #fff,
-    1.8px 3.6px 3.6px 2.7px rgba(0, 0, 0, 0.3);
+  box-shadow: 1.8px 3.6px 3.6px 2.7px rgba(0, 0, 0, 0.3);
   font-family: "Cinzel", ui-serif, Georgia, serif;
   font-weight: 500;
   letter-spacing: 2px;
