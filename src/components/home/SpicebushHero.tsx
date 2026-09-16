@@ -63,7 +63,7 @@ export function SpicebushHero({ content }: { content: HomeContent }) {
                     weight, and its tall ascenders mean the line box is pulled
                     tight and lifted so the two lines read as one lockup. */}
                 {i === lines.length - 1 && lines.length > 1 ? (
-                  <span className="block font-[family-name:Brushine] font-normal tracking-normal [word-spacing:0.15em] text-6xl sm:text-7xl lg:text-[5.5rem] leading-[0.9] mt-0.5 sm:mt-1 lg:mt-1.5 pb-2">
+                  <span className="block font-[family-name:Brushine] font-normal tracking-normal [word-spacing:0.15em] text-6xl sm:text-7xl lg:text-[5.5rem] leading-[0.9] mt-0 sm:mt-0.5 lg:mt-px pb-2">
                     {line}
                   </span>
                 ) : (
