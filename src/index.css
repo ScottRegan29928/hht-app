@@ -122,8 +122,42 @@ html[data-site="spicebush"] .sb-golf-section {
   background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
     url("/brand/spicebush/golf.jpg");
   background-size: cover;
-  background-position: 50% 50%;
+  background-position: 50% 0%;
   background-repeat: no-repeat;
+}
+
+/*
+ * The old block is full-viewport-height. With a fixed (parallax) background the
+ * section is a window onto a viewport-sized photo, so a short section crops the
+ * golfer; matching the old site's height keeps the whole frame visible.
+ */
+@media (min-width: 1024px) {
+  html[data-site="spicebush"] .sb-golf-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+  }
+
+  /* The section's single child is the max-width container; keep it full width
+     so flex centering does not shrink-wrap the grid. */
+  html[data-site="spicebush"] .sb-golf-section > * {
+    width: 100%;
+  }
+}
+
+/*
+ * Parallax, as on the old site [zoe, 2026-09-16]. `background-attachment: fixed`
+ * is the CSS equivalent of Avada's parallax: the photo holds still while the
+ * section scrolls over it. It is limited to pointer-fine, wide viewports because
+ * iOS Safari renders fixed backgrounds badly (jumpy, wrong scale), and it is
+ * dropped for anyone asking for reduced motion. Everywhere else the background
+ * simply scrolls, anchored to the top so nothing important is cropped.
+ */
+@media (min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html[data-site="spicebush"] .sb-parallax,
+  html[data-site="spicebush"] .sb-golf-section {
+    background-attachment: fixed;
+  }
 }
 
 html[data-site="spicebush"] .sb-golf-section :is(h2, p) {
@@ -132,6 +166,28 @@ html[data-site="spicebush"] .sb-golf-section :is(h2, p) {
 
 html[data-site="spicebush"] .sb-golf-section a[href="/search"] {
   color: #fff;
+}
+
+/*
+ * Hero "tide" drift [zoe, 2026-09-16]. The hero is a still photograph, so the
+ * water cannot actually move; this eases the whole frame up and back down over
+ * half a minute, which reads as a slow swell rather than an animation. Keyframes
+ * outrank the component's inline background-position, so no JS is involved.
+ * Skipped entirely for prefers-reduced-motion.
+ */
+@keyframes sb-tide {
+  from {
+    background-position: 50% 0%;
+  }
+  to {
+    background-position: 50% 22px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-site="spicebush"] .sb-parallax {
+    animation: sb-tide 28s ease-in-out infinite alternate;
+  }
 }
 
 html[data-site="spicebush"] :is(h1, h2, h3, h4, h5, h6) {

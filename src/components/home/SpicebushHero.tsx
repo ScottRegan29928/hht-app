@@ -24,7 +24,7 @@ export function SpicebushHero({ content }: { content: HomeContent }) {
 
   return (
     <section
-      className="relative w-full overflow-hidden"
+      className="sb-parallax relative w-full overflow-hidden"
       aria-label={brand.legalName}
       style={{
         backgroundImage: `url(${image})`,
