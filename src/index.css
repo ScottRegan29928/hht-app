@@ -128,25 +128,6 @@ html[data-site="spicebush"] .sb-golf-section {
 }
 
 /*
- * The old block is full-viewport-height. With a fixed (parallax) background the
- * section is a window onto a viewport-sized photo, so a short section crops the
- * golfer; matching the old site's height keeps the whole frame visible.
- */
-@media (min-width: 1024px) {
-  html[data-site="spicebush"] .sb-golf-section {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-  }
-
-  /* The section's single child is the max-width container; keep it full width
-     so flex centering does not shrink-wrap the grid. */
-  html[data-site="spicebush"] .sb-golf-section > * {
-    width: 100%;
-  }
-}
-
-/*
  * Parallax, as on the old site [zoe, 2026-09-16]. `background-attachment: fixed`
  * is the CSS equivalent of Avada's parallax: the photo holds still while the
  * section scrolls over it. It is limited to pointer-fine, wide viewports because
