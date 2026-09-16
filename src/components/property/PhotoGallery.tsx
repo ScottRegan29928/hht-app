@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, X, Expand } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { photoSrc } from "@/lib/photoSrc";
 
 interface PhotoGalleryProps {
   photos: string[];
@@ -30,7 +31,7 @@ export function PhotoGallery({ photos, alt }: PhotoGalleryProps) {
         {/* Large photo */}
         <div className="relative h-80 sm:h-[28rem] rounded-2xl overflow-hidden bg-muted">
           <img
-            src={photos[currentIndex]}
+            src={photoSrc(photos[currentIndex])}
             alt={`${alt} - Photo ${currentIndex + 1}`}
             className="w-full h-full object-cover"
           />
@@ -79,7 +80,7 @@ export function PhotoGallery({ photos, alt }: PhotoGalleryProps) {
                 )}
               >
                 <img
-                  src={photo}
+                  src={photoSrc(photo)}
                   alt={`Thumbnail ${i + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -111,7 +112,7 @@ export function PhotoGallery({ photos, alt }: PhotoGalleryProps) {
             {currentIndex + 1} / {photos.length}
           </div>
           <img
-            src={photos[currentIndex]}
+            src={photoSrc(photos[currentIndex])}
             alt={`${alt} - Photo ${currentIndex + 1}`}
             className="max-w-[90vw] max-h-[85vh] object-contain"
           />

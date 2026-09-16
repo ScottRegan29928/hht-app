@@ -13,10 +13,12 @@ import {
   Plus,
   X,
   Lock,
+  ImageOff,
 } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { HOSTAWAY_OWNED_FIELDS, HOSTAWAY_LOCK_NOTE } from "../../../convex/hostawayFields";
 import { SEARCH_FACETS } from "../../../convex/searchFacets";
+import { photoSrc } from "@/lib/photoSrc";
 
 export function PropertyEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -777,10 +779,40 @@ export function PropertyEditPage() {
                 {property.photoUrls.map((url, i) => (
                   <div key={i} className="relative group rounded-lg overflow-hidden aspect-[4/3] bg-muted">
                     <img
-                      src={url}
+                      src={photoSrc(url)}
                       alt={`Photo ${i + 1}`}
                       className="w-full h-full object-cover"
+                      /*
+                       * These are HostAway S3 originals (~270KB each, 38 on a
+                       * busy listing = 10MB), so load them lazily rather than
+                       * all at once. onError swaps in a labeled placeholder:
+                       * a real dead URL then reads as "unavailable" instead of
+                       * a broken-image icon that looks like our bug.
+                       */
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        img.style.display = "none";
+                        // Inline style, not a class toggle: Tailwind's `hidden`
+                        // and `flex` are both display rules and the winner
+                        // depends on stylesheet order, not on which we add.
+                        const fb = img.parentElement?.querySelector<HTMLElement>(
+                          "[data-photo-fallback]",
+                        );
+                        if (fb) fb.style.display = "flex";
+                      }}
                     />
+                    <div
+                      data-photo-fallback
+                      style={{ display: "none" }}
+                      className="absolute inset-0 flex-col items-center justify-center gap-1 bg-muted text-muted-foreground"
+                    >
+                      <ImageOff className="h-5 w-5" />
+                      <span className="text-[10px] text-center px-1">
+                        Image unavailable
+                      </span>
+                    </div>
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
                     <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded">
                       {i + 1}

@@ -100,27 +100,58 @@ export const getBySlug = query({
 
     const community = await ctx.db.get(property.communityId);
 
-    // Get all photos — prefer propertyPhotos table, fall back to photoUrls field
+    /*
+     * Full gallery, mirrored copies preferred [viktor, 2026-09-16].
+     *
+     * ⚠ This used to be "if ANY mirrored photo exists, show ONLY those", which
+     * silently truncated every gallery on the site: we mirror just the primary
+     * shot (141 rows across 82 properties) while HostAway carries 2,059. The
+     * live page for 1611 Port Villa was showing 3 photos out of 61.
+     *
+     * Now the HostAway list defines the order and completeness, and a mirrored
+     * copy substitutes for its own original, matched on `legacyUrl`. Mirrored
+     * photos with no counterpart (hand-uploaded in the portal) come first.
+     */
     const photoRecords = await ctx.db
       .query("propertyPhotos")
       .withIndex("by_property", (q) => q.eq("propertyId", property._id))
       .collect();
-    let photoUrls: (string | null)[];
-    if (photoRecords.length > 0) {
-      photoUrls = await Promise.all(
-        photoRecords
-          .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map(async (p) => {
-            if (p.storageId) {
-              return await ctx.storage.getUrl(p.storageId);
-            }
-            return p.externalUrl ?? null;
-          })
-      );
-    } else {
-      // Fall back to photoUrls stored directly on the property
-      photoUrls = property.photoUrls ?? [];
+    const ordered = photoRecords.sort((a, b) => a.sortOrder - b.sortOrder);
+
+    const mirrorByLegacy = new Map<string, string>();
+    const extras: string[] = [];
+    for (const rec of ordered) {
+      const url = rec.storageId
+        ? await ctx.storage.getUrl(rec.storageId)
+        : (rec.externalUrl ?? null);
+      if (!url) continue;
+      if (rec.legacyUrl) mirrorByLegacy.set(rec.legacyUrl, url);
+      else extras.push(url);
     }
+
+    const fromHostaway = (property.photoUrls ?? []).map(
+      (u) => mirrorByLegacy.get(u) ?? u,
+    );
+
+    // A mirrored photo whose legacyUrl is no longer in photoUrls (HostAway
+    // replaced the object) is still a real photo of the villa, so keep it
+    // rather than dropping it.
+    const usedMirrors = new Set(
+      (property.photoUrls ?? [])
+        .map((u) => mirrorByLegacy.get(u))
+        .filter(Boolean) as string[],
+    );
+    const orphanMirrors = [...mirrorByLegacy.values()].filter(
+      (u) => !usedMirrors.has(u),
+    );
+
+    let photoUrls: (string | null)[] = [
+      ...extras,
+      ...fromHostaway,
+      ...orphanMirrors,
+    ];
+    // Dedupe while preserving order.
+    photoUrls = [...new Set(photoUrls.filter(Boolean))];
 
     // Get available weeks
     const weeks = await ctx.db

@@ -152,6 +152,14 @@ const schema = defineSchema({
      * portal while imported fields are locked.
      */
     facetOverrides: v.optional(v.record(v.string(), v.boolean())),
+    /**
+     * Amenities hidden from THIS property's public page [scott, 2026-09-16]:
+     * "allow the admin to toggle on and off amenities for a page". Holds
+     * amenity ids (see amenityId() in convex/searchFacets.ts). Display only —
+     * it never affects search matching, so hiding a line of copy cannot
+     * silently drop the property out of a filter result.
+     */
+    hiddenAmenities: v.optional(v.array(v.string())),
     // Visual feature categories (scraped from WP)
     featureCategories: v.optional(
       v.object({
@@ -892,6 +900,27 @@ const schema = defineSchema({
     createdAt: v.number(),
   }).index("by_site", ["siteSlug"]),
 
+
+  /**
+   * Which amenities are usable as SEARCH FILTERS [scott, 2026-09-16]:
+   * "Across all four but with the ability to toggle on and off per site."
+   *
+   * One row per amenity id. `filterEnabled` is the global decision that covers
+   * all four sites; `siteDisabled` lists the site slugs that opt out of it.
+   * A site can therefore only subtract from the global list, which is what
+   * "across all four with a per-site toggle" means.
+   *
+   * Absent row = the default in convex/amenityDefaults.ts (the twelve curated
+   * facets on, raw HostAway tags off), so this table starts empty and only
+   * records deliberate admin changes.
+   */
+  amenitySettings: defineTable({
+    amenityId: v.string(),
+    filterEnabled: v.boolean(),
+    siteDisabled: v.optional(v.array(v.string())),
+    updatedAt: v.optional(v.number()),
+    updatedBy: v.optional(v.id("userProfiles")),
+  }).index("by_amenity", ["amenityId"]),
 });
 
 export default schema;

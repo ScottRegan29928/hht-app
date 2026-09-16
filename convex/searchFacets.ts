@@ -201,3 +201,69 @@ export function explainFacets(
     effective: effective.has(f.id),
   }));
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Amenity ids beyond the twelve facets [scott, 2026-09-16]
+//
+// The admin can now promote ANY amenity into the filter list, not just the
+// curated twelve, so ids must cover raw HostAway tags too. Two id spaces:
+//
+//   "balcony"           → a curated facet, resolved via resolveFacets()
+//   "tag:baking sheet"  → a raw HostAway amenityTag, matched literally
+//
+// The `tag:` prefix keeps them from ever colliding with a facet id.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const RAW_TAG_PREFIX = "tag:";
+
+/** Stable id for a raw HostAway amenity tag. */
+export function rawTagId(tag: string): string {
+  return RAW_TAG_PREFIX + tag.trim().toLowerCase();
+}
+
+export function isRawTagId(id: string): boolean {
+  return id.startsWith(RAW_TAG_PREFIX);
+}
+
+/** The original tag text carried by a raw id (lowercased). */
+export function rawTagOf(id: string): string {
+  return id.slice(RAW_TAG_PREFIX.length);
+}
+
+/** Title-case a raw HostAway tag for display: "hot tub" → "Hot Tub". */
+export function prettifyTag(tag: string): string {
+  return tag
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Label for any amenity id, facet or raw tag. Superset of facetLabel(), which
+ * is kept because the client imports it directly for facet-only lists.
+ */
+export function amenityLabelFor(id: string): string {
+  if (isRawTagId(id)) return prettifyTag(rawTagOf(id));
+  return facetLabel(id);
+}
+
+/**
+ * Every amenity id a property matches: its curated facets plus a raw id per
+ * HostAway tag. This is what filter matching and the admin inventory counts
+ * both read, so a promoted raw tag filters correctly with no special-casing
+ * at the call sites.
+ */
+export function resolveAllAmenityIds(
+  amenityTags: string[] | undefined,
+  communityAmenities: string[] | undefined,
+  overrides: Record<string, boolean> | undefined,
+): string[] {
+  const facets = resolveFacets(amenityTags, communityAmenities, overrides);
+  const raw = (amenityTags ?? [])
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
+    .map(rawTagId);
+  // Dedupe: two HostAway tags can differ only by case.
+  return [...new Set([...facets, ...raw])];
+}

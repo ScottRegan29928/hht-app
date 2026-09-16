@@ -245,4 +245,61 @@ http.route({
   }),
 });
 
+// ── Image proxy for HostAway photos ──
+/**
+ * GET /api/photo?u=<encoded HostAway S3 url>
+ *
+ * Why this exists [scott, 2026-09-16]: property photos live in HostAway's S3
+ * bucket, and ad blockers plus corporate DNS filters routinely drop requests
+ * to `*.amazonaws.com`. Scott saw exactly that as broken tiles in the admin
+ * photo grid while the same URLs returned HTTP 200 from everywhere else.
+ * Serving them from our own origin makes them first-party, so there is nothing
+ * for a blocker to match on.
+ *
+ * It is a strict allow-list, not a general fetcher: only HostAway's bucket is
+ * reachable, or this would be an open proxy for anything on the internet.
+ */
+const PHOTO_HOST_ALLOWLIST = ["hostaway-platform.s3.us-west-2.amazonaws.com"];
+
+http.route({
+  path: "/api/photo",
+  method: "GET",
+  handler: httpAction(async (_ctx, request) => {
+    const raw = new URL(request.url).searchParams.get("u");
+    if (!raw) return new Response("Missing u", { status: 400 });
+
+    let target: URL;
+    try {
+      target = new URL(raw);
+    } catch {
+      return new Response("Bad url", { status: 400 });
+    }
+    if (target.protocol !== "https:" || !PHOTO_HOST_ALLOWLIST.includes(target.hostname)) {
+      return new Response("Host not allowed", { status: 403 });
+    }
+
+    const upstream = await fetch(target.toString());
+    if (!upstream.ok) {
+      // Pass the real status through: a 403 here means HostAway rotated the
+      // object, which is a data problem the daily photo cron should fix, and
+      // masking it as a 500 would hide that.
+      return new Response("Upstream error", { status: upstream.status });
+    }
+
+    const type = upstream.headers.get("Content-Type") ?? "image/jpeg";
+    if (!type.startsWith("image/")) {
+      return new Response("Not an image", { status: 415 });
+    }
+
+    return new Response(upstream.body, {
+      status: 200,
+      headers: {
+        "Content-Type": type,
+        // S3 objects are content-addressed, so a URL's bytes never change.
+        "Cache-Control": "public, max-age=604800, immutable",
+      },
+    });
+  }),
+});
+
 export default http;
