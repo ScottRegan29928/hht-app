@@ -112,6 +112,28 @@ html[data-site="spicebush"] .sb-sand-section {
  * [zoe, 2026-09-16]. Scoped to heading elements, so a Tailwind font-weight class
  * on a child span (the Brushine hero line) still wins.
  */
+/*
+ * Communities block sits on the golf/Atlantic Dunes photo that backs the old
+ * site's "Live Your Dream at Spicebush" block [zoe, 2026-09-16]. The old block
+ * runs white type over the photo, so the scrim + light text match it. Card tiles
+ * carry their own images and are untouched.
+ */
+html[data-site="spicebush"] .sb-golf-section {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
+    url("/brand/spicebush/golf.jpg");
+  background-size: cover;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+}
+
+html[data-site="spicebush"] .sb-golf-section :is(h2, p) {
+  color: #fff;
+}
+
+html[data-site="spicebush"] .sb-golf-section a[href="/search"] {
+  color: #fff;
+}
+
 html[data-site="spicebush"] :is(h1, h2, h3, h4, h5, h6) {
   font-weight: 500;
 }
