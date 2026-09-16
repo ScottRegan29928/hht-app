@@ -171,11 +171,14 @@ export function HomePage() {
           On mhht this replaces the hero banner entirely, so it carries the
           headline and intro copy [scott, 2026-09-10]. */}
       <section
-        className={
+        className={[
           isMapHero
-            ? "pt-10 pb-16 sm:pt-14 sm:pb-20 bg-card"
-            : "py-16 sm:py-20 bg-card"
-        }
+            ? "pt-10 pb-16 sm:pt-14 sm:pb-20"
+            : "py-16 sm:py-20",
+          // Spicebush swaps the flat card fill for the old site's sand texture,
+          // whose own top edge carries the blue wood bar [zoe, 2026-09-16].
+          siteSlug === "spicebush" ? "sb-sand-section" : "bg-card",
+        ].join(" ")}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">

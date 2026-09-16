@@ -92,6 +92,20 @@ html[data-site="spicebush"] button.border-white:hover {
   color: #fff;
 }
 
+/*
+ * The "Explore Sea Pines" band on Spicebush, using the old site's sand photo.
+ * The blue wood bar lives in the top of the image itself, so anchoring to the
+ * top edge is what keeps it [zoe, 2026-09-16].
+ */
+html[data-site="spicebush"] .sb-sand-section {
+  background-image: url("/brand/spicebush/sand.jpg");
+  background-size: cover;
+  background-position: 50% 0%;
+  background-repeat: no-repeat;
+  /* Clear of the wood bar so the heading never sits on it. */
+  padding-top: 5.5rem;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
