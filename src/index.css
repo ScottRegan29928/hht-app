@@ -19,6 +19,21 @@
   font-display: swap;
 }
 
+/*
+ * Spicebush headings are set in Cinzel, as on spicebushatseapines.com
+ * [zoe, 2026-09-16]. The slug lands on <html data-site> in siteContext.tsx
+ * before first paint, so this needs no JS and cannot flash. Cinzel is a
+ * capitals-forward face, so it carries the old site's slight tracking.
+ */
+html[data-site="spicebush"] {
+  --font-display: "Cinzel", ui-serif, Georgia, serif;
+}
+html[data-site="spicebush"] h1,
+html[data-site="spicebush"] h2,
+html[data-site="spicebush"] h3 {
+  letter-spacing: 0.02em;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

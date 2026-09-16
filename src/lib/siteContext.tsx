@@ -109,6 +109,19 @@ function resolveHostname(): string {
   return window.location.hostname;
 }
 
+/**
+ * Tag <html> with the resolved slug so per-site CSS (e.g. Spicebush's Cinzel
+ * headings) applies on the very first paint. Done at module load, not in an
+ * effect, so there is no flash of the default typography — the same reason
+ * every other per-site decision resolves from the hostname synchronously.
+ */
+if (typeof document !== "undefined") {
+  document.documentElement.setAttribute(
+    "data-site",
+    slugForHostname(resolveHostname())
+  );
+}
+
 export function SiteProvider({ children }: { children: ReactNode }) {
   const hostname = resolveHostname();
   const hostSlug = slugForHostname(hostname);
