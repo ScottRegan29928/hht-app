@@ -320,7 +320,14 @@ export function HomePage() {
       {/* ── CTA Section ──
           Off by default on Heritage [scott, 2026-09-08]; now a backend toggle. */}
       {content.closing.enabled && (
-        <section className="py-16 sm:py-20 bg-primary text-primary-foreground">
+        <section
+          className={[
+            "py-16 sm:py-20",
+            siteSlug === "spicebush"
+              ? "sb-sand-section sb-closing"
+              : "bg-primary text-primary-foreground",
+          ].join(" ")}
+        >
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
               {content.closing.heading}
