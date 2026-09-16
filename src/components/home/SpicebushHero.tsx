@@ -57,15 +57,13 @@ export function SpicebushHero({ content }: { content: HomeContent }) {
             {lines.map((line, i) => (
               <span key={i}>
                 {i > 0 && <br />}
-                {/* The old site set the accent word of its hero lockup in the
-                    client's Brushine script; here that is the first line,
-                    "Spicebush" [zoe, 2026-09-16]. Script faces need more size
-                    and no tracking to read at the same optical weight as
-                    Cinzel. Brushine's ascenders and descenders are tall, so its
-                    line box is pulled tight and lifted to sit close to line
-                    two without clipping the swashes. */}
-                {i === 0 ? (
-                  <span className="block font-[family-name:Brushine] font-normal tracking-normal text-6xl sm:text-7xl lg:text-[5.5rem] leading-[0.9] pb-1 -mb-3 sm:-mb-4 lg:-mb-8">
+                {/* Zoe's lockup: "Spicebush" in Cinzel, "at Sea Pines" in the
+                    client's Brushine script [zoe, 2026-09-16]. The script face
+                    needs more size and no tracking to match Cinzel's optical
+                    weight, and its tall ascenders mean the line box is pulled
+                    tight and lifted so the two lines read as one lockup. */}
+                {i === lines.length - 1 && lines.length > 1 ? (
+                  <span className="block font-[family-name:Brushine] font-normal tracking-normal [word-spacing:0.15em] text-6xl sm:text-7xl lg:text-[5.5rem] leading-[0.9] -mt-2 sm:-mt-3 lg:-mt-5 pb-2">
                     {line}
                   </span>
                 ) : (
