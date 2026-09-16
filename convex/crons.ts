@@ -3,13 +3,6 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// Sync Airbnb calendars every 2 hours
-crons.interval(
-  "sync-airbnb-calendars",
-  { hours: 2 },
-  internal.calendar.syncAllWeeks
-);
-
 // Pull rental availability from HostAway every 30 minutes.
 //
 // Each run refreshes the 40 stalest properties rather than all 83: HostAway

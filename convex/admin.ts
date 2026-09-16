@@ -342,11 +342,7 @@ export const updateProperty = mutation({
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
     }
-    // Remove undefined values
-    Object.keys(updates).forEach((k) => {
-      if (updates[k] === undefined) delete updates[k];
-    });
-    await ctx.db.patch(id, updates);
+    await ctx.db.patch(id, { ...buildPatch(updates), updatedAt: Date.now() } as any);
   },
 });
 
@@ -473,7 +469,6 @@ export const createWeek = mutation({
     ),
     year: v.optional(v.number()),
     isAnnual: v.optional(v.boolean()),
-    airbnbCalendarUrl: v.optional(v.string()),
     ownerId: v.optional(v.union(v.id("userProfiles"), v.null())),
   },
   handler: async (ctx, args) => {
@@ -489,6 +484,32 @@ export const createWeek = mutation({
     return await ctx.db.insert("weeks", insertData);
   },
 });
+
+/**
+ * Build a patch object from mutation args.
+ *
+ * Two different meanings collapse onto "no value" and must not be confused:
+ *   undefined = the client did not send this field -> leave the stored value alone
+ *   null      = the client is clearing this field  -> remove it from the document
+ *
+ * Convex removes a field when patched with undefined, but our schemas declare
+ * owner ids as v.optional(v.id(...)) with no null member, so a raw null reaches
+ * the validator and throws. Passing nulls straight through is what broke every
+ * save on the weeks editor.
+ */
+export function buildPatch(
+  fields: Record<string, any>,
+  nullableFields: string[] = ["ownerId"],
+): Record<string, any> {
+  const cleared = nullableFields.filter((f) => fields[f] === null);
+  const patch: Record<string, any> = {};
+  for (const [k, v2] of Object.entries(fields)) {
+    if (v2 === undefined || v2 === null) continue;
+    patch[k] = v2;
+  }
+  for (const f of cleared) patch[f] = undefined;
+  return patch;
+}
 
 // ── Weeks: Update ──
 export const updateWeek = mutation({
@@ -513,7 +534,6 @@ export const updateWeek = mutation({
     ),
     year: v.optional(v.number()),
     isAnnual: v.optional(v.boolean()),
-    airbnbCalendarUrl: v.optional(v.string()),
     ownerId: v.optional(v.union(v.id("userProfiles"), v.null())),
   },
   handler: async (ctx, { id, ...fields }) => {
@@ -523,11 +543,8 @@ export const updateWeek = mutation({
     if (!existing) throw new Error("Week not found");
     requireWeekPermission(profile, existing.listingType);
     if (fields.listingType) requireWeekPermission(profile, fields.listingType);
-    const updates: any = { ...fields, updatedAt: Date.now() };
-    Object.keys(updates).forEach((k) => {
-      if (updates[k] === undefined) delete updates[k];
-    });
-    await ctx.db.patch(id, updates);
+    const updates = { ...buildPatch(fields), updatedAt: Date.now() };
+    await ctx.db.patch(id, updates as any);
   },
 });
 
@@ -1214,3 +1231,4 @@ export const deleteAdminUser = mutation({
     await ctx.db.delete(profileId);
   },
 });
+

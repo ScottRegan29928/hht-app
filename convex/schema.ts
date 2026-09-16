@@ -260,10 +260,6 @@ const schema = defineSchema({
     isAnnual: v.optional(v.boolean()), // true = every year, false = specific year
     // Owner of this specific week (may differ from property owner)
     ownerId: v.optional(v.id("userProfiles")),
-    // iCal sync — Airbnb calendar integration
-    airbnbCalendarUrl: v.optional(v.string()), // Airbnb iCal export URL
-    lastSyncAt: v.optional(v.number()), // last time Airbnb feed was fetched
-    lastSyncError: v.optional(v.string()), // error message if sync failed
     // Timestamps
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),

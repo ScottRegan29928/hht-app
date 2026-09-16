@@ -16,7 +16,6 @@ const EMPTY_FORM = {
   status: "available" as string,
   year: new Date().getFullYear(),
   isAnnual: true,
-  airbnbCalendarUrl: "",
   ownerId: null as string | null,
 };
 
@@ -58,7 +57,6 @@ export function AdminWeeksPage() {
       status: week.status,
       year: week.year ?? new Date().getFullYear(),
       isAnnual: week.isAnnual ?? true,
-      airbnbCalendarUrl: week.airbnbCalendarUrl ?? "",
       ownerId: (week as any).ownerId ?? null,
     });
   };
@@ -77,7 +75,6 @@ export function AdminWeeksPage() {
           status: form.status as any,
           year: form.year || undefined,
           isAnnual: form.isAnnual,
-          airbnbCalendarUrl: form.airbnbCalendarUrl || undefined,
           ownerId: form.ownerId || null,
         });
         toast.success("Week updated");
@@ -102,7 +99,6 @@ export function AdminWeeksPage() {
         status: form.status as any,
         year: form.year || undefined,
         isAnnual: form.isAnnual,
-        airbnbCalendarUrl: form.airbnbCalendarUrl || undefined,
         ownerId: form.ownerId || undefined,
       });
       toast.success("Week added");
@@ -237,15 +233,6 @@ export function AdminWeeksPage() {
                         <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground mt-1">
                           <span>{w.isAnnual ? "Annual" : w.year ?? "—"}</span>
                           {w.notes && <span className="truncate max-w-[200px]">{w.notes}</span>}
-                          {w.airbnbCalendarUrl && (
-                            <span className={w.lastSyncError ? "text-red-500" : "text-green-600"}>
-                              {w.lastSyncError
-                                ? `⚠ Sync error`
-                                : w.lastSyncAt
-                                  ? `✓ Synced ${new Date(w.lastSyncAt).toLocaleDateString()}`
-                                  : "⏳ Pending sync"}
-                            </span>
-                          )}
                         </div>
                       </div>
                       {/* Action buttons — large touch targets */}
@@ -413,53 +400,6 @@ function WeekForm({
           </select>
         </div>
       </div>
-      {/* Airbnb iCal Sync */}
-      <div>
-        <label className="block text-xs font-medium mb-1">
-          Airbnb iCal URL
-          <span className="text-muted-foreground font-normal ml-1">(paste from Airbnb → Listing → Availability → Export Calendar)</span>
-        </label>
-        <input
-          value={form.airbnbCalendarUrl}
-          onChange={(e) => setForm({ ...form, airbnbCalendarUrl: e.target.value })}
-          className="w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          placeholder="https://www.airbnb.com/calendar/ical/{listing_id}.ics?s={secret_token}"
-        />
-        {form.airbnbCalendarUrl && (
-          <p className="text-xs text-green-600 mt-1">✓ Syncs every 2 hours from Airbnb</p>
-        )}
-      </div>
-      {/* Our export URL for Airbnb to import */}
-      {weekId && (
-        <div>
-          <label className="block text-xs font-medium mb-1">
-            Our Export URL
-            <span className="text-muted-foreground font-normal ml-1">(paste into Airbnb → Listing → Pricing &amp; Availability → Import Calendar)</span>
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              readOnly
-              value={`https://savory-heron-748.convex.site/api/calendar?weekId=${weekId}`}
-              className="flex-1 px-3 py-2.5 rounded-lg border text-sm bg-muted/30 text-muted-foreground focus:outline-none"
-              onClick={(e) => (e.target as HTMLInputElement).select()}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(`https://savory-heron-748.convex.site/api/calendar?weekId=${weekId}`);
-                alert("Copied!");
-              }}
-              className="px-3 py-2.5 border rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors whitespace-nowrap"
-            >
-              📋 Copy
-            </button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Paste this URL into Airbnb → Listing → Pricing &amp; Availability → Import Calendar so Airbnb can pull bookings from our site.
-          </p>
-        </div>
-      )}
-
       <div className="flex items-center justify-between pt-1">
         <label className="flex items-center gap-2 cursor-pointer">
           <input

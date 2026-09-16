@@ -8,7 +8,6 @@ const http = httpRouter();
 auth.addHttpRoutes(http);
 
 // ── iCal export endpoint ──
-// GET /api/calendar/:weekId.ics
 // ── SEO: sitemap.xml and robots.txt ──
 // Served from Convex rather than rendered in the client: this app is a
 // client-rendered SPA, so a crawler asking for /sitemap.xml would otherwise
@@ -207,41 +206,6 @@ http.route({
         "X-Robots-Tag": m.noindex ? "noindex, nofollow" : "all",
       },
     });
-  }),
-});
-
-http.route({
-  path: "/api/calendar",
-  method: "GET",
-  handler: httpAction(async (ctx, request) => {
-    const url = new URL(request.url);
-    const weekId = url.searchParams.get("weekId");
-
-    if (!weekId) {
-      return new Response("Missing weekId parameter", { status: 400 });
-    }
-
-    try {
-      const icalContent = await ctx.runQuery(api.calendar.generateIcal, {
-        weekId: weekId as any,
-      });
-
-      if (!icalContent) {
-        return new Response("Week not found", { status: 404 });
-      }
-
-      return new Response(icalContent, {
-        status: 200,
-        headers: {
-          "Content-Type": "text/calendar; charset=utf-8",
-          "Content-Disposition": `attachment; filename="week-${weekId}.ics"`,
-          "Cache-Control": "no-cache, max-age=0",
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
-    } catch (err: any) {
-      return new Response("Error generating calendar", { status: 500 });
-    }
   }),
 });
 
