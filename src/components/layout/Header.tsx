@@ -104,13 +104,22 @@ export function Header() {
               : "sticky top-0 bg-white border-b border-border"
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className={cn(
+        "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+        // Spicebush's lockup is taller than the standard 80px header row, so
+        // the butterfly was cropped against the top of the screen. Zoe asked
+        // for at least 10px of breathing room above it [zoe, 2026-09-16].
+        spicebush && "pt-2.5"
+      )}>
         {/* When the search pill is present the desktop layout becomes:
             full-height logo pinned left, and nav + pill stacked and centered
             as one group so the nav sits centered over the pill [scott, 2026-09-10]. */}
         <div className={cn(headerSearch && "md:relative")}>
         <div className={cn(
           "flex items-center justify-between h-16 sm:h-20",
+          // Let the row grow around Spicebush's taller logo instead of
+          // clipping it.
+          spicebush && "h-auto min-h-16 sm:h-auto sm:min-h-20 py-2",
           headerSearch && "md:justify-center"
         )}>
           {/* Logo */}
