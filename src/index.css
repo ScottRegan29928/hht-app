@@ -141,7 +141,9 @@ html[data-site="spicebush"] .sb-golf-section {
   }
 }
 
-html[data-site="spicebush"] .sb-golf-section :is(h2, p) {
+/* Only the section's own header copy (h2 plus its subheading), never text inside
+   the cards it contains: the property cards are white and lost their price line. */
+html[data-site="spicebush"] .sb-golf-section :is(h2, h2 + p) {
   color: #fff;
 }
 

@@ -212,17 +212,12 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ── Communities Grid ── */}
-      <section
-        className={[
-          "relative overflow-hidden py-16 sm:py-20",
-          siteSlug === "spicebush" ? "sb-golf-section" : "",
-        ].join(" ")}
-      >
-        {siteSlug === "spicebush" && (
-          <SideParallaxImage src="/brand/spicebush/golf.jpg" />
-        )}
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── Communities Grid ──
+          Hidden on Spicebush [zoe, 2026-09-16]: that site sells one community,
+          so it does not showcase its sisters. */}
+      {siteSlug !== "spicebush" && (
+      <section className="py-16 sm:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
@@ -285,11 +280,22 @@ export function HomePage() {
           )}
         </div>
       </section>
+      )}
 
-      {/* ── Featured Properties ── */}
+      {/* ── Featured Properties ──
+          On Spicebush this carries the golf photo with its side parallax
+          [zoe, 2026-09-16]. */}
       {featuredProperties && featuredProperties.length > 0 && (
-        <section className="py-16 sm:py-20 bg-card">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section
+          className={[
+            "relative overflow-hidden py-16 sm:py-20",
+            siteSlug === "spicebush" ? "sb-golf-section" : "bg-card",
+          ].join(" ")}
+        >
+          {siteSlug === "spicebush" && (
+            <SideParallaxImage src="/brand/spicebush/golf.jpg" />
+          )}
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">
               <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
                 {content.featured.heading}
