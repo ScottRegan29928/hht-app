@@ -147,6 +147,32 @@ html[data-site="spicebush"] .sb-golf-section :is(h2, h2 + p) {
   color: #fff;
 }
 
+/*
+ * Property cards inside the golf band [zoe, 2026-09-16]: she liked the old
+ * Communities cards, which were semi-opaque panels over the photo rather than
+ * solid white. Done in CSS so PropertyCard stays shared across the four sites.
+ */
+html[data-site="spicebush"] .sb-golf-section a.bg-card {
+  background-color: rgba(18, 28, 22, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+html[data-site="spicebush"] .sb-golf-section a.bg-card:hover {
+  background-color: rgba(18, 28, 22, 0.68);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+html[data-site="spicebush"] .sb-golf-section a.bg-card :is(h3, p, span) {
+  color: #fff;
+}
+
+/* The secondary lines keep their hierarchy by opacity instead of gray. */
+html[data-site="spicebush"] .sb-golf-section a.bg-card :is(p, span) {
+  opacity: 0.82;
+}
+
 html[data-site="spicebush"] .sb-golf-section a[href="/search"] {
   color: #fff;
 }
