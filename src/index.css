@@ -106,9 +106,9 @@ html[data-site="spicebush"] .sb-sand-section {
   padding-top: 7.5rem;
 }
 
-/* Lighter than bold; Zoe picked semibold over the old site's 400 [zoe, 2026-09-16]. */
+/* Lighter than bold; Zoe picked medium over the old site's 400 [zoe, 2026-09-16]. */
 html[data-site="spicebush"] .sb-sand-section :is(h1, h2, h3) {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 @custom-variant dark (&:is(.dark *));
