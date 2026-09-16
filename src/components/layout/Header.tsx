@@ -108,8 +108,9 @@ export function Header() {
         "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
         // Spicebush's lockup is taller than the standard 80px header row, so
         // the butterfly was cropped against the top of the screen. Zoe asked
-        // for at least 10px of breathing room above it [zoe, 2026-09-16].
-        spicebush && "pt-2.5"
+        // for at least 10px of breathing room above it, matched below it so
+        // the lockup sits evenly inside the bar on inner pages [zoe, 2026-09-16].
+        spicebush && "py-2.5"
       )}>
         {/* When the search pill is present the desktop layout becomes:
             full-height logo pinned left, and nav + pill stacked and centered
