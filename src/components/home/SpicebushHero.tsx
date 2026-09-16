@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Calendar, Key, Waves } from "lucide-react";
+import { ArrowRight, Calendar, Key } from "lucide-react";
 import type { HomeContent } from "@/lib/homeContent";
 import { useSiteBrand } from "@/lib/siteContext";
 
@@ -46,8 +46,8 @@ export function SpicebushHero({ content }: { content: HomeContent }) {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16 sm:pt-40 sm:pb-24">
         <div className="max-w-2xl">
+          {/* No wave icon on Spicebush; Zoe removed it [zoe, 2026-09-16]. */}
           <div className="flex items-center gap-2 text-white/85 mb-4">
-            <Waves className="w-5 h-5" />
             <span className="text-sm font-medium tracking-wide uppercase">
               {hero.eyebrow || brand.eyebrow}
             </span>
