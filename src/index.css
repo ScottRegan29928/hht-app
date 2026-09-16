@@ -135,7 +135,11 @@ html[data-site="spicebush"] .sb-sand-section {
  */
 html[data-site="spicebush"] .sb-footer {
   background-color: #2b2320;
-  background-image: url("/brand/spicebush/footer.jpg");
+  /* The photo ships mirrored so the shells cluster on the right, away from the
+     logo column, and a warm dark wash sits on top for legibility [zoe, 2026-09-16]. */
+  background-image:
+    linear-gradient(rgba(28, 20, 15, 0.62), rgba(28, 20, 15, 0.62)),
+    url("/brand/spicebush/footer.jpg");
   background-size: cover;
   background-position: 50% 50%;
   background-repeat: no-repeat;
