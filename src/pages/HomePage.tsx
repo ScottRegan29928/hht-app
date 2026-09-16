@@ -6,6 +6,7 @@ import { IslandMap } from "@/components/map/IslandMap";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { useSiteFlags, useSiteBrand } from "@/lib/siteContext";
 import { HeritageHero } from "@/components/home/HeritageHero";
+import { SideParallaxImage } from "@/components/home/SideParallaxImage";
 import { SpicebushHero } from "@/components/home/SpicebushHero";
 import { HeritageFilterTiles } from "@/components/home/HeritageFilterTiles";
 import { useSeo } from "../lib/seo";
@@ -214,11 +215,14 @@ export function HomePage() {
       {/* ── Communities Grid ── */}
       <section
         className={[
-          "py-16 sm:py-20",
+          "relative overflow-hidden py-16 sm:py-20",
           siteSlug === "spicebush" ? "sb-golf-section" : "",
         ].join(" ")}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {siteSlug === "spicebush" && (
+          <SideParallaxImage src="/brand/spicebush/golf.jpg" />
+        )}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">

@@ -118,12 +118,13 @@ html[data-site="spicebush"] .sb-sand-section {
  * runs white type over the photo, so the scrim + light text match it. Card tiles
  * carry their own images and are untouched.
  */
+/*
+ * The photo itself is rendered by SideParallaxImage, which slides it sideways as
+ * the section scrolls, the way the old site's fusion-parallax-left block does
+ * [zoe, 2026-09-16]. Only the type colors and the height live here.
+ */
 html[data-site="spicebush"] .sb-golf-section {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
-    url("/brand/spicebush/golf.jpg");
-  background-size: cover;
-  background-position: 50% 0%;
-  background-repeat: no-repeat;
+  background-color: #1c2a20;
 }
 
 /*
@@ -154,8 +155,7 @@ html[data-site="spicebush"] .sb-golf-section {
  * simply scrolls, anchored to the top so nothing important is cropped.
  */
 @media (min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  html[data-site="spicebush"] .sb-parallax,
-  html[data-site="spicebush"] .sb-golf-section {
+  html[data-site="spicebush"] .sb-parallax {
     background-attachment: fixed;
   }
 }
@@ -166,28 +166,6 @@ html[data-site="spicebush"] .sb-golf-section :is(h2, p) {
 
 html[data-site="spicebush"] .sb-golf-section a[href="/search"] {
   color: #fff;
-}
-
-/*
- * Hero "tide" drift [zoe, 2026-09-16]. The hero is a still photograph, so the
- * water cannot actually move; this eases the whole frame up and back down over
- * half a minute, which reads as a slow swell rather than an animation. Keyframes
- * outrank the component's inline background-position, so no JS is involved.
- * Skipped entirely for prefers-reduced-motion.
- */
-@keyframes sb-tide {
-  from {
-    background-position: 50% 0%;
-  }
-  to {
-    background-position: 50% 22px;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  html[data-site="spicebush"] .sb-parallax {
-    animation: sb-tide 28s ease-in-out infinite alternate;
-  }
 }
 
 html[data-site="spicebush"] :is(h1, h2, h3, h4, h5, h6) {
