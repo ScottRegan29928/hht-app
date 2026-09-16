@@ -145,6 +145,27 @@ html[data-site="spicebush"] .sb-footer {
   background-repeat: no-repeat;
 }
 
+/*
+ * The referral line becomes its own maroon band, like the old site's copyright
+ * bar [zoe, 2026-09-16]. Full-bleed out of the footer container with the
+ * 50vw margin trick; the footer clips overflow so no horizontal scroll.
+ */
+html[data-site="spicebush"] .sb-footer .sb-referral {
+  background-color: #891f11;
+  color: #fff;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 1rem 1.5rem;
+}
+
+html[data-site="spicebush"] .sb-footer .sb-referral a {
+  color: #fff;
+}
+
+html[data-site="spicebush"] .sb-footer {
+  overflow-x: hidden;
+}
+
 html[data-site="spicebush"] .sb-footer img {
   height: 118px;
 }

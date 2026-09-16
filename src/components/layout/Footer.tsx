@@ -165,7 +165,7 @@ function SharedFooter() {
           {/* Property-management referral, on all four sites [scott, 2026-09-15].
               clubgrouphhi.com is The Club Group's own management site — note it
               is NOT cglhhi.com, which is the email domain and serves no site. */}
-          <p className="text-sm text-primary-foreground/70">
+          <p className="sb-referral text-sm text-primary-foreground/70">
             Looking for property management?{" "}
             <a
               href="https://clubgrouphhi.com"
