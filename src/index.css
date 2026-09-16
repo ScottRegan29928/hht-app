@@ -106,8 +106,13 @@ html[data-site="spicebush"] .sb-sand-section {
   padding-top: 7.5rem;
 }
 
-/* Lighter than bold; Zoe picked medium over the old site's 400 [zoe, 2026-09-16]. */
-html[data-site="spicebush"] .sb-sand-section :is(h1, h2, h3) {
+/*
+ * All Spicebush headings run Cinzel 500: lighter than the app default bold, a
+ * touch sturdier than the old site's 400, which is the weight Zoe picked
+ * [zoe, 2026-09-16]. Scoped to heading elements, so a Tailwind font-weight class
+ * on a child span (the Brushine hero line) still wins.
+ */
+html[data-site="spicebush"] :is(h1, h2, h3, h4, h5, h6) {
   font-weight: 500;
 }
 
