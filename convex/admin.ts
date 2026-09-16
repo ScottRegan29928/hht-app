@@ -641,43 +641,17 @@ export const generateUploadUrl = mutation({
   },
 });
 
-export const addPropertyPhoto = mutation({
-  args: {
-    propertyId: v.id("properties"),
-    storageId: v.id("_storage"),
-    caption: v.optional(v.string()),
-    isPrimary: v.optional(v.boolean()),
-  },
-  handler: async (ctx, { propertyId, storageId, caption, isPrimary }) => {
-    await requireAdmin(ctx);
-    const existing = await ctx.db
-      .query("propertyPhotos")
-      .withIndex("by_property", (q: any) => q.eq("propertyId", propertyId))
-      .collect();
-    const sortOrder = existing.length;
-    // If marking as primary, unset other primaries
-    if (isPrimary) {
-      for (const p of existing) {
-        if (p.isPrimary) await ctx.db.patch(p._id, { isPrimary: false });
-      }
-    }
-    return await ctx.db.insert("propertyPhotos", {
-      propertyId,
-      storageId,
-      caption,
-      sortOrder,
-      isPrimary: isPrimary ?? existing.length === 0,
-    });
-  },
-});
-
-export const deletePropertyPhoto = mutation({
-  args: { id: v.id("propertyPhotos") },
-  handler: async (ctx, { id }) => {
-    await requireAdmin(ctx);
-    await ctx.db.delete(id);
-  },
-});
+/*
+ * addPropertyPhoto / deletePropertyPhoto removed [scott, 2026-09-16]:
+ * "let's show the photos in the portal but not them to be deleted or added
+ * to." Photos are HostAway's record, synced daily by hostawayApi.syncPhotos,
+ * so an edit here would be silently overwritten or would drift from HostAway.
+ *
+ * Removed rather than just hidden in the UI: they were public admin mutations
+ * and nothing else called them, so leaving them would have kept the exact
+ * capability Scott asked us to take away. Re-mirroring should be an
+ * internalMutation driven by the sync, not an admin button.
+ */
 
 export const getStorageUrl = query({
   args: { storageId: v.id("_storage") },

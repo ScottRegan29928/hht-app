@@ -1,13 +1,11 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
   Save,
-  Upload,
-  Trash2,
   Star,
   GripVertical,
   Plus,
@@ -37,9 +35,6 @@ export function PropertyEditPage() {
 
   // Owner users for assignment dropdown
   const ownerUsers = allUsers?.filter((u: any) => u.role === "owner") ?? [];
-  const generateUploadUrl = useMutation(api.admin.generateUploadUrl);
-  const addPhoto = useMutation(api.admin.addPropertyPhoto);
-  const deletePhoto = useMutation(api.admin.deletePropertyPhoto);
 
   /**
    * HostAway-imported fields are read-only here [scott, 2026-09-15]: they are
@@ -54,9 +49,14 @@ export function PropertyEditPage() {
     isLocked(field) ? " bg-muted text-muted-foreground cursor-not-allowed" : "";
 
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
   const [facetOverrides, setFacetOverrides] = useState<Record<string, boolean>>({});
+  const pageAmenities = useQuery(
+    api.amenitySettings.listForProperty,
+    !isNew && id ? { propertyId: id as Id<"properties"> } : "skip",
+  ) as
+    | { amenityId: string; label: string; raw: string; hidden: boolean }[]
+    | undefined;
+  const setAmenityHidden = useMutation(api.amenitySettings.setAmenityHidden);
 
   // Form state
   const [form, setForm] = useState({
@@ -235,37 +235,7 @@ export function PropertyEditPage() {
     setSaving(false);
   };
 
-  const handleUploadPhoto = async (file: File) => {
-    if (!id || isNew) return;
-    setUploading(true);
-    try {
-      const uploadUrl = await generateUploadUrl();
-      const res = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      const { storageId } = await res.json();
-      await addPhoto({
-        propertyId: id as Id<"properties">,
-        storageId,
-      });
-      toast.success("Photo uploaded");
-    } catch {
-      toast.error("Failed to upload photo");
-    }
-    setUploading(false);
-  };
 
-  const handleDeletePhoto = async (photoId: Id<"propertyPhotos">) => {
-    if (!confirm("Delete this photo?")) return;
-    try {
-      await deletePhoto({ id: photoId });
-      toast.success("Photo deleted");
-    } catch {
-      toast.error("Failed to delete photo");
-    }
-  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -610,9 +580,10 @@ export function PropertyEditPage() {
         <div>
           <h2 className="font-semibold text-lg">Search Filters</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            These twelve are the only amenities visitors can filter by. Most are worked
-            out from HostAway and the community; set one explicitly when that guess is
-            wrong, or for the ones HostAway never supplies.
+            Whether this property matches each filter. Most are worked out from
+            HostAway and the community; set one explicitly when that guess is wrong,
+            or for the ones HostAway never supplies. Which filters visitors actually
+            see is set under Search Filters in the sidebar.
           </p>
         </div>
 
@@ -743,30 +714,62 @@ export function PropertyEditPage() {
         </div>
       </div>
 
+      {/* Amenities shown on this property's page [scott, 2026-09-16] */}
+      {!isNew && pageAmenities && pageAmenities.length > 0 && (
+        <div className="bg-background rounded-xl border p-6 space-y-5">
+          <div>
+            <h2 className="font-semibold text-lg">Amenities On This Page</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Everything HostAway lists for this villa. Uncheck an item to hide it
+              from the public page &mdash; useful for the odd entry that reads as
+              clutter. This only changes what the page displays; it never changes
+              which properties a search filter returns.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {pageAmenities.map((a) => (
+              <label
+                key={a.amenityId}
+                className="flex items-center gap-2 text-sm rounded-lg border px-3 py-2"
+              >
+                <input
+                  type="checkbox"
+                  checked={!a.hidden}
+                  className="rounded border-input"
+                  onChange={(e) =>
+                    void setAmenityHidden({
+                      propertyId: id as Id<"properties">,
+                      amenityId: a.amenityId,
+                      hidden: !e.target.checked,
+                    }).catch(() => toast.error("Could not save"))
+                  }
+                />
+                <span className={a.hidden ? "text-muted-foreground line-through" : ""}>
+                  {a.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Photos */}
       {!isNew && (
         <div className="bg-background rounded-xl border p-6 space-y-5">
-          <div className="flex items-center justify-between">
+          {/*
+            * View-only [scott, 2026-09-16]: "let's show the photos in the
+            * portal but not them to be deleted or added to." Photos are
+            * HostAway's record, synced daily, so editing them here would
+            * either be overwritten by the next sync or drift from HostAway.
+            * Same rule as the other HostAway-fed fields in this form.
+            */}
+          <div className="flex items-center justify-between gap-4">
             <h2 className="font-semibold text-lg">Photos</h2>
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              {uploading ? "Uploading…" : "Upload"}
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleUploadPhoto(file);
-                e.target.value = "";
-              }}
-            />
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Lock className="w-3 h-3" />
+              Managed in HostAway
+            </span>
           </div>
 
           {/* Existing photos from photoUrls */}
@@ -823,19 +826,19 @@ export function PropertyEditPage() {
             </div>
           )}
 
-          {/* Uploaded photos from storage */}
+          {/*
+            * Mirrored copies held in our own storage (the hero shot used on
+            * cards). Labeled "Stored Copies" rather than "Uploaded" now that
+            * nothing in the portal can upload.
+            */}
           {property?.photos && property.photos.length > 0 && (
             <div>
               <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider font-medium">
-                Uploaded Photos ({property.photos.length})
+                Stored Copies ({property.photos.length})
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {property.photos.map((photo: any) => (
-                  <PhotoCard
-                    key={photo._id}
-                    photo={photo}
-                    onDelete={() => handleDeletePhoto(photo._id)}
-                  />
+                  <PhotoCard key={photo._id} photo={photo} />
                 ))}
               </div>
             </div>
@@ -844,7 +847,8 @@ export function PropertyEditPage() {
           {(!property?.photoUrls || property.photoUrls.length === 0) &&
             (!property?.photos || property.photos.length === 0) && (
               <div className="text-center py-12 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
-                No photos yet. Upload to get started.
+                No photos yet. Photos appear here once they are added in
+                HostAway.
               </div>
             )}
         </div>
@@ -917,7 +921,7 @@ export function PropertyEditPage() {
 }
 
 // Small component for uploaded photos
-function PhotoCard({ photo, onDelete }: { photo: any; onDelete: () => void }) {
+function PhotoCard({ photo }: { photo: any }) {
   const url = useQuery(
     api.admin.getStorageUrl,
     photo.storageId ? { storageId: photo.storageId } : "skip"
@@ -931,12 +935,6 @@ function PhotoCard({ photo, onDelete }: { photo: any; onDelete: () => void }) {
         <div className="w-full h-full animate-pulse bg-muted" />
       )}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
-      <button
-        onClick={onDelete}
-        className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
       {photo.isPrimary && (
         <span className="absolute top-1.5 left-1.5 text-amber-400">
           <Star className="w-4 h-4 fill-current" />

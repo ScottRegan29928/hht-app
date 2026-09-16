@@ -61,26 +61,35 @@ async function settingsMap(ctx: QueryCtx) {
  * Curated facets keep their SEARCH_FACETS order (Scott's list is alphabetical
  * by label and the UI renders it verbatim); promoted raw tags follow, sorted
  * by label, so a newly promoted tag lands somewhere predictable.
+ *
+ * Exported as a plain function as well as a query: properties.ts needs it, and
+ * calling it through ctx.runQuery there makes TypeScript infer the query's
+ * type from its own body and fail with TS7022.
  */
+export async function filterableIdsForSite(
+  ctx: QueryCtx,
+  siteSlug: string | undefined,
+): Promise<string[]> {
+  const map = await settingsMap(ctx);
+
+  const facets = FACET_IDS.filter((id) =>
+    isFilterableOnSite(id, map.get(id), siteSlug),
+  );
+
+  const promoted = [...map.values()]
+    .filter((r) => isRawTagId(r.amenityId))
+    .filter((r) => isFilterableOnSite(r.amenityId, r, siteSlug))
+    .map((r) => r.amenityId)
+    .sort((a, b) => amenityLabelFor(a).localeCompare(amenityLabelFor(b)));
+
+  return [...facets, ...promoted];
+}
+
 export const filterableForSite = query({
   args: { siteSlug: v.optional(v.string()) },
   handler: async (ctx, { siteSlug }) => {
-    const map = await settingsMap(ctx);
-
-    const facets = FACET_IDS.filter((id) =>
-      isFilterableOnSite(id, map.get(id), siteSlug),
-    );
-
-    const promoted = [...map.values()]
-      .filter((r) => isRawTagId(r.amenityId))
-      .filter((r) => isFilterableOnSite(r.amenityId, r, siteSlug))
-      .map((r) => r.amenityId)
-      .sort((a, b) => amenityLabelFor(a).localeCompare(amenityLabelFor(b)));
-
-    return [...facets, ...promoted].map((id) => ({
-      id,
-      label: amenityLabelFor(id),
-    }));
+    const ids = await filterableIdsForSite(ctx, siteSlug);
+    return ids.map((id) => ({ id, label: amenityLabelFor(id) }));
   },
 });
 
@@ -290,3 +299,4 @@ export const listForProperty = query({
       .sort((a, b) => a.label.localeCompare(b.label));
   },
 });
+

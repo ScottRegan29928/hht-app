@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { allowedCommunityIds } from "./sites";
 import { query, mutation } from "./_generated/server";
-import { resolveFacets, FACET_IDS } from "./searchFacets";
+import { resolveFacets, FACET_IDS, resolveAllAmenityIds } from "./searchFacets";
+import { filterableIdsForSite } from "./amenitySettings";
 
 // ── Public Queries ──
 
@@ -381,7 +382,9 @@ export const search = query({
         }
       }
       properties = properties.filter((p) => {
-        const propAmenities = resolveFacets(p.amenityTags, commAmenityCache.get(p.communityId), p.facetOverrides);
+        // resolveAllAmenityIds, not resolveFacets: an admin can promote a raw
+        // HostAway tag into a filter, so matching has to cover both id spaces.
+        const propAmenities = resolveAllAmenityIds(p.amenityTags, commAmenityCache.get(p.communityId), p.facetOverrides);
         const matcher = (amenityMode ?? "and") === "or"
           ? amenities.some((a) => propAmenities.includes(a))
           : amenities.every((a) => propAmenities.includes(a));
@@ -642,13 +645,22 @@ export const allAmenities = query({
         const comm = await ctx.db.get(p.communityId);
         commCache.set(key, comm?.amenities ?? []);
       }
-      for (const f of resolveFacets(p.amenityTags, commCache.get(key), p.facetOverrides)) {
+      for (const f of resolveAllAmenityIds(p.amenityTags, commCache.get(key), p.facetOverrides)) {
         present.add(f);
       }
     }
 
-    // Curated order, not alphabetical-by-id.
-    return FACET_IDS.filter((id) => present.has(id));
+    /*
+     * Intersect what the inventory actually has with what the admin has made
+     * filterable [scott, 2026-09-16]: one global list, per-site opt-out.
+     *
+     * ⚠ Both conditions matter. Registry-only would offer filters that return
+     * nothing; inventory-only would ignore the admin's decision. The old
+     * "hide Shuffleboard because it matches 0 properties" special case is gone
+     * — an empty facet is now simply one the admin can leave switched off.
+     */
+    const filterable = await filterableIdsForSite(ctx, siteSlug);
+    return filterable.filter((id) => present.has(id));
   },
 });
 
@@ -741,7 +753,7 @@ export const searchWeeksForCalendar = query({
         }
       }
       properties = properties.filter((p) => {
-        const propAmenities = resolveFacets(p.amenityTags, commAmenityCache.get(p.communityId), p.facetOverrides);
+        const propAmenities = resolveAllAmenityIds(p.amenityTags, commAmenityCache.get(p.communityId), p.facetOverrides);
         return (args.amenityMode ?? "or") === "or"
           ? args.amenities!.some((a) => propAmenities.includes(a))
           : args.amenities!.every((a) => propAmenities.includes(a));

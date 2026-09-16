@@ -14,6 +14,7 @@ import { AdminDashboardPage } from "./pages/admin/DashboardPage";
 import { AdminPropertiesPage } from "./pages/admin/PropertiesPage";
 import { PropertyEditPage } from "./pages/admin/PropertyEditPage";
 import { AdminCommunitiesPage } from "./pages/admin/CommunitiesPage";
+import { AdminAmenitiesPage } from "./pages/admin/AmenitiesPage";
 import { AdminWeeksPage } from "./pages/admin/WeeksPage";
 import { AdminSaleRequestsPage } from "@/pages/admin/SaleRequestsPage";
 import { AdminInquiriesPage } from "./pages/admin/InquiriesPage";
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="properties" element={<AdminPropertiesPage />} />
             <Route path="properties/:id" element={<PropertyEditPage />} />
             <Route path="communities" element={<AdminCommunitiesPage />} />
+            <Route path="amenities" element={<AdminAmenitiesPage />} />
             <Route path="weeks" element={<AdminWeeksPage />} />
             <Route path="inquiries" element={<AdminInquiriesPage />} />
             <Route path="sale-requests" element={<AdminSaleRequestsPage />} />

@@ -31,11 +31,25 @@ import { AvailabilityCalendar, useBookedDates } from "@/components/AvailabilityC
 import { useState, useMemo } from "react";
 import { formatWeekRange, getNext52Weeks } from "@/lib/weekCalendar";
 import { AlertCircle } from "lucide-react";
+import { rawTagId } from "../../convex/searchFacets";
 
 export function PropertyPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const property = useQuery(api.properties.getBySlug, { slug: slug ?? "" });
+
+  /*
+   * Amenities an admin has hidden for this page [scott, 2026-09-16]. Display
+   * only: `hiddenAmenities` never feeds search matching, so tidying a page
+   * cannot drop the villa out of a filter result.
+   */
+  const hiddenAmenityIds = new Set<string>(
+    ((property as { hiddenAmenities?: string[] } | null | undefined)
+      ?.hiddenAmenities ?? []),
+  );
+  const visibleAmenityTags: string[] = (
+    (property as { amenityTags?: string[] } | null | undefined)?.amenityTags ?? []
+  ).filter((tag) => !hiddenAmenityIds.has(rawTagId(tag)));
 
   // Mode from URL: buy, rent, or unset. A single-purpose site overrides it —
   // hht must never show a booking panel and hv must never show weeks for sale
@@ -215,14 +229,14 @@ export function PropertyPage() {
           />
           )}
 
-          {/* Amenities (from Hostaway sync) */}
-          {property.amenityTags && property.amenityTags.length > 0 ? (
+          {/* Amenities (from HostAway sync, minus any hidden by an admin) */}
+          {visibleAmenityTags.length > 0 ? (
             <div>
               <h2 className="text-xl font-semibold font-[family-name:var(--font-display)] mb-5">
                 Amenities
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {property.amenityTags.map((tag: string) => (
+                {visibleAmenityTags.map((tag: string) => (
                   <div key={tag} className="flex items-center gap-2 text-sm text-gray-700 py-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary/60 flex-shrink-0" />
                     {tag}
