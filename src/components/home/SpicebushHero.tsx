@@ -1,3 +1,4 @@
+import { heroWebp } from "@/lib/heroWebp";
 import { Link } from "react-router-dom";
 import { ArrowRight, Calendar, Key } from "lucide-react";
 import type { HomeContent } from "@/lib/homeContent";
@@ -29,7 +30,7 @@ export function SpicebushHero({ content }: { content: HomeContent }) {
       className="sb-parallax relative w-full overflow-hidden"
       aria-label={brand.legalName}
       style={{
-        backgroundImage: `url(${image})`,
+        backgroundImage: `url(${heroWebp(image)})`,
         backgroundSize: "cover",
         backgroundPosition: "50% 0%",
         backgroundRepeat: "no-repeat",

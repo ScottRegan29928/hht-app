@@ -1,3 +1,4 @@
+import { heroWebp } from "@/lib/heroWebp";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -103,7 +104,7 @@ export function HeritageHero({ content }: { content: HomeContent }) {
       {slides.map((s, i) => (
         <img
           key={s.src}
-          src={s.src}
+          src={heroWebp(s.src)}
           alt={i === index ? s.alt : ""}
           aria-hidden={i === index ? undefined : true}
           loading={i === 0 ? "eager" : "lazy"}
