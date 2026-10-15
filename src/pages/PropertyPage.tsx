@@ -1,4 +1,6 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useSeo } from "@/lib/seo";
+import { propertySeo, propertyCanonicalOverride } from "../../convex/seoShared";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
@@ -29,9 +31,12 @@ import { DescriptionSections } from "../components/property/DescriptionSections"
 import { FeatureGrid } from "@/components/property/FeatureGrid";
 import { AvailabilityCalendar, useBookedDates } from "@/components/AvailabilityCalendar";
 import { useState, useMemo } from "react";
+import { useStayQuote, fmtCents } from "@/lib/useStayQuote";
 import { formatWeekRange, getNext52Weeks } from "@/lib/weekCalendar";
 import { AlertCircle } from "lucide-react";
 import { rawTagId } from "../../convex/searchFacets";
+import { groupSpicebushAmenities, type AmenityGroup } from "@/lib/spicebushAmenities";
+import { isResort, resortInfo } from "@/lib/resort";
 
 export function PropertyPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -59,6 +64,12 @@ export function PropertyPage() {
   const lockedMode = lockedModeFor(siteSlug);
   const mode = lockedMode ?? searchParams.get("mode") ?? null;
   const isBuy = mode === "buy";
+  // Spicebush and Swallowtail use their own reformatted week calendar on every
+  // villa [zoe, 2026-10-02 / 2026-10-08]; built by
+  // skills/hht_website/scripts/build_week_calendar_pdf.py.
+  const calendarHref = isResort(siteSlug)
+    ? `/brand/${siteSlug}/${siteSlug}-week-calendar-2026-2030.pdf`
+    : property?.calendarUrl;
   const isRent = mode === "rent";
 
   // Rent dates from URL
@@ -85,6 +96,9 @@ export function PropertyPage() {
     return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86400000));
   }, [checkIn, checkOut]);
 
+  // Live HostAway price for the chosen dates (exactly what checkout charges).
+  const stayQuote = useStayQuote(property?._id, checkIn, checkOut, 2);
+
   // Build internal checkout URL with pre-filled dates (safe when property is null/loading)
   const bookingHref = useMemo(() => {
     if (!property) return "#";
@@ -110,6 +124,18 @@ export function PropertyPage() {
     }
     return false;
   }, [checkIn, checkOut, bookedDates]);
+
+  // Per-villa title/description/canonical, shared with the crawler prerender
+  // (convex/seoShared.ts). A villa owned by a resort site canonicalizes there.
+  const pSeo = property ? propertySeo(property, property.communityName, siteSlug) : undefined;
+  useSeo({
+    title: pSeo?.title,
+    description: pSeo?.description,
+    canonicalUrl: property
+      ? propertyCanonicalOverride(siteSlug, property.communitySlug, property.slug)
+      : undefined,
+    noindex: property === null,
+  });
 
   // ── Early returns (after all hooks) ──
   if (property === undefined) {
@@ -145,8 +171,7 @@ export function PropertyPage() {
   const saleWeeks = property.weeks.filter(
     (w: any) => w.listingType === "sale" || w.listingType === "both" || !w.listingType
   );
-  const nightlyRate = (property as any).nightlyRate ?? null;
-  const totalRentalPrice = nightlyRate && rentalNights > 0 ? nightlyRate * rentalNights : null;
+  const nightlyFrom: number | null = (property as any).nightlyFrom ?? null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -182,7 +207,7 @@ export function PropertyPage() {
               <MapPin className="w-4 h-4" />
               {property.communityName} · Sea Pines · Hilton Head Island
             </p>
-            <div className="mt-4 flex flex-wrap items-center gap-5 text-sm">
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
               <span className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg">
                 <Bed className="w-4 h-4 text-primary" />
                 {property.bedrooms}{" "}
@@ -230,7 +255,9 @@ export function PropertyPage() {
           )}
 
           {/* Amenities (from HostAway sync, minus any hidden by an admin) */}
-          {visibleAmenityTags.length > 0 ? (
+          {isResort(siteSlug) && visibleAmenityTags.length > 0 ? (
+            <SpicebushAmenities tags={visibleAmenityTags} />
+          ) : visibleAmenityTags.length > 0 ? (
             <div>
               <h2 className="text-xl font-semibold font-[family-name:var(--font-display)] mb-5">
                 Amenities
@@ -279,15 +306,15 @@ export function PropertyPage() {
           )}
 
           {/* Quick Links */}
-          {(property.calendarUrl || property.ownerDocsUrl) && (
+          {(calendarHref || property.ownerDocsUrl) && (
             <div>
               <h2 className="text-xl font-semibold font-[family-name:var(--font-display)] mb-4">
                 Resources
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {property.calendarUrl && (
+                {calendarHref && (
                   <a
-                    href={property.calendarUrl}
+                    href={calendarHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-md transition-all group"
@@ -443,12 +470,13 @@ export function PropertyPage() {
                     </h3>
                   </div>
 
-                  {nightlyRate && (
+                  {nightlyFrom ? (
                     <p className="text-2xl font-bold text-foreground">
-                      ${nightlyRate}
+                      <span className="text-base font-normal text-muted-foreground">From </span>
+                      ${Math.round(nightlyFrom)}
                       <span className="text-base font-normal text-muted-foreground">/night</span>
                     </p>
-                  )}
+                  ) : null}
 
                   {/* Date picker */}
                   <div className="space-y-3">
@@ -485,27 +513,25 @@ export function PropertyPage() {
                     </div>
                   </div>
 
-                  {/* Price summary */}
-                  {totalRentalPrice && (
+                  {/* Price summary — live from HostAway */}
+                  {stayQuote.status === "loading" && (
+                    <p className="text-sm text-muted-foreground">Getting the price…</p>
+                  )}
+                  {stayQuote.status === "unavailable" && (
+                    <p className="text-sm text-red-700">{stayQuote.reason}</p>
+                  )}
+                  {stayQuote.status === "ready" && (
                     <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          ${nightlyRate} × {rentalNights} {rentalNights === 1 ? "night" : "nights"}
-                        </span>
-                        <span className="font-semibold">${totalRentalPrice.toLocaleString()}</span>
+                      {stayQuote.components.map((c) => (
+                        <div key={c.title + c.type} className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">{c.title}</span>
+                          <span className="font-semibold">{fmtCents(Math.round(c.total * 100))}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-sm font-semibold border-t border-primary/10 pt-1">
+                        <span>Total ({rentalNights} {rentalNights === 1 ? "night" : "nights"})</span>
+                        <span>{fmtCents(stayQuote.totalCents)}</span>
                       </div>
-                      {(property as any).cleaningFee ? (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Cleaning fee</span>
-                          <span className="font-semibold">${(property as any).cleaningFee.toLocaleString()}</span>
-                        </div>
-                      ) : null}
-                      {(property as any).cleaningFee ? (
-                        <div className="flex justify-between text-sm font-semibold border-t border-primary/10 pt-1">
-                          <span>Total</span>
-                          <span>${(totalRentalPrice + (property as any).cleaningFee).toLocaleString()}</span>
-                        </div>
-                      ) : null}
                     </div>
                   )}
 
@@ -701,6 +727,59 @@ export function PropertyPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+/** Spicebush: consolidated villa features, resort amenities, and nearby activities [zoe, 2026-10-01]. */
+function SpicebushAmenities({ tags }: { tags: string[] }) {
+  const g = groupSpicebushAmenities(tags);
+  const List = ({ groups, cols }: { groups: AmenityGroup[]; cols: string }) => (
+    <div className={`grid gap-x-8 gap-y-6 ${cols}`}>
+      {groups.map(({ group, items }) => (
+        <div key={group}>
+          <h3 className="sb-amenity-group text-xs font-semibold uppercase tracking-[0.12em] text-[#891F11] mb-2">{group}</h3>
+          <ul className="space-y-1.5">
+            {items.map((item) => (
+              <li key={item} className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="mt-[0.45rem] w-1.5 h-1.5 rounded-full bg-primary/60 flex-shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+  const flat = (groups: AmenityGroup[]) => groups.flatMap((x) => x.items);
+  const Pills = ({ items }: { items: string[] }) => (
+    <ul className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <li key={item} className="text-sm text-gray-700 bg-[#efefef] border border-gray-200 rounded-full px-3 py-1">{item}</li>
+      ))}
+    </ul>
+  );
+  return (
+    <div className="space-y-10">
+      {g.villa.length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold font-[family-name:var(--font-display)] mb-5">Villa Features</h2>
+          <List groups={g.villa} cols="sm:grid-cols-2 lg:grid-cols-3" />
+        </div>
+      )}
+      {g.resort.length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold font-[family-name:var(--font-display)] mb-4">Resort Amenities</h2>
+          <Pills items={flat(g.resort)} />
+        </div>
+      )}
+      {g.nearby.length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold font-[family-name:var(--font-display)] mb-4">Nearby Activities</h2>
+          <Pills items={flat(g.nearby)} />
+        </div>
+      )}
     </div>
   );
 }

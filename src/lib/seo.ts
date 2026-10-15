@@ -91,7 +91,7 @@ export function useSeo(input: SeoInput) {
 
     // A page title already ending in the suffix is not double-suffixed.
     const fullTitle = title
-      ? title.endsWith(suffix.trim()) || title === siteName
+      ? title.endsWith(suffix.trim()) || title.includes(siteName)
         ? title
         : title + suffix
       : siteName;

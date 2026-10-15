@@ -110,16 +110,20 @@ export function AdminBlogPage() {
                       className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                         p.status === "published"
                           ? "bg-emerald-100 text-emerald-800"
-                          : "bg-muted text-muted-foreground"
+                          : p.scheduledAt
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      {p.status}
+                      {p.status === "draft" && p.scheduledAt ? "scheduled" : p.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">
                     {p.publishedAt
                       ? new Date(p.publishedAt).toLocaleDateString()
-                      : "—"}
+                      : p.scheduledAt
+                        ? `Publishes ${new Date(p.scheduledAt).toLocaleString()}`
+                        : "—"}
                     {p.updatedByName && (
                       <span className="block opacity-70">
                         {p.updatedByName}

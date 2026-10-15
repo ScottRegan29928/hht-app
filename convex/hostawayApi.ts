@@ -57,7 +57,7 @@ export const writeState = internalMutation({
  * so the cron MUST reuse a stored token. Do not "simplify" this back to
  * fetching a fresh token per run — that is what broke the sync on 2026-09-07.
  */
-async function getToken(ctx: ActionCtx): Promise<string> {
+export async function getToken(ctx: ActionCtx): Promise<string> {
   const cached = await ctx.runQuery(internal.hostawayApi.readState, {
     key: TOKEN_KEY,
   });
@@ -115,12 +115,14 @@ export const recordSyncResult = internalMutation({
     propertyId: v.id("properties"),
     ok: v.boolean(),
     error: v.optional(v.string()),
+    nightlyFrom: v.optional(v.number()),
   },
   returns: v.null(),
-  handler: async (ctx, { propertyId, ok, error }): Promise<null> => {
+  handler: async (ctx, { propertyId, ok, error, nightlyFrom }): Promise<null> => {
     await ctx.db.patch(propertyId, {
       hostawayLastSyncAt: ok ? Date.now() : undefined,
       hostawayLastSyncError: ok ? undefined : error,
+      ...(ok ? { nightlyFrom } : {}),
     });
     return null;
   },
@@ -135,7 +137,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * transient 429/5xx are retried with exponential backoff rather than being
  * reported as sync failures.
  */
-async function getWithRetry(
+export async function getWithRetry(
   url: string,
   token: string,
   attempts = 4
@@ -267,6 +269,11 @@ export const syncCalendar = internalAction({
 
             const days = (await res.json()).result ?? [];
             const bookings = toBlockedRanges(days, endDate);
+            // "From" price = cheapest night guests can actually book (HostAway calendar).
+            const prices = days
+              .filter((d: any) => d.isAvailable && Number(d.price) > 0)
+              .map((d: any) => Number(d.price));
+            const nightlyFrom = prices.length ? Math.min(...prices) : undefined;
 
             await ctx.runMutation(
               internal.hostawaySync.upsertCalendarBookings,
@@ -276,6 +283,7 @@ export const syncCalendar = internalAction({
             await ctx.runMutation(internal.hostawayApi.recordSyncResult, {
               propertyId: prop._id,
               ok: true,
+              nightlyFrom,
             });
             synced += 1;
             blockedRanges += bookings.length;
@@ -319,7 +327,7 @@ export const syncCalendar = internalAction({
  */
 export const syncPhotos = internalAction({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<any> => {
     const token = await getToken(ctx);
     const res = await fetch(`${HOSTAWAY_API}/listings?limit=100`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -336,7 +344,7 @@ export const syncPhotos = internalAction({
       if (urls.length) byId.set(Number(l.id), urls);
     }
 
-    const props = await ctx.runQuery(internal.hostawaySync.getAllProperties, {});
+    const props: any[] = await ctx.runQuery(internal.hostawaySync.getAllProperties, {});
     let updated = 0;
     for (const p of props) {
       if (!p.hostawayId) continue;
@@ -344,7 +352,7 @@ export const syncPhotos = internalAction({
       if (!fresh) continue;
       const cur = p.photoUrls ?? [];
       const same =
-        cur.length === fresh.length && cur.every((u, i) => u === fresh[i]);
+        cur.length === fresh.length && cur.every((u: string, i: number) => u === fresh[i]);
       if (same) continue;
       await ctx.runMutation(internal.hostawaySync.setPhotoUrls, {
         propertyId: p._id,

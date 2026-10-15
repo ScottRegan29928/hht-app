@@ -38,6 +38,7 @@ export function PhotoGallery({ photos, alt }: PhotoGalleryProps) {
           {/* Expand button */}
           <button
             onClick={() => setLightboxOpen(true)}
+            aria-label="View photos full screen"
             className="absolute top-4 right-4 p-2 bg-black/40 hover:bg-black/60 text-white rounded-lg backdrop-blur-sm transition-colors opacity-0 group-hover:opacity-100"
           >
             <Expand className="w-4 h-4" />
@@ -51,12 +52,14 @@ export function PhotoGallery({ photos, alt }: PhotoGalleryProps) {
             <>
               <button
                 onClick={prev}
+                aria-label="Previous photo"
                 className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all opacity-0 group-hover:opacity-100"
               >
                 <ChevronLeft className="w-5 h-5 text-foreground" />
               </button>
               <button
                 onClick={next}
+                aria-label="Next photo"
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all opacity-0 group-hover:opacity-100"
               >
                 <ChevronRight className="w-5 h-5 text-foreground" />
@@ -104,6 +107,7 @@ export function PhotoGallery({ photos, alt }: PhotoGalleryProps) {
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
           <button
             onClick={() => setLightboxOpen(false)}
+            aria-label="Close photo viewer"
             className="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors"
           >
             <X className="w-6 h-6" />
@@ -120,12 +124,14 @@ export function PhotoGallery({ photos, alt }: PhotoGalleryProps) {
             <>
               <button
                 onClick={prev}
+                aria-label="Previous photo"
                 className="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
               <button
                 onClick={next}
+                aria-label="Next photo"
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all"
               >
                 <ChevronRight className="w-6 h-6" />

@@ -33,4 +33,8 @@ crons.interval(
 // images (118 dead URLs across 30 rentals, found 2026-09-12).
 crons.interval("sync-hostaway-photos", { hours: 24 }, internal.hostawayApi.syncPhotos, {});
 
+// Publish scheduled blog posts (WP "future" posts carried over to the dev
+// sites) once their scheduledAt passes [scott, 2026-10-08].
+crons.interval("publish-scheduled-posts", { minutes: 15 }, internal.content.publishDuePosts, {});
+
 export default crons;

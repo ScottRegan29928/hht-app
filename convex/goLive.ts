@@ -53,3 +53,12 @@ export function isEmailHeld(kind: EmailKind): boolean {
 export function heldEmailNote(kind: EmailKind, to: string): string {
   return `[held:pre-go-live] ${kind} -> ${to} (recorded, not sent; see convex/goLive.ts)`;
 }
+
+/**
+ * HostAway reservation writes from the rental checkout [scott, 2026-09-07:
+ * "We will not write to HostAway until we are ready to go live."].
+ * Separate from GO_LIVE on purpose: the first real test booking on each
+ * Stripe account flips this alone, before mail goes out to the client.
+ * Even when true, a TEST-mode Stripe key never writes to HostAway.
+ */
+export const HOSTAWAY_WRITES_ENABLED = true;

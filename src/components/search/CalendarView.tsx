@@ -154,7 +154,8 @@ export function CalendarView({ searchArgs }: CalendarViewProps) {
 
       {/* Calendar grid */}
       <div className="space-y-0">
-        {weekMonths.map(({ weekNum, month, isFirstOfMonth }) => {
+        {weekMonths.map(({ weekNum, month, isFirstOfMonth }, i) => {
+          const beforeMonth = weekMonths[i + 1]?.isFirstOfMonth ?? true;
           const listings = weeksByNumber.get(weekNum) ?? [];
           const { start, end } = weekToDateRange(weekNum, selectedYear);
           const hasListings = listings.length > 0;
@@ -175,7 +176,8 @@ export function CalendarView({ searchArgs }: CalendarViewProps) {
               {/* Week row */}
               <div
                 className={cn(
-                  "group flex items-stretch border-b border-border/50 transition-colors",
+                  "group flex flex-col items-stretch transition-colors",
+                  !beforeMonth && "border-b border-border/50",
                   hasListings
                     ? "hover:bg-primary/[0.03]"
                     : isPast
@@ -184,7 +186,7 @@ export function CalendarView({ searchArgs }: CalendarViewProps) {
                 )}
               >
                 {/* Week number + dates */}
-                <div className="w-40 shrink-0 flex items-center gap-3 py-2.5 pr-4">
+                <div className="w-full shrink-0 flex items-center gap-3 pt-3 pb-3 pr-4">
                   <span
                     className={cn(
                       "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold",
@@ -201,7 +203,7 @@ export function CalendarView({ searchArgs }: CalendarViewProps) {
                 </div>
 
                 {/* Listings */}
-                <div className="flex-1 py-2 overflow-x-auto">
+                <div className="flex-1 min-w-0 pb-3 overflow-x-auto">
                   {hasListings ? (
                     <div className="flex flex-wrap gap-2">
                       {listings.map((l, idx) => (
@@ -209,7 +211,7 @@ export function CalendarView({ searchArgs }: CalendarViewProps) {
                           key={`${l.propertyId}-${idx}`}
                           to={`/property/${l.propertySlug}`}
                           className={cn(
-                            "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all hover:shadow-sm",
+                            "flex w-full items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all hover:shadow-sm",
                             l.listingType === "rent"
                               ? "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300"
                               : l.listingType === "sale"
@@ -224,8 +226,8 @@ export function CalendarView({ searchArgs }: CalendarViewProps) {
                               className="w-6 h-6 rounded object-cover"
                             />
                           )}
-                          <span className="truncate max-w-[140px]">{l.propertyAddress}</span>
-                          <span className="text-[10px] opacity-70">{l.communityName}</span>
+                          <span className="truncate">{l.propertyAddress}</span>
+                          <span className="text-[10px] opacity-70 shrink-0 ml-auto">{l.communityName}</span>
                           {l.listingType === "sale" || l.listingType === "both" ? (
                             l.price ? (
                               <span className="font-bold">${l.price.toLocaleString()}</span>

@@ -11,6 +11,10 @@ const SITE_FAVICONS: Record<string, { icon: string; apple?: string }> = {
     icon: "/brand/hv/favicon-32.png",
     apple: "/brand/hv/apple-touch-icon.png",
   },
+  swallowtail: {
+    icon: "/brand/swallowtail/favicon-32.png",
+    apple: "/brand/swallowtail/apple-touch-icon.png",
+  },
   spicebush: {
     icon: "/brand/spicebush/favicon-32.png",
     apple: "/brand/spicebush/apple-touch-icon.png",
@@ -129,9 +133,16 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
   // Keep the browser tab title on the resolved site rather than the build's
   // static index.html title, which would otherwise say "Hilton Head" on all four.
+  // ⚠ Only replace the STATIC title. This parent effect runs AFTER the pages'
+  // useSeo() effects, and used to overwrite every page title with the bare
+  // site name — Google saw one title for all ~100 pages per site
+  // [audit, 2026-10-08].
   useEffect(() => {
-    document.title =
-      scope?.site?.name ?? SLUG_TO_NAME[hostSlug] ?? "Hilton Head Timeshares";
+    const staticTitles = ["Hilton Head Timeshares", ...Object.values(SLUG_TO_NAME)];
+    if (!document.title || staticTitles.includes(document.title)) {
+      document.title =
+        scope?.site?.name ?? SLUG_TO_NAME[hostSlug] ?? "Hilton Head Timeshares";
+    }
   }, [scope?.site?.name, hostSlug]);
 
   // Per-site favicon. All four sites are served from one build and therefore

@@ -1,4 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useSeo } from "@/lib/seo";
+import { useSite } from "@/lib/siteContext";
+import { searchTitle, searchDescription } from "../../convex/seoShared";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -7,11 +10,12 @@ import { lockedModeFor } from "@/lib/siteCapabilities";
 import { Search, LayoutGrid, Map as MapIcon, Calendar, ListFilter } from "lucide-react";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { SearchFilters } from "@/components/search/SearchFilters";
-import { IslandMap } from "@/components/map/IslandMap";
+import { IslandMap } from "@/components/map/IslandMapLazy";
 import { CalendarView } from "@/components/search/CalendarView";
 import { computeFacets } from "@/lib/facets";
 import { cn } from "@/lib/utils";
 import { FridayNote } from "@/components/property/FridayNote";
+import { isResort, resortInfo } from "@/lib/resort";
 
 type ViewMode = "grid" | "map" | "calendar";
 
@@ -26,6 +30,14 @@ export function SearchPage() {
   // [scott, 2026-09-15]. Locking the mode here also hides the Rent/Buy
   // toggle, which only renders when no mode is fixed.
   const { siteSlug } = useSiteFlags();
+  const { scope: seoScope } = useSite();
+  const seoSiteName = seoScope?.site?.name ?? "";
+  useSeo({
+    title: seoSiteName ? searchTitle(siteSlug, seoSiteName) : undefined,
+    description: seoSiteName ? searchDescription(siteSlug, seoSiteName) : undefined,
+    // One canonical for every filter combination of /search.
+    canonicalUrl: seoScope?.site?.domain ? `https://${seoScope.site.domain}/search` : undefined,
+  });
   const lockedMode = lockedModeFor(siteSlug);
   const [communitySlugs, setCommunitySlugs] = useState<string[]>(
     parseMulti(searchParams.get("community"))
@@ -101,6 +113,19 @@ export function SearchPage() {
 
   const properties = useQuery(api.properties.search, scopedArgs);
 
+  // Unfiltered inventory, to spot a site where every villa has the same
+  // bedroom/bath count (Spicebush: all 2/2). Then the bedroom filter is
+  // replaced by a note [zoe, 2026-09-30].
+  const allSiteProperties = useQuery(api.properties.search, { siteSlug });
+  const uniformLayout = useMemo(() => {
+    const list = (allSiteProperties ?? []) as Array<{ bedrooms: number; bathrooms: number }>;
+    if (list.length === 0) return null;
+    const { bedrooms: bd, bathrooms: ba } = list[0];
+    return list.every((p) => p.bedrooms === bd && p.bathrooms === ba)
+      ? { bedrooms: bd, bathrooms: ba }
+      : null;
+  }, [allSiteProperties]);
+
   // Track last-known filtered communities for the map to avoid flicker
   const lastMapCommunitiesRef = useRef<typeof communities>(null);
   const mapCommunities = useMemo(() => {
@@ -148,6 +173,17 @@ export function SearchPage() {
     setSearchParams(params, { replace: true });
   }, [communitySlugs, weekNumbers, bedrooms, listingTypes, amenities, amenityMode, checkIn, checkOut, selectedYear, q, guests, setSearchParams]);
 
+  // The header's "Find a Rental" / "Buy a Week" links only change ?type= on
+  // this same route, so the page does not remount and the state above (read
+  // once from the URL) would win and write the old type straight back. Follow
+  // the URL when it changes from outside [zoe, 2026-09-30].
+  const urlType = searchParams.get("type") ?? "";
+  useEffect(() => {
+    if (lockedMode) return;
+    const next = parseMulti(urlType);
+    setListingTypesRaw((cur) => (cur.join(",") === next.join(",") ? cur : next));
+  }, [urlType, lockedMode]);
+
   const clearFilters = () => {
     setCommunitySlugs([]);
     setWeekNumbers([]);
@@ -171,6 +207,9 @@ export function SearchPage() {
       : "Choose Rent or Buy to get started";
 
   return (
+    // Spicebush: sand-and-wood band at the top that fades into a flat sand
+    // color, so the photo never stretches down the page [zoe, 2026-09-30].
+    <div className={isResort(siteSlug) ? "sb-sand-top" : undefined}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -239,6 +278,7 @@ export function SearchPage() {
               setAmenityMode={setAmenityMode}
               onClear={clearFilters}
               availableFacets={availableFacets}
+              uniformLayout={uniformLayout}
               checkIn={checkIn}
               setCheckIn={setCheckIn}
               checkOut={checkOut}
@@ -251,7 +291,7 @@ export function SearchPage() {
 
         {/* Mobile filters overlay */}
         {showMobileFilters && (
-          <div className="lg:hidden fixed inset-0 z-40 bg-black/50">
+          <div className="lg:hidden fixed inset-0 z-[70] bg-black/50">
             <div
               className="absolute inset-0"
               onClick={() => setShowMobileFilters(false)}
@@ -266,7 +306,7 @@ export function SearchPage() {
                   Clear all
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-5">
+              <div className="flex-1 overflow-y-auto p-5 [&>div>div:first-child]:hidden">
                 <SearchFilters
                   communitySlugs={communitySlugs}
                   setCommunitySlugs={setCommunitySlugs}
@@ -282,6 +322,7 @@ export function SearchPage() {
                   setAmenityMode={setAmenityMode}
                   onClear={clearFilters}
                   availableFacets={availableFacets}
+              uniformLayout={uniformLayout}
                   checkIn={checkIn}
                   setCheckIn={setCheckIn}
                   checkOut={checkOut}
@@ -289,8 +330,7 @@ export function SearchPage() {
                   selectedYear={selectedYear}
                   setSelectedYear={setSelectedYear}
                 />
-              </div>
-              <div className="p-4 border-t border-border bg-background shrink-0">
+                <div className="pt-6">
                 <button
                   onClick={() => setShowMobileFilters(false)}
                   className="w-full py-3 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
@@ -302,6 +342,7 @@ export function SearchPage() {
                     </span>
                   )}
                 </button>
+                </div>
               </div>
             </div>
           </div>
@@ -362,6 +403,7 @@ export function SearchPage() {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }

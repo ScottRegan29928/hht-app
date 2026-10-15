@@ -2,7 +2,7 @@ import { useQuery } from "convex/react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import { MapPin, Search, ArrowRight, Waves, Home, Calendar, Key, DollarSign } from "lucide-react";
-import { IslandMap } from "@/components/map/IslandMap";
+import { IslandMap } from "@/components/map/IslandMapLazy";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { useSiteFlags, useSiteBrand } from "@/lib/siteContext";
 import { HeritageHero } from "@/components/home/HeritageHero";
@@ -18,6 +18,7 @@ import {
   resolveSearchHref,
   siteSells,
 } from "@/lib/siteCapabilities";
+import { isResort, resortInfo } from "@/lib/resort";
 
 /**
  * Home CTA that follows the site's half of the business: a "Find a Rental"
@@ -80,7 +81,7 @@ export function HomePage() {
           front ends are designed (Scott's ordering: hv, hht, then Sea Pines). */}
       {siteSlug === "heritage" ? (
         <HeritageHero content={content} />
-      ) : siteSlug === "spicebush" ? (
+      ) : isResort(siteSlug) ? (
         <SpicebushHero content={content} />
       ) : siteSlug === "mhht" ? null : (
         <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
@@ -178,7 +179,7 @@ export function HomePage() {
             : "py-16 sm:py-20",
           // Spicebush swaps the flat card fill for the old site's sand texture,
           // whose own top edge carries the blue wood bar [zoe, 2026-09-16].
-          siteSlug === "spicebush" ? "sb-sand-section" : "bg-card",
+          isResort(siteSlug) ? "sb-sand-section" : "bg-card",
         ].join(" ")}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -215,7 +216,7 @@ export function HomePage() {
       {/* ── Communities Grid ──
           Hidden on Spicebush [zoe, 2026-09-16]: that site sells one community,
           so it does not showcase its sisters. */}
-      {siteSlug !== "spicebush" && (
+      {!isResort(siteSlug) && (
       <section className="py-16 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
@@ -289,11 +290,11 @@ export function HomePage() {
         <section
           className={[
             "relative overflow-hidden py-16 sm:py-20",
-            siteSlug === "spicebush" ? "sb-golf-section" : "bg-card",
+            isResort(siteSlug) ? "sb-golf-section" : "bg-card",
           ].join(" ")}
         >
-          {siteSlug === "spicebush" && (
-            <SideParallaxImage src="/brand/spicebush/golf.jpg" />
+          {isResort(siteSlug) && (
+            <SideParallaxImage src={`${resortInfo(siteSlug).assets}/golf.jpg`} />
           )}
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">
@@ -323,7 +324,7 @@ export function HomePage() {
         <section
           className={[
             "py-16 sm:py-20",
-            siteSlug === "spicebush"
+            isResort(siteSlug)
               ? "sb-sand-section sb-closing"
               : "bg-primary text-primary-foreground",
           ].join(" ")}
@@ -335,11 +336,11 @@ export function HomePage() {
             <p className="mt-4 text-lg text-primary-foreground/80 max-w-2xl mx-auto">
               {content.closing.body}
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className={`mt-8 flex flex-col sm:flex-row ${isResort(siteSlug) ? "items-stretch sm:items-center" : "items-center"} justify-center gap-4`}>
               <HomeCta
                 siteSlug={siteSlug}
                 href={content.closing.primaryHref}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:bg-white/90 transition-colors"
+                className={`inline-flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:bg-white/90 transition-colors${isResort(siteSlug) ? " w-full sm:w-auto justify-center" : ""}`}
               >
                 <Calendar className="w-4 h-4" />
                 {content.closing.primaryLabel}
@@ -347,7 +348,7 @@ export function HomePage() {
               <HomeCta
                 siteSlug={siteSlug}
                 href={content.closing.secondaryHref}
-                className="inline-flex items-center gap-2 px-6 py-3 border-2 border-primary-foreground/30 rounded-lg font-semibold hover:bg-primary-foreground/10 transition-colors"
+                className={`inline-flex items-center gap-2 px-6 py-3 border-2 border-primary-foreground/30 rounded-lg font-semibold hover:bg-primary-foreground/10 transition-colors${isResort(siteSlug) ? " w-full sm:w-auto justify-center" : ""}`}
               >
                 <Key className="w-4 h-4" />
                 {content.closing.secondaryLabel}

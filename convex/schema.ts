@@ -197,7 +197,8 @@ const schema = defineSchema({
     wpPageId: v.optional(v.number()), // original WordPress page ID for migration
     wpSlug: v.optional(v.string()),
     // Rental details (from Hostaway)
-    nightlyRate: v.optional(v.number()),    // nightly rental price in dollars
+    nightlyRate: v.optional(v.number()),    // HostAway listing base price (NOT what guests pay)
+    nightlyFrom: v.optional(v.number()),    // lowest available HostAway calendar nightly price, next 180 days (synced)
     cleaningFee: v.optional(v.number()),    // one-time cleaning fee
     weeklyDiscount: v.optional(v.number()), // e.g. 0.75 = 25% off for weekly stays
     monthlyDiscount: v.optional(v.number()),// e.g. 0.5 = 50% off for monthly stays
@@ -447,6 +448,12 @@ const schema = defineSchema({
     // Payment (placeholder for future processor)
     paymentMethod: v.optional(v.string()),
     paymentId: v.optional(v.string()),
+    // Pay-first rental checkout (convex/rentalCheckout.ts)
+    checkoutSessionId: v.optional(v.id("checkoutSessions")),
+    amountPaid: v.optional(v.number()),          // dollars captured at booking
+    stripeAccount: v.optional(v.string()),       // "heritage" | "seapines"
+    hostawayReservationId: v.optional(v.number()),
+    guests: v.optional(v.number()),
     // Notes
     notes: v.optional(v.string()),
     // Timestamps
@@ -461,6 +468,69 @@ const schema = defineSchema({
   // Small key/value store for integration state (currently the cached
   // HostAway access token). HostAway throttles token creation, so a cron
   // must reuse a token rather than minting one per run.
+  // Rental checkout settings — one row, key "default" (convex/rentalCheckout.ts).
+  paymentSettings: defineTable({
+    key: v.string(),
+    schedule: v.array(
+      v.object({
+        label: v.string(),
+        pct: v.number(),
+        daysBefore: v.union(v.number(), v.null()),
+      })
+    ),
+    scheduleConfirmed: v.boolean(),
+    chargeMode: v.union(v.literal("card_capture"), v.literal("card_on_file")),
+    accountOverrides: v.array(
+      v.object({
+        propertyId: v.id("properties"),
+        account: v.union(v.literal("heritage"), v.literal("seapines")),
+      })
+    ),
+    updatedAt: v.number(),
+    updatedBy: v.optional(v.string()),
+  }).index("by_key", ["key"]),
+
+  // One row per checkout attempt. Dates are NOT held while a session is
+  // awaiting payment (pay-first, D1) — only finalize() claims them.
+  checkoutSessions: defineTable({
+    propertyId: v.id("properties"),
+    checkIn: v.string(),
+    checkOut: v.string(),
+    guests: v.number(),
+    firstName: v.string(),
+    lastName: v.string(),
+    email: v.string(),
+    phone: v.string(),
+    notes: v.optional(v.string()),
+    account: v.union(v.literal("heritage"), v.literal("seapines")),
+    stripeMode: v.union(v.literal("test"), v.literal("live")),
+    chargeMode: v.union(v.literal("card_capture"), v.literal("card_on_file")),
+    totalCents: v.number(),
+    dueNowCents: v.number(),
+    quote: v.any(),      // HostAway priceDetails components
+    charges: v.any(),    // planned installments
+    cancellationPolicyId: v.optional(v.number()),
+    stripeCustomerId: v.optional(v.string()),
+    stripeIntentId: v.optional(v.string()),
+    status: v.union(
+      v.literal("awaiting_payment"),
+      v.literal("confirmed"),
+      v.literal("dates_lost"),
+      v.literal("failed")
+    ),
+    hostawayWrite: v.optional(
+      v.union(v.literal("held_prelaunch"), v.literal("created"), v.literal("failed"))
+    ),
+    hostawayReservationId: v.optional(v.number()),
+    bookingId: v.optional(v.id("bookings")),
+    calendarBookingId: v.optional(v.id("calendarBookings")),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_intent", ["stripeIntentId"]),
+
   syncState: defineTable({
     key: v.string(),
     value: v.string(),
@@ -749,13 +819,17 @@ const schema = defineSchema({
       noindex: v.optional(v.boolean()),
     })),
     publishedAt: v.optional(v.number()),
+    // Scheduled post (imported from a WP "future" post): stays a draft until
+    // the publish-scheduled-posts cron flips it at this time [scott, 2026-10-08].
+    scheduledAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
     updatedByName: v.optional(v.string()),
   })
     .index("by_site_slug", ["siteSlug", "slug"])
     .index("by_site_status", ["siteSlug", "status"])
-    .index("by_site_published", ["siteSlug", "publishedAt"]),
+    .index("by_site_published", ["siteSlug", "publishedAt"])
+    .index("by_status_scheduled", ["status", "scheduledAt"]),
 
   // ── Owner portal: parity with the legacy WordPress /owners/ pages ──
   // Inventoried from the live Swallowtail + Spicebush portals 2026-09-11.

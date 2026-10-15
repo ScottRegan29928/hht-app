@@ -13,6 +13,7 @@ interface PropertyCardProps {
     photoUrl?: string | null;
     isFeatured?: boolean | null;
     nightlyRate?: number | null;
+    nightlyFrom?: number | null;
     lowestSalePrice?: number | null;
     saleWeekCount?: number | null;
   };
@@ -55,11 +56,11 @@ export function PropertyCard({ property, mode, checkIn, checkOut }: PropertyCard
           </div>
         )}
         {/* Price badge */}
-        {mode === "rent" && property.nightlyRate && (
+        {mode === "rent" && property.nightlyFrom ? (
           <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/70 backdrop-blur-sm text-white rounded-lg text-sm font-semibold">
-            ${property.nightlyRate}/night
+            From ${Math.round(property.nightlyFrom)}/night
           </div>
-        )}
+        ) : null}
         {mode === "buy" && property.lowestSalePrice && (
           <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/70 backdrop-blur-sm text-white rounded-lg text-sm font-semibold">
             From ${property.lowestSalePrice.toLocaleString()}
@@ -88,15 +89,15 @@ export function PropertyCard({ property, mode, checkIn, checkOut }: PropertyCard
           </span>
         </div>
         {/* Mode-specific info */}
-        {mode === "rent" && property.nightlyRate && (
+        {mode === "rent" && property.nightlyFrom ? (
           <p className="mt-2 text-sm font-medium text-primary flex items-center gap-1">
             <Moon className="w-3.5 h-3.5" />
-            ${property.nightlyRate}/night
+            From ${Math.round(property.nightlyFrom)}/night
           </p>
-        )}
+        ) : null}
         {mode === "buy" && property.saleWeekCount && property.saleWeekCount > 0 && (
           <p className="mt-2 text-sm font-medium text-primary flex items-center gap-1">
-            <DollarSign className="w-3.5 h-3.5" />
+            <DollarSign className="w-3.5 h-3.5 sb-buy-icon" />
             {property.saleWeekCount} {property.saleWeekCount === 1 ? "week" : "weeks"} available
           </p>
         )}

@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Calendar, Key } from "lucide-react";
 import type { HomeContent } from "@/lib/homeContent";
-import { useSiteBrand } from "@/lib/siteContext";
+import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
+import { resortInfo } from "@/lib/resort";
 
 /**
  * Spicebush at Sea Pines hero.
@@ -16,8 +17,9 @@ import { useSiteBrand } from "@/lib/siteContext";
  */
 export function SpicebushHero({ content }: { content: HomeContent }) {
   const brand = useSiteBrand();
+  const { siteSlug } = useSiteFlags();
   const hero = content.hero;
-  const image = hero.images[0] ?? "/brand/spicebush/hero.jpg";
+  const image = hero.images[0] ?? `${resortInfo(siteSlug).assets}/hero.jpg`;
   const lines = hero.headlineLines.length
     ? hero.headlineLines
     : [brand.headlineTop, brand.headlineAccent];
@@ -78,10 +80,10 @@ export function SpicebushHero({ content }: { content: HomeContent }) {
           </p>
 
           {/* Both entry points, rentals first [scott, 2026-09-08]. */}
-          <div className="mt-8 flex flex-wrap gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row sm:flex-wrap gap-4">
             <Link
               to={hero.primaryHref}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-md"
+              className="inline-flex w-full sm:w-auto justify-center items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-md"
             >
               <Calendar className="w-4 h-4" />
               {hero.primaryLabel}
@@ -89,7 +91,7 @@ export function SpicebushHero({ content }: { content: HomeContent }) {
             </Link>
             <Link
               to={hero.secondaryHref}
-              className="inline-flex items-center gap-2 px-6 py-3 border-2 border-white text-white rounded-lg font-semibold hover:bg-white/15 transition-colors"
+              className="inline-flex w-full sm:w-auto justify-center items-center gap-2 px-6 py-3 border-2 border-white text-white rounded-lg font-semibold hover:bg-white/15 transition-colors"
             >
               <Key className="w-4 h-4" />
               {hero.secondaryLabel}

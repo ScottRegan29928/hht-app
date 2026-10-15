@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
+import { blogBase, blogNavLabel } from "../../lib/blogPaths";
 import { useState } from "react";
-import { Menu, X, MapPin, Search, Phone } from "lucide-react";
+import { Menu, X, MapPin, Search, Phone, Home, ChevronDown } from "lucide-react";
 import { ContactPanel } from "./ContactPanel";
 import { cn } from "@/lib/utils";
 import { HeaderSearchBar } from "@/components/search/HeaderSearchBar";
@@ -8,6 +9,15 @@ import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
 import { currentHostname, linkForMode } from "@/lib/siteCapabilities";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { isResort, resortInfo } from "@/lib/resort";
+import { landingNavFor } from "../../../convex/seoLandingNav";
+
+// "Stay" menu groups for the code-routed SEO landing pages [scott, 2026-10-08].
+const STAY_GROUPS: Array<{ key: "rentals" | "guides" | "ownership"; label: string }> = [
+  { key: "rentals", label: "Vacation Rentals" },
+  { key: "guides", label: "Plan Your Trip" },
+  { key: "ownership", label: "Timeshares" },
+];
 
 /**
  * Both flagship sites keep both items; the half a site doesn't sell points at
@@ -23,7 +33,7 @@ function baseNavLinks(siteSlug: string, hostname: string) {
   ];
 }
 
-type NavItem = { href: string; label: string; external: boolean };
+type NavItem = { href: string; label: string; external: boolean; icon?: boolean };
 
 /**
  * A cross-site nav item has to be a real anchor: react-router would treat the
@@ -38,16 +48,26 @@ function NavItemLink({
   className: string;
   onClick?: () => void;
 }) {
+  // Spicebush shows Home as a house icon [zoe, 2026-10-01]; the label stays
+  // for screen readers, and the mobile menu passes icon:false to show the word.
+  const content = item.icon ? (
+    <>
+      <Home className="w-4 h-4" aria-hidden="true" />
+      <span className="sr-only">{item.label}</span>
+    </>
+  ) : (
+    item.label
+  );
   if (item.external) {
     return (
-      <a href={item.href} className={className} onClick={onClick}>
-        {item.label}
+      <a href={item.href} className={className} onClick={onClick} aria-label={item.icon ? item.label : undefined}>
+        {content}
       </a>
     );
   }
   return (
-    <Link to={item.href} className={className} onClick={onClick}>
-      {item.label}
+    <Link to={item.href} className={className} onClick={onClick} aria-label={item.icon ? item.label : undefined}>
+      {content}
     </Link>
   );
 }
@@ -61,7 +81,49 @@ export function Header() {
   const navPages = useQuery(api.content.listNavPages, { siteSlug });
   const posts = useQuery(api.content.listPosts, { siteSlug, limit: 1 });
 
-  const navLinks = [
+  const hasPosts = !!(posts && posts.length > 0);
+  // Spicebush nav, approved by Zoe 2026-10-01: house icon, Find a Rental,
+  // Buy a Week, Own at Spicebush, Explore dropdown, Contact.
+  const isSpicebush = isResort(siteSlug);
+  const exploreLinks: NavItem[] = isSpicebush
+    ? [
+        { href: "/things-to-do", label: "Things to Do", external: false },
+        ...(hasPosts
+          ? [{ href: blogBase(siteSlug), label: blogNavLabel(siteSlug), external: false }]
+          : []),
+        { href: "/resources", label: "Resource Guides", external: false },
+        ...(navPages ?? []).map((pg: { slug: string; label: string }) => ({
+          href: `/${pg.slug}`,
+          label: pg.label,
+          external: false,
+        })),
+      ]
+    : [];
+  const spicebushLinks: NavItem[] = isSpicebush
+    ? [
+        ...baseNavLinks(siteSlug, currentHostname()).map((l) =>
+          l.href === "/" ? { ...l, icon: true } : l
+        ),
+        {
+          href: `/own-at-${siteSlug}`,
+          label: `Why Own at ${resortInfo(siteSlug).name}`,
+          external: false,
+        },
+      ]
+    : [];
+  const [exploreOpen, setExploreOpen] = useState(false);
+  // New SEO pages get a nav home, not "out of nav" [scott, 2026-10-08].
+  const landing = landingNavFor(siteSlug);
+  const stayGroups = STAY_GROUPS.map((g) => ({
+    ...g,
+    links: landing
+      .filter((p) => p.group === g.key)
+      .map((p) => ({ href: `/${p.slug}`, label: p.navLabel, external: false } as NavItem)),
+  })).filter((g) => g.links.length > 0);
+  const stayLinks = stayGroups.flatMap((g) => g.links);
+  const [stayOpen, setStayOpen] = useState(false);
+
+  const navLinks: NavItem[] = isSpicebush ? spicebushLinks : [
     ...baseNavLinks(siteSlug, currentHostname()),
     ...(navPages ?? []).map((pg: { slug: string; label: string }) => ({
       href: `/${pg.slug}`,
@@ -69,10 +131,12 @@ export function Header() {
       external: false,
     })),
     ...(posts && posts.length > 0
-      ? [{ href: "/blog", label: "News", external: false }]
+      ? [{ href: blogBase(siteSlug), label: blogNavLabel(siteSlug), external: false }]
       : []),
   ];
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileStayOpen, setMobileStayOpen] = useState(false);
+  const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/";
@@ -86,12 +150,27 @@ export function Header() {
   const headerSearch = siteSlug === "mhht";
   // Spicebush's hero is a recreation of spicebushatseapines.com, where the
   // header sits transparently ON the photo [zoe, 2026-09-16]. Homepage only.
-  const spicebush = siteSlug === "spicebush";
+  const spicebush = isResort(siteSlug);
   const overlay = (heritage || spicebush) && isHome;
   // Scott supplied the full-color logo (2026-09-08), so the solid inner-page
   // header goes back to the normal light bar with the color lockup. Only the
   // transparent hero overlay is light-on-dark, and it uses the white logo.
   const lightOnDark = overlay;
+
+  const searchLink = (
+<Link
+              to="/search"
+              className={cn(
+                "ml-2 flex items-center whitespace-nowrap gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                lightOnDark
+                  ? "border border-white/70 text-white hover:bg-white/15"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
+            >
+              <Search className="w-4 h-4" />
+              Search Properties
+            </Link>
+  );
 
   return (
     <header
@@ -120,7 +199,7 @@ export function Header() {
           "flex items-center justify-between h-16 sm:h-20",
           // Let the row grow around Spicebush's taller logo instead of
           // clipping it.
-          spicebush && "h-auto min-h-16 sm:h-auto sm:min-h-20 py-2",
+          spicebush && "h-auto min-h-16 sm:h-auto sm:min-h-20 py-2 2xl:grid 2xl:grid-cols-[1fr_auto_1fr]",
           headerSearch && "md:justify-center"
         )}>
           {/* Logo */}
@@ -128,6 +207,9 @@ export function Header() {
             to="/"
             className={cn(
               "flex items-center gap-2.5 group",
+              // Breathing room between the lockup and the Home icon; the resort
+              // nav items drop to px-3 to pay for it [zoe, 2026-10-09].
+              spicebush && "2xl:justify-self-start mr-8",
               headerSearch && "md:absolute md:left-0 md:inset-y-0 md:z-10"
             )}
           >
@@ -182,13 +264,15 @@ export function Header() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Spicebush switches to the menu button below xl [zoe, 2026-10-01]. */}
+          <nav className={cn("hidden items-center gap-1", spicebush ? "xl:flex" : "md:flex")}>
             {navLinks.map((link) => (
               <NavItemLink
                 key={link.href}
                 item={link}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                  spicebush ? "px-3" : "px-4",
+                  "py-2 rounded-lg text-sm font-medium transition-colors",
                   lightOnDark
                     ? cn(
                         "text-white drop-shadow-[0_1px_3px_rgba(1,78,108,0.8)] hover:bg-white/15",
@@ -200,12 +284,112 @@ export function Header() {
                 )}
               />
             ))}
+            {stayLinks.length > 0 && (
+              <div
+                className="relative"
+                onMouseEnter={() => setStayOpen(true)}
+                onMouseLeave={() => setStayOpen(false)}
+              >
+                <button
+                  type="button"
+                  aria-haspopup="true"
+                  aria-expanded={stayOpen}
+                  onClick={() => setStayOpen((o) => !o)}
+                  className={cn(
+                    spicebush ? "px-3" : "px-4",
+                    "flex items-center gap-1 py-2 rounded-lg text-sm font-medium transition-colors",
+                    lightOnDark
+                      ? cn("text-white drop-shadow-[0_1px_3px_rgba(1,78,108,0.8)] hover:bg-white/15",
+                           stayLinks.some((l) => location.pathname === l.href) && "bg-white/15")
+                      : stayLinks.some((l) => location.pathname === l.href)
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  Stay
+                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", stayOpen && "rotate-180")} />
+                </button>
+                {stayOpen && (
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full pt-2 z-50">
+                    <div className="sb-explore-menu w-[min(860px,92vw)] rounded-lg bg-white shadow-lg border border-border p-5 grid grid-cols-3 gap-6">
+                      {stayGroups.map((g) => (
+                        <div key={g.key}>
+                          <p className="px-2 pb-2 text-xs uppercase tracking-widest font-semibold text-muted-foreground/70">
+                            {g.label}
+                          </p>
+                          {g.links.map((link) => (
+                            <NavItemLink
+                              key={link.href}
+                              item={link}
+                              onClick={() => setStayOpen(false)}
+                              className={cn(
+                                "block px-2 py-1.5 rounded text-sm font-medium transition-colors",
+                                location.pathname === link.href
+                                  ? "bg-primary/10 text-primary"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              )}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {exploreLinks.length > 0 && (
+              <div
+                className="relative"
+                onMouseEnter={() => setExploreOpen(true)}
+                onMouseLeave={() => setExploreOpen(false)}
+              >
+                <button
+                  type="button"
+                  aria-haspopup="true"
+                  aria-expanded={exploreOpen}
+                  onClick={() => setExploreOpen((o) => !o)}
+                  className={cn(
+                    spicebush ? "px-3" : "px-4",
+                    "flex items-center gap-1 py-2 rounded-lg text-sm font-medium transition-colors",
+                    lightOnDark
+                      ? cn("text-white drop-shadow-[0_1px_3px_rgba(1,78,108,0.8)] hover:bg-white/15",
+                           exploreLinks.some((l) => location.pathname.startsWith(l.href)) && "bg-white/15")
+                      : exploreLinks.some((l) => location.pathname.startsWith(l.href))
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  Explore
+                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", exploreOpen && "rotate-180")} />
+                </button>
+                {exploreOpen && (
+                  <div className="absolute left-0 top-full pt-2 z-50">
+                    <div className="sb-explore-menu min-w-[200px] rounded-lg bg-white shadow-lg border border-border py-2">
+                      {exploreLinks.map((link) => (
+                        <NavItemLink
+                          key={link.href}
+                          item={link}
+                          onClick={() => setExploreOpen(false)}
+                          className={cn(
+                            "block px-4 py-2 text-sm font-medium transition-colors",
+                            location.pathname.startsWith(link.href)
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {/* Contact opens a slide-in form [scott, 2026-09-08]. */}
             <button
               type="button"
               onClick={() => setContactOpen(true)}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                spicebush ? "px-3" : "px-4",
+                "py-2 rounded-lg text-sm font-medium transition-colors",
                 lightOnDark
                   ? "text-white drop-shadow-[0_1px_3px_rgba(1,78,108,0.8)] hover:bg-white/15"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -227,27 +411,19 @@ export function Header() {
                 {brand.phoneDisplay}
               </a>
             )}
-            {!headerSearch && (
-            <Link
-              to="/search"
-              className={cn(
-                "ml-2 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                lightOnDark
-                  ? "border border-white/70 text-white hover:bg-white/15"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-              )}
-            >
-              <Search className="w-4 h-4" />
-              Search Properties
-            </Link>
-            )}
+            {!headerSearch && !spicebush && searchLink}
           </nav>
+          {/* Spicebush: logo left, links centered, Search pinned right [zoe, 2026-10-01]. */}
+          {spicebush && (
+            <div className="hidden xl:flex 2xl:justify-self-end">{searchLink}</div>
+          )}
 
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className={cn(
-              "md:hidden p-2 rounded-lg transition-colors",
+              "p-2 rounded-lg transition-colors",
+              spicebush ? "xl:hidden" : "md:hidden",
               lightOnDark ? "text-white hover:bg-white/15" : "hover:bg-muted"
             )}
           >
@@ -270,7 +446,10 @@ export function Header() {
         {/* Mobile nav */}
         {mobileOpen && (
           <nav className={cn(
-            "md:hidden pb-4 pt-4 space-y-1 border-t",
+            // The header is sticky, so a long menu must scroll inside itself
+            // or its bottom half is unreachable on tablets [zoe, 2026-10-09].
+            "pb-4 pt-4 space-y-1 border-t max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain",
+            spicebush ? "xl:hidden" : "md:hidden",
             // Over the photo the panel needs its own surface or the links
             // are unreadable against the hero image.
             overlay
@@ -282,22 +461,56 @@ export function Header() {
                 ) + " -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8"
               : "border-border"
           )}>
-            {navLinks.map((link) => (
-              <NavItemLink
-                key={link.href}
-                item={link}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "block px-4 py-3 rounded-lg text-sm font-medium transition-colors",
-                  overlay
-                    ? cn("text-white hover:bg-white/15",
-                         location.pathname === link.href && "bg-white/15")
-                    : location.pathname === link.href
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-              />
-            ))}
+            {/* Stay and Explore collapse like the desktop dropdowns, so the
+                menu shows every top-level item without a long scroll
+                [zoe, 2026-10-09]. */}
+            {(() => {
+              const linkCls = (href: string, indent = false) => cn(
+                "block py-3 rounded-lg text-sm font-medium transition-colors",
+                indent ? "pl-8 pr-4" : "px-4",
+                overlay
+                  ? cn("text-white hover:bg-white/15", location.pathname === href && "bg-white/15")
+                  : location.pathname === href
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              );
+              const labelCls = cn(
+                "pl-8 pr-4 pt-3 pb-1 text-xs uppercase tracking-widest font-semibold",
+                overlay ? "text-white/60" : "text-muted-foreground/70"
+              );
+              const toggle = (label: string, open: boolean, onClick: () => void) => (
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  onClick={onClick}
+                  className={cn(linkCls("#"), "w-full flex items-center justify-between text-left")}
+                >
+                  {label}
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", open && "rotate-180")} aria-hidden="true" />
+                </button>
+              );
+              const close = () => setMobileOpen(false);
+              return (
+                <>
+                  {navLinks.map((l) => (
+                    <NavItemLink key={l.href} item={{ ...l, icon: false }} onClick={close} className={linkCls(l.href)} />
+                  ))}
+                  {stayLinks.length > 0 && toggle("Stay", mobileStayOpen, () => setMobileStayOpen((o) => !o))}
+                  {mobileStayOpen && stayGroups.map((g) => (
+                    <div key={g.label}>
+                      <div className={labelCls}>{g.label}</div>
+                      {g.links.map((l) => (
+                        <NavItemLink key={l.href} item={l} onClick={close} className={linkCls(l.href, true)} />
+                      ))}
+                    </div>
+                  ))}
+                  {exploreLinks.length > 0 && toggle("Explore", mobileExploreOpen, () => setMobileExploreOpen((o) => !o))}
+                  {mobileExploreOpen && exploreLinks.map((l) => (
+                    <NavItemLink key={l.href} item={l} onClick={close} className={linkCls(l.href, true)} />
+                  ))}
+                </>
+              );
+            })()}
             <button
               type="button"
               onClick={() => {

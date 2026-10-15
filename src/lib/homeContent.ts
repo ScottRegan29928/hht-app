@@ -1,3 +1,4 @@
+import { isResort, resortInfo } from "@/lib/resort";
 /**
  * Home page content model.
  *
@@ -171,11 +172,11 @@ export function defaultHomeContent(siteSlug: string): HomeContent {
     return d;
   }
 
-  if (siteSlug === "spicebush") {
+  if (isResort(siteSlug)) {
     // The hero photograph from spicebushatseapines.com, used as the hero
     // background. The copy and both CTAs stay as they were — Zoe wants only
     // the background image and the logo carried over [zoe, 2026-09-16].
-    d.hero.images = ["/brand/spicebush/hero.jpg"];
+    d.hero.images = [`${resortInfo(siteSlug).assets}/hero.jpg`];
     return d;
   }
 

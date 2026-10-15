@@ -2,6 +2,8 @@ import { httpRouter } from "convex/server";
 import { auth } from "./auth";
 import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
+import { landingPagesFor } from "./seoLandingData";
+import { propertyCanonicalOverride } from "./seoShared";
 
 const http = httpRouter();
 
@@ -39,10 +41,23 @@ http.route({
       { loc: base + "/", priority: "1.0" },
       { loc: base + "/search", priority: "0.8" },
     ];
+    // Code-routed (non-CMS) SEO pages on the resort sites [scott: SEO pages in sitemap].
+    const resortSite = siteSlug === "spicebush" || siteSlug === "swallowtail";
+    if (resortSite) {
+      urls.push({ loc: `${base}/own-at-${siteSlug}`, priority: "0.8" });
+      urls.push({ loc: base + "/things-to-do", priority: "0.7" });
+      urls.push({ loc: base + "/resources", priority: "0.7" });
+    }
+    // Code-routed SEO landing pages [scott, 2026-10-08].
+    for (const lp of landingPagesFor(siteSlug)) {
+      urls.push({ loc: `${base}/${lp.slug}`, priority: lp.group === "rentals" ? "0.9" : "0.8" });
+    }
     for (const c of data.communities) {
       urls.push({ loc: `${base}/community/${c.slug}`, priority: "0.7" });
     }
     for (const p of data.properties) {
+      // A villa canonicalized to its resort site is not this site's URL.
+      if (propertyCanonicalOverride(siteSlug, p.communitySlug, p.slug)) continue;
       urls.push({
         loc: `${base}/property/${p.slug}`,
         lastmod: iso(p.updatedAt),
@@ -52,12 +67,15 @@ http.route({
     for (const p of data.pages) {
       urls.push({ loc: `${base}/${p.slug}`, lastmod: iso(p.updatedAt), priority: "0.7" });
     }
+    // Resort sites serve their blog at /articles (blogPaths.ts); /blog there
+    // is only an alias, so the sitemap must list the canonical path.
+    const blogBase = resortSite ? "/articles" : "/blog";
     if (data.posts.length > 0) {
-      urls.push({ loc: base + "/blog", priority: "0.6" });
+      urls.push({ loc: base + blogBase, priority: "0.6" });
     }
     for (const p of data.posts) {
       urls.push({
-        loc: `${base}/blog/${p.slug}`,
+        loc: `${base}${blogBase}/${p.slug}`,
         lastmod: iso(p.updatedAt),
         priority: "0.5",
       });
@@ -176,7 +194,15 @@ http.route({
         ? `    <link rel="canonical" href="${htmlEscape(m.canonical)}" />\n`
         : "");
 
-    const body = m.body.map((p) => `      <p>${htmlEscape(p)}</p>`).join("\n");
+    const body =
+      m.body.map((p) => `      <p>${htmlEscape(p)}</p>`).join("\n") +
+      (m.sections ?? [])
+        .map(
+          (sec) =>
+            `\n      <h2>${htmlEscape(sec.h2)}</h2>\n` +
+            sec.paragraphs.map((p) => `      <p>${htmlEscape(p)}</p>`).join("\n")
+        )
+        .join("");
 
     const html =
       "<!doctype html>\n" +

@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Quicksand:wght@400;500;600&family=Cinzel:wght@400;500;600&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -25,12 +24,12 @@
  * before first paint, so this needs no JS and cannot flash. Cinzel is a
  * capitals-forward face, so it carries the old site's slight tracking.
  */
-html[data-site="spicebush"] {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) {
   --font-display: "Cinzel", ui-serif, Georgia, serif;
 }
-html[data-site="spicebush"] h1,
-html[data-site="spicebush"] h2,
-html[data-site="spicebush"] h3 {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) h1,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) h2,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) h3 {
   letter-spacing: 0.02em;
 }
 
@@ -42,8 +41,8 @@ html[data-site="spicebush"] h3 {
  * Scoped to <a>/<button> so badges and pills carrying .bg-primary are
  * untouched, and it beats Tailwind's own hover utilities on specificity.
  */
-html[data-site="spicebush"] a.bg-primary,
-html[data-site="spicebush"] button.bg-primary {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) a.bg-primary,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) button.bg-primary {
   background-color: #891f11;
   color: #fff;
   border-radius: 2px;
@@ -54,14 +53,14 @@ html[data-site="spicebush"] button.bg-primary {
   font-weight: 500;
   letter-spacing: 2px;
 }
-html[data-site="spicebush"] a.bg-primary:hover,
-html[data-site="spicebush"] button.bg-primary:hover {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) a.bg-primary:hover,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) button.bg-primary:hover {
   background-color: #6d190e;
 }
 /* The outlined companion button keeps its white border but takes the same
    silhouette and lettering. */
-html[data-site="spicebush"] a.border-white,
-html[data-site="spicebush"] button.border-white {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) a.border-white,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) button.border-white {
   /* Filled with a deeper cut of the site's own teal-blue, so it reads as the
      companion to the maroon button [zoe, 2026-09-16]. */
   background-color: oklch(0.3 0.07 220);
@@ -86,8 +85,8 @@ html[data-site="spicebush"] button.border-white {
   font-weight: 500;
   letter-spacing: 2px;
 }
-html[data-site="spicebush"] a.border-white:hover,
-html[data-site="spicebush"] button.border-white:hover {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) a.border-white:hover,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) button.border-white:hover {
   background-color: oklch(0.25 0.06 220);
   color: #fff;
 }
@@ -97,13 +96,17 @@ html[data-site="spicebush"] button.border-white:hover {
  * The blue wood bar lives in the top of the image itself, so anchoring to the
  * top edge is what keeps it [zoe, 2026-09-16].
  */
-html[data-site="spicebush"] .sb-sand-section {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-sand-section {
   background-image: url("/brand/spicebush/sand.jpg");
   background-size: cover;
   background-position: 50% 0%;
   background-repeat: no-repeat;
   /* Old site puts 120px between the section top and the heading [zoe, 2026-09-16]. */
   padding-top: 7.5rem;
+}
+/* Swallowtail: its own copy of the sand + blue-wood photo from swallowtailatseapines.com. */
+html[data-site="swallowtail"] .sb-sand-section {
+  background-image: url("/brand/swallowtail/sand.jpg");
 }
 
 /*
@@ -133,7 +136,7 @@ html[data-site="spicebush"] .sb-sand-section {
  * much larger than the app default [zoe, 2026-09-16]. The photo is dark enough
  * on its own, so no scrim, but a matching background-color covers tall footers.
  */
-html[data-site="spicebush"] .sb-footer {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer {
   background-color: #2b2320;
   /* The photo ships mirrored so the shells cluster on the right, away from the
      logo column, and a warm dark wash sits on top for legibility [zoe, 2026-09-16]. */
@@ -144,13 +147,21 @@ html[data-site="spicebush"] .sb-footer {
   background-position: 50% 50%;
   background-repeat: no-repeat;
 }
+/* Swallowtail footer: the old site's blue-wood-and-sand photo under a cool
+   dark wash (its own old site used a 35% charcoal wash) [scott, 2026-10-08]. */
+html[data-site="swallowtail"] .sb-footer {
+  background-color: #1c2733;
+  background-image:
+    linear-gradient(rgba(18, 28, 40, 0.6), rgba(18, 28, 40, 0.6)),
+    url("/brand/swallowtail/footer.jpg");
+}
 
 /*
  * The referral line becomes its own maroon band, like the old site's copyright
  * bar [zoe, 2026-09-16]. Full-bleed out of the footer container with the
  * 50vw margin trick; the footer clips overflow so no horizontal scroll.
  */
-html[data-site="spicebush"] .sb-footer :is(.sb-referral, .sb-copyright) {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer :is(.sb-referral, .sb-copyright) {
   background-color: #891f11;
   color: #fff;
   margin-left: calc(50% - 50vw);
@@ -159,14 +170,14 @@ html[data-site="spicebush"] .sb-footer :is(.sb-referral, .sb-copyright) {
 
 /* One continuous band: the referral pads the top, the copyright the bottom, and
    the space-y gap between them is zeroed out [zoe, 2026-09-16]. */
-html[data-site="spicebush"] .sb-footer .sb-referral {
-  padding: 1rem 1.5rem 0.4rem;
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer .sb-referral {
+  padding: 1.75rem 1.5rem 0.9rem;
   /* space-y-3 puts its 12px on this element's margin-bottom, not the sibling's top. */
   margin-bottom: 0 !important;
   margin-block-end: 0 !important;
 }
 
-html[data-site="spicebush"] .sb-footer .sb-copyright {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer .sb-copyright {
   /* Beats Tailwind's space-y margin, and the negative bottom margin eats the
      footer container's py-12 so the band reaches the very bottom edge. */
   /* Tailwind v4 space-y sets the logical margin-block-start, so zero that too. */
@@ -177,23 +188,23 @@ html[data-site="spicebush"] .sb-footer .sb-copyright {
   color: rgba(255, 255, 255, 0.75);
 }
 
-html[data-site="spicebush"] .sb-footer .sb-referral a {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer .sb-referral a {
   color: #fff;
 }
 
-html[data-site="spicebush"] .sb-footer {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer {
   overflow-x: hidden;
 }
 
-html[data-site="spicebush"] .sb-footer img {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer img {
   height: 118px;
 }
 
-html[data-site="spicebush"] .sb-closing :is(h2, p) {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-closing :is(h2, p) {
   color: #222;
 }
 
-html[data-site="spicebush"] .sb-closing a.bg-white {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-closing a.bg-white {
   background-color: #891f11;
   color: #fff;
   border-radius: 2px;
@@ -205,13 +216,13 @@ html[data-site="spicebush"] .sb-closing a.bg-white {
   letter-spacing: 2px;
 }
 
-html[data-site="spicebush"] .sb-closing a.bg-white:hover {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-closing a.bg-white:hover {
   background-color: #6d190e;
   color: #fff;
 }
 
 /* Same highlight-stripe trick as the hero's companion button. */
-html[data-site="spicebush"] .sb-closing a.border-2 {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-closing a.border-2 {
   background-color: oklch(0.3 0.07 220);
   color: #fff;
   border-color: transparent;
@@ -227,12 +238,12 @@ html[data-site="spicebush"] .sb-closing a.border-2 {
   letter-spacing: 2px;
 }
 
-html[data-site="spicebush"] .sb-closing a.border-2:hover {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-closing a.border-2:hover {
   background-color: oklch(0.25 0.06 220);
   color: #fff;
 }
 
-html[data-site="spicebush"] .sb-golf-section {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-golf-section {
   background-color: #1c2a20;
 }
 
@@ -245,14 +256,14 @@ html[data-site="spicebush"] .sb-golf-section {
  * simply scrolls, anchored to the top so nothing important is cropped.
  */
 @media (min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  html[data-site="spicebush"] .sb-parallax {
+  html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-parallax {
     background-attachment: fixed;
   }
 }
 
 /* Only the section's own header copy (h2 plus its subheading), never text inside
    the cards it contains: the property cards are white and lost their price line. */
-html[data-site="spicebush"] .sb-golf-section :is(h2, h2 + p) {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-golf-section :is(h2, h2 + p) {
   color: #fff;
 }
 
@@ -261,32 +272,32 @@ html[data-site="spicebush"] .sb-golf-section :is(h2, h2 + p) {
  * Communities cards, which were semi-opaque panels over the photo rather than
  * solid white. Done in CSS so PropertyCard stays shared across the four sites.
  */
-html[data-site="spicebush"] .sb-golf-section a.bg-card {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-golf-section a.bg-card {
   background-color: rgba(18, 28, 22, 0.55);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border-color: rgba(255, 255, 255, 0.35);
 }
 
-html[data-site="spicebush"] .sb-golf-section a.bg-card:hover {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-golf-section a.bg-card:hover {
   background-color: rgba(18, 28, 22, 0.68);
   border-color: rgba(255, 255, 255, 0.55);
 }
 
-html[data-site="spicebush"] .sb-golf-section a.bg-card :is(h3, p, span) {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-golf-section a.bg-card :is(h3, p, span) {
   color: #fff;
 }
 
 /* The secondary lines keep their hierarchy by opacity instead of gray. */
-html[data-site="spicebush"] .sb-golf-section a.bg-card :is(p, span) {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-golf-section a.bg-card :is(p, span) {
   opacity: 0.82;
 }
 
-html[data-site="spicebush"] .sb-golf-section a[href="/search"] {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-golf-section a[href="/search"] {
   color: #fff;
 }
 
-html[data-site="spicebush"] :is(h1, h2, h3, h4, h5, h6) {
+html:is([data-site="spicebush"], [data-site="swallowtail"]) :is(h1, h2, h3, h4, h5, h6) {
   font-weight: 500;
 }
 
@@ -401,3 +412,232 @@ html {
 }
 
 /* Fonts imported at top of file */
+
+/* Spicebush footer contact lines, styled like the old site: Cinzel, tracked,
+   white, dot-separated [zoe, 2026-09-30]. */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer-contact p {
+  font-family: "Cinzel", ui-serif, Georgia, serif;
+  font-size: 1.125rem;
+  letter-spacing: 2px;
+  color: #fff;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer-contact a {
+  color: #fff;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer-contact a:hover,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer .sb-copyright a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer .sb-dot {
+  display: inline-block;
+  margin: 0 0.75em;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer .sb-copyright a {
+  color: #fff;
+}
+
+/* Spicebush search page: plain light gray. Zoe tried the sand-and-wood band
+   (public/brand/spicebush/sand-top.webp) and preferred flat gray [zoe, 2026-09-30]. */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-sand-top {
+  background-color: #efefef;
+}
+
+/* Filter chips (amenities, bedrooms): a selected chip keeps the plain chip look
+   instead of turning into the maroon Cinzel CTA button; it just goes a shade
+   darker gray than the hover state [zoe, 2026-09-30]. */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) button.sb-chip.bg-primary,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) button.sb-chip.bg-primary:hover {
+  background-color: #d9d7d3;
+  background-image: none;
+  color: var(--foreground);
+  border-color: #b9b5ae;
+  box-shadow: none;
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+  border-radius: var(--radius-lg, 0.5rem);
+}
+
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-buy-icon { display: none; }
+
+/* Articles (index + post) headings in Cinzel 500 like the rest of Spicebush
+   [zoe, 2026-10-01]. */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-articles h1,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-articles h2,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-articles h3 {
+  font-family: "Cinzel", ui-serif, Georgia, serif;
+  font-weight: 500;
+}
+
+/* Article-end CTA sits on the old site's open beach photo (2500px source), kept
+   light and airy with a pale wash and dark type so it does not feel heavy next
+   to the dark footer [zoe, 2026-10-01; fire pit and lighthouse tried first]. */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-article-cta {
+  background-image:
+    /* Light wash + dark type, chosen over brown and navy dark trials, which
+       ran into the dark footer [zoe, 2026-10-01]. */
+    linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)),
+    url("/brand/spicebush/beach-cta.webp");
+  background-size: cover;
+  /* Anchor raised from 72% so the horizon sits well inside the band with sky
+     above it, plus a whiter wash (0.45 -> 0.7) [zoe, 2026-10-09]. */
+  background-position: 50% 65%;
+  padding-top: 7rem;
+  padding-bottom: 7rem;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-article-cta :is(h2, p) {
+  color: #222;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-article-cta h2 {
+  margin-top: 0;
+}
+
+/* Resource Guides page [zoe, 2026-10-01]: the site's maroon button (same
+   highlight + shadow as the closing CTA) for <button> and <a> alike. */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-btn-maroon {
+  align-items: center;
+  justify-content: center;
+  background-color: #891f11;
+  color: #fff;
+  border-radius: 2px;
+  box-shadow:
+    inset 0 1px 0 0 #fff,
+    1.8px 3.6px 3.6px 2.7px rgba(0, 0, 0, 0.3);
+  font-family: "Cinzel", ui-serif, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: 2px;
+  transition: background-color 0.15s;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-btn-maroon:hover {
+  background-color: #6d190e;
+  color: #fff;
+}
+
+/* E-book form submit (LeadWorks Connect lw-form.js) styled like the site's maroon buttons [zoe, 2026-10-01] */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .lw-form-embed .lw-form .lw-submit {
+  background-color: #891f11 !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 2px !important;
+  box-shadow:
+    inset 0 1px 0 0 #fff,
+    1.8px 3.6px 3.6px 2.7px rgba(0, 0, 0, 0.3) !important;
+  font-family: "Cinzel", ui-serif, Georgia, serif !important;
+  font-weight: 500 !important;
+  font-size: 1rem !important;
+  letter-spacing: 2px !important;
+  transition: background-color 0.15s;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .lw-form-embed .lw-form .lw-submit:hover {
+  background-color: #6d190e !important;
+}
+
+/* Contact panel submit: blue site button, directly under the last field [zoe, 2026-10-01] */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .contact-submit {
+  margin-top: 0.5rem;
+  background-color: oklch(0.3 0.07 220);
+  color: #fff;
+  border-radius: 2px;
+  box-shadow:
+    inset 0 1px 0 0 #fff,
+    1.8px 3.6px 3.6px 2.7px rgba(0, 0, 0, 0.3);
+  font-family: "Cinzel", ui-serif, Georgia, serif !important;
+  font-weight: 500 !important;
+  font-size: 1rem !important;
+  letter-spacing: 2px;
+  transition: background-color 0.15s;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .contact-submit:hover {
+  background-color: oklch(0.25 0.06 220);
+  opacity: 1;
+}
+
+/* Things to Do card titles are Brushine script (old site), not Cinzel [zoe, 2026-10-01] */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-things h3 {
+  font-family: Brushine, cursive;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+/* Header nav grew to 7 items (Things to Do) [zoe, 2026-10-01]: keep labels on one line */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) header nav a,
+html:is([data-site="spicebush"], [data-site="swallowtail"]) header nav button {
+  white-space: nowrap;
+}
+/* Desktop only: the mobile menu keeps its normal 1rem inset so every row lines up. */
+@media (min-width: 1280px) {
+  html:is([data-site="spicebush"], [data-site="swallowtail"]) header nav > a {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-things h3 {
+  font-size: 2.75rem;
+}
+
+/* Things to Do intro band: Zoe's sand+wood PNG (fades to transparent at the
+   bottom) at full width over a sand-to-#efefef gradient, so it flows into the
+   grey card section below without stretching the photo [zoe, 2026-10-01]. */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-sand-fade {
+  /* Top layer: a long wash into #efefef so the sand always fades out fully
+     inside the section, whatever its height (desktop cut it off) [zoe, 2026-10-01]. */
+  background-image:
+    linear-gradient(rgba(239,239,239,0) 0%, rgba(239,239,239,0) 30%, rgba(239,239,239,0.75) 70%, #efefef 100%),
+    url("/brand/spicebush/sand-top.webp"),
+    linear-gradient(#e5e5e5, #efefef);
+  background-size: 100% 100%, 100% auto, 100% 100%;
+  background-position: 0 0, 50% 0%, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-color: #efefef;
+  padding-top: max(7.5rem, 3.6vw + 4rem);
+}
+
+/* Own at Spicebush page [zoe, 2026-10-01]: the hero's blue companion button is a
+   <button> (opens the contact panel), so it needs the same blue styling the
+   `.sb-closing a.border-2` rule gives links. */
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-own .sb-own-blue {
+  background-color: oklch(0.3 0.07 220);
+  color: #fff;
+  border-color: transparent;
+  background-image: linear-gradient(#fff, #fff);
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  background-position: left top;
+  background-origin: border-box;
+  border-radius: 2px;
+  box-shadow: 1.8px 3.6px 3.6px 2.7px rgba(0, 0, 0, 0.3);
+  font-family: "Cinzel", ui-serif, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-own .sb-own-blue:hover {
+  background-color: oklch(0.25 0.06 220);
+}
+html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-own .sb-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+/* E-book drawer: one form field per line below desktop (tablet + phone) [zoe, 2026-10-02] */
+@media (max-width: 1279px) {
+  html:is([data-site="spicebush"], [data-site="swallowtail"]) [role="dialog"] .lw-form-embed .lw-form .lw-form-field.lw-half {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Mobile: scale the sand+wood PNG up so its blue wood bar matches the
+   thickness of the Explore Sea Pines band (cover renders that photo ~1300px
+   wide on phones) [zoe, 2026-10-02]. */
+@media (max-width: 639px) {
+  html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-sand-fade {
+    background-size: 100% 100%, 1300px auto, 100% 100%;
+  }
+  /* Same for the cover-sized sand band (Ready to Own block was ~850px wide):
+     never shorter than 1300px-wide-equivalent (1600x1000 photo). */
+  html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-sand-section:not(.sb-article-cta) {
+    background-size: auto max(100%, 812px);
+  }
+}

@@ -13,7 +13,7 @@ import { useSiteFlags } from "@/lib/siteContext";
  *   input      465x55, white, 16px, padding 11px 12px
  *   button     #014e6c, white, 16px/600, padding 13px 26px
  *   dark bar   #0c2b3e, Quicksand 400 14px/25.2px white
- *   badge      Airbnb Superhost, 200x83
+ *   badges     Airbnb Superhost 200x83 + Vrbo Premier Host 200x100, row
  *
  * Unlike the live site the newsletter form actually stores the signup
  * (per-site) rather than posting to a WordPress plugin.
@@ -119,13 +119,13 @@ export function HeritageFooter() {
       </div>
 
       {/* ── Dark bar ── */}
-      <div className="bg-[#0c2b3e] px-[30px] py-[10px]">
+      <div className="bg-[#0c2b3e] px-[30px] pt-[30px] pb-[10px]">
         <div className="max-w-7xl mx-auto">
           {/* Property-management referral, on all four sites
               [scott, 2026-09-15]. Heritage has its own footer component, so
               adding this to the shared Footer only covered three of them. */}
           <p
-            className="text-center text-[14px] leading-[25.2px] text-white/80 pb-1"
+            className="text-center text-[14px] leading-[25.2px] text-white/80 pb-3"
             style={{ fontFamily: "Quicksand, ui-sans-serif, system-ui, sans-serif", fontWeight: 400 }}
           >
             Looking for property management?{" "}
@@ -157,13 +157,23 @@ export function HeritageFooter() {
               LeadWorks
             </a>
           </p>
-          <div className="flex justify-center pt-2 pb-4">
+          {/* Badges row, matching heritagevacations.com: 200px-wide images,
+              top-aligned, 20px side margins each [zoe, 2026-10-09]. */}
+          <div className="flex flex-wrap justify-center items-start pt-2 pb-4">
             <img
               src="/brand/hv/airbnb-superhost-white.png"
-              alt="Airbnb Superhost"
+              alt="Airbnb Superhost badge"
               width={200}
               height={83}
-              className="h-[83px] w-[200px] object-contain"
+              className="mx-5 mb-5 md:mb-[10px] h-[83px] w-[200px] object-contain"
+              loading="lazy"
+            />
+            <img
+              src="/brand/hv/vrbo-premier-host.png"
+              alt="Vrbo Premier Host logo"
+              width={200}
+              height={100}
+              className="mx-5 mb-5 md:mb-[10px] h-[100px] w-[200px] object-contain"
               loading="lazy"
             />
           </div>

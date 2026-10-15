@@ -1,14 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSeo } from "@/lib/seo";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useSiteFlags } from "../lib/siteContext";
 import { MapPin, ArrowLeft, Home } from "lucide-react";
-import { IslandMap } from "@/components/map/IslandMap";
+import { IslandMap } from "@/components/map/IslandMapLazy";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { lockedModeFor } from "@/lib/siteCapabilities";
 import { SearchFilters } from "@/components/search/SearchFilters";
 import { computeFacets } from "@/lib/facets";
+import { isResort, resortInfo } from "@/lib/resort";
 
 export function CommunityPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -88,6 +90,12 @@ export function CommunityPage() {
     setAmenityMode("or");
   };
 
+  useSeo({
+    title: community?.name,
+    description: community?.shortDescription || undefined,
+    noindex: community === null,
+  });
+
   if (community === undefined) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -119,19 +127,23 @@ export function CommunityPage() {
     );
   }
 
+  const spicebushHero = isResort(siteSlug) ? `${resortInfo(siteSlug).assets}/community-hero.webp` : "";
+
   return (
     <div>
       {/* ── Hero ── */}
       <section className="relative h-64 sm:h-80 overflow-hidden bg-gradient-to-br from-primary/20 to-accent/10">
-        {community.heroImageUrl && (
+        {(spicebushHero || community.heroImageUrl) && (
           <img
-            src={community.heroImageUrl}
+            src={spicebushHero || community.heroImageUrl}
             alt={community.name}
             className="absolute inset-0 w-full h-full object-cover"
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+          {/* Spicebush shows no other communities, so no back link [zoe, 2026-10-02]. */}
+          {!spicebushHero && (
           <Link
             to="/"
             className="inline-flex items-center gap-1.5 text-white/70 text-sm hover:text-white transition-colors mb-3"
@@ -139,6 +151,7 @@ export function CommunityPage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             All Communities
           </Link>
+          )}
           <h1 className="text-3xl sm:text-4xl font-bold text-white font-[family-name:var(--font-display)]">
             {community.name}
           </h1>
@@ -175,9 +188,11 @@ export function CommunityPage() {
                   {community.amenities.map((a) => (
                     <span
                       key={a}
-                      className="px-3 py-1.5 bg-muted rounded-full text-xs font-medium text-muted-foreground"
+                      className={spicebushHero
+                        ? "text-sm text-gray-700 bg-[#efefef] border border-gray-200 rounded-full px-3 py-1"
+                        : "px-3 py-1.5 bg-muted rounded-full text-xs font-medium text-muted-foreground"}
                     >
-                      {a}
+                      {prettyAmenity(a)}
                     </span>
                   ))}
                 </div>
@@ -257,4 +272,15 @@ export function CommunityPage() {
       </div>
     </div>
   );
+}
+
+/** Community amenity keys are stored raw (e.g. "lagoon_views"); show them as words [zoe, 2026-10-02]. */
+const AMENITY_LABELS: Record<string, string> = {
+  near_beach_club: "Near Sea Pines Beach Club",
+  pool: "Community pool",
+};
+function prettyAmenity(key: string): string {
+  if (AMENITY_LABELS[key]) return AMENITY_LABELS[key];
+  const t = key.replace(/_/g, " ").trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }

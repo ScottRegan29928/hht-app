@@ -1,54 +1,61 @@
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "sonner";
 import { Header } from "./components/layout/Header";
 import { Footer } from "./components/layout/Footer";
 import { HomePage } from "./pages/HomePage";
-import { CommunityPage } from "./pages/CommunityPage";
-import { PropertyPage } from "./pages/PropertyPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { SearchPage } from "./pages/SearchPage";
-import { AdminLayout } from "./components/admin/AdminLayout";
-import { AdminLoginPage } from "./pages/admin/LoginPage";
-import { AdminDashboardPage } from "./pages/admin/DashboardPage";
-import { AdminPropertiesPage } from "./pages/admin/PropertiesPage";
-import { PropertyEditPage } from "./pages/admin/PropertyEditPage";
-import { AdminCommunitiesPage } from "./pages/admin/CommunitiesPage";
-import { AdminAmenitiesPage } from "./pages/admin/AmenitiesPage";
-import { AdminWeeksPage } from "./pages/admin/WeeksPage";
-import { AdminSaleRequestsPage } from "@/pages/admin/SaleRequestsPage";
-import { AdminInquiriesPage } from "./pages/admin/InquiriesPage";
-import { OwnerLayout } from "./components/owner/OwnerLayout";
-import { OwnerLoginPage } from "./pages/owner/LoginPage";
-import { OwnerDashboardPage } from "./pages/owner/DashboardPage";
-import { OwnerPropertiesPage } from "./pages/owner/PropertiesPage";
 // PropertyDetailPage removed — all week actions are inline on PropertiesPage
-import { OwnerInquiriesPage } from "./pages/owner/InquiriesPage";
-import { OwnerMarketplacePage } from "./pages/owner/MarketplacePage";
-import { OwnerMyListingsPage } from "./pages/owner/MyListingsPage";
-import { OwnerPaymentPage } from "./pages/owner/PaymentPage";
-import { OwnerDocumentsPage } from "./pages/owner/DocumentsPage";
-import { OwnerBoardPage } from "./pages/owner/BoardPage";
-import { OwnerResortInfoPage } from "./pages/owner/ResortInfoPage";
-import { OwnerCommentCardPage } from "./pages/owner/CommentCardPage";
-import { OwnerMaintenancePage } from "./pages/owner/MaintenancePage";
-import { OwnerAccountPage } from "./pages/owner/AccountPage";
-import { OwnerActivatePage } from "./pages/owner/ActivatePage";
-import { AccountPage } from "./pages/admin/AccountPage";
-import { OwnersPage } from "./pages/admin/OwnersPage";
-import { OwnerDetailPage } from "./pages/admin/OwnerDetailPage";
-import { UsersPage } from "./pages/admin/UsersPage";
-import { CheckoutPage } from "./pages/CheckoutPage";
-import { ContentPage } from "./pages/ContentPage";
-import { BlogIndexPage } from "./pages/BlogIndexPage";
-import { BlogPostPage } from "./pages/BlogPostPage";
-import { AdminPagesPage } from "./pages/admin/PagesPage";
-import { AdminPageEditPage } from "./pages/admin/PageEditPage";
-import { AdminBlogPage } from "./pages/admin/BlogPage";
-import { AdminBlogEditPage } from "./pages/admin/BlogEditPage";
-import { AdminSeoPage } from "./pages/admin/SeoPage";
-import { AdminStorePage } from "./pages/admin/StorePage";
-import { AdminOwnerPortalPage } from "./pages/admin/OwnerPortalPage";
+
+// Perf [2026-10-15]: every route except the home page is code-split so the
+// first paint only downloads what "/" needs (main bundle was 850 KB gz).
+const CommunityPage = lazy(() => import("./pages/CommunityPage").then((m) => ({ default: m.CommunityPage })));
+const PropertyPage = lazy(() => import("./pages/PropertyPage").then((m) => ({ default: m.PropertyPage })));
+const SearchPage = lazy(() => import("./pages/SearchPage").then((m) => ({ default: m.SearchPage })));
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout").then((m) => ({ default: m.AdminLayout })));
+const AdminLoginPage = lazy(() => import("./pages/admin/LoginPage").then((m) => ({ default: m.AdminLoginPage })));
+const AdminDashboardPage = lazy(() => import("./pages/admin/DashboardPage").then((m) => ({ default: m.AdminDashboardPage })));
+const AdminPropertiesPage = lazy(() => import("./pages/admin/PropertiesPage").then((m) => ({ default: m.AdminPropertiesPage })));
+const PropertyEditPage = lazy(() => import("./pages/admin/PropertyEditPage").then((m) => ({ default: m.PropertyEditPage })));
+const AdminCommunitiesPage = lazy(() => import("./pages/admin/CommunitiesPage").then((m) => ({ default: m.AdminCommunitiesPage })));
+const AdminAmenitiesPage = lazy(() => import("./pages/admin/AmenitiesPage").then((m) => ({ default: m.AdminAmenitiesPage })));
+const AdminPaymentsPage = lazy(() => import("./pages/admin/PaymentsPage").then((m) => ({ default: m.AdminPaymentsPage })));
+const AdminWeeksPage = lazy(() => import("./pages/admin/WeeksPage").then((m) => ({ default: m.AdminWeeksPage })));
+const AdminSaleRequestsPage = lazy(() => import("@/pages/admin/SaleRequestsPage").then((m) => ({ default: m.AdminSaleRequestsPage })));
+const AdminInquiriesPage = lazy(() => import("./pages/admin/InquiriesPage").then((m) => ({ default: m.AdminInquiriesPage })));
+const OwnerLayout = lazy(() => import("./components/owner/OwnerLayout").then((m) => ({ default: m.OwnerLayout })));
+const OwnerLoginPage = lazy(() => import("./pages/owner/LoginPage").then((m) => ({ default: m.OwnerLoginPage })));
+const OwnerDashboardPage = lazy(() => import("./pages/owner/DashboardPage").then((m) => ({ default: m.OwnerDashboardPage })));
+const OwnerPropertiesPage = lazy(() => import("./pages/owner/PropertiesPage").then((m) => ({ default: m.OwnerPropertiesPage })));
+const OwnerInquiriesPage = lazy(() => import("./pages/owner/InquiriesPage").then((m) => ({ default: m.OwnerInquiriesPage })));
+const OwnerMarketplacePage = lazy(() => import("./pages/owner/MarketplacePage").then((m) => ({ default: m.OwnerMarketplacePage })));
+const OwnerMyListingsPage = lazy(() => import("./pages/owner/MyListingsPage").then((m) => ({ default: m.OwnerMyListingsPage })));
+const OwnerPaymentPage = lazy(() => import("./pages/owner/PaymentPage").then((m) => ({ default: m.OwnerPaymentPage })));
+const OwnerDocumentsPage = lazy(() => import("./pages/owner/DocumentsPage").then((m) => ({ default: m.OwnerDocumentsPage })));
+const OwnerBoardPage = lazy(() => import("./pages/owner/BoardPage").then((m) => ({ default: m.OwnerBoardPage })));
+const OwnerResortInfoPage = lazy(() => import("./pages/owner/ResortInfoPage").then((m) => ({ default: m.OwnerResortInfoPage })));
+const OwnerCommentCardPage = lazy(() => import("./pages/owner/CommentCardPage").then((m) => ({ default: m.OwnerCommentCardPage })));
+const OwnerMaintenancePage = lazy(() => import("./pages/owner/MaintenancePage").then((m) => ({ default: m.OwnerMaintenancePage })));
+const OwnerAccountPage = lazy(() => import("./pages/owner/AccountPage").then((m) => ({ default: m.OwnerAccountPage })));
+const OwnerActivatePage = lazy(() => import("./pages/owner/ActivatePage").then((m) => ({ default: m.OwnerActivatePage })));
+const AccountPage = lazy(() => import("./pages/admin/AccountPage").then((m) => ({ default: m.AccountPage })));
+const OwnersPage = lazy(() => import("./pages/admin/OwnersPage").then((m) => ({ default: m.OwnersPage })));
+const OwnerDetailPage = lazy(() => import("./pages/admin/OwnerDetailPage").then((m) => ({ default: m.OwnerDetailPage })));
+const UsersPage = lazy(() => import("./pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })));
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage").then((m) => ({ default: m.CheckoutPage })));
+const ResourcesRoute = lazy(() => import("./pages/ResourcesPage"));
+const ThingsToDoRoute = lazy(() => import("./pages/ThingsToDoPage"));
+const OwnRoute = lazy(() => import("./pages/OwnPage"));
+const SlugRoute = lazy(() => import("./pages/SeoLandingPage"));
+const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage").then((m) => ({ default: m.BlogIndexPage })));
+const BlogPostPage = lazy(() => import("./pages/BlogPostPage").then((m) => ({ default: m.BlogPostPage })));
+const AdminPagesPage = lazy(() => import("./pages/admin/PagesPage").then((m) => ({ default: m.AdminPagesPage })));
+const AdminPageEditPage = lazy(() => import("./pages/admin/PageEditPage").then((m) => ({ default: m.AdminPageEditPage })));
+const AdminBlogPage = lazy(() => import("./pages/admin/BlogPage").then((m) => ({ default: m.AdminBlogPage })));
+const AdminBlogEditPage = lazy(() => import("./pages/admin/BlogEditPage").then((m) => ({ default: m.AdminBlogEditPage })));
+const AdminSeoPage = lazy(() => import("./pages/admin/SeoPage").then((m) => ({ default: m.AdminSeoPage })));
+const AdminStorePage = lazy(() => import("./pages/admin/StorePage").then((m) => ({ default: m.AdminStorePage })));
+const AdminOwnerPortalPage = lazy(() => import("./pages/admin/OwnerPortalPage").then((m) => ({ default: m.AdminOwnerPortalPage })));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -73,6 +80,7 @@ export default function App() {
     return (
       <>
         <ScrollToTop />
+        <Suspense fallback={null}>
         <Routes>
           {/* Admin sign-in lives at /adminlogin [scott, 2026-09-10]; the old
               path is kept as a redirect so saved links keep working. */}
@@ -87,6 +95,7 @@ export default function App() {
             <Route path="properties/:id" element={<PropertyEditPage />} />
             <Route path="communities" element={<AdminCommunitiesPage />} />
             <Route path="amenities" element={<AdminAmenitiesPage />} />
+            <Route path="payments" element={<AdminPaymentsPage />} />
             <Route path="weeks" element={<AdminWeeksPage />} />
             <Route path="inquiries" element={<AdminInquiriesPage />} />
             <Route path="sale-requests" element={<AdminSaleRequestsPage />} />
@@ -105,6 +114,7 @@ export default function App() {
             <Route path="account" element={<AccountPage />} />
           </Route>
         </Routes>
+        </Suspense>
         <Toaster position="bottom-right" richColors />
       </>
     );
@@ -114,6 +124,7 @@ export default function App() {
     return (
       <>
         <ScrollToTop />
+        <Suspense fallback={null}>
         <Routes>
           {/* Owner sign-in lives at /ownerlogin [scott, 2026-09-11], matching
               /adminlogin. The old path stays as a redirect so links already in
@@ -141,6 +152,7 @@ export default function App() {
             <Route path="account" element={<OwnerAccountPage />} />
           </Route>
         </Routes>
+        </Suspense>
         <Toaster position="bottom-right" richColors />
       </>
     );
@@ -151,6 +163,7 @@ export default function App() {
       <ScrollToTop />
       <Header />
       <main className="flex-1">
+        <Suspense fallback={<div className="min-h-screen" />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/community/:slug" element={<CommunityPage />} />
@@ -166,11 +179,21 @@ export default function App() {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/blog" element={<BlogIndexPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/articles" element={<BlogIndexPage />} />
+          <Route path="/articles/:slug" element={<BlogPostPage />} />
+          {/* Spicebush Resource Guides; other sites fall through to ContentPage. */}
+          <Route path="/resources" element={<ResourcesRoute />} />
+          {/* Spicebush Things to Do; other sites fall through to ContentPage. */}
+          <Route path="/things-to-do" element={<ThingsToDoRoute />} />
+          <Route path="/own-at-spicebush" element={<OwnRoute />} />
+          <Route path="/own-at-swallowtail" element={<OwnRoute />} />
           {/* Catch-all for admin-authored content pages. MUST stay last —
               it shadows any route declared after it, and it also serves
-              as the site's 404. */}
-          <Route path="/:slug" element={<ContentPage />} />
+              as the site's 404. Code-routed SEO landing pages
+              (convex/seoLandingData.ts) resolve here first. */}
+          <Route path="/:slug" element={<SlugRoute />} />
         </Routes>
+        </Suspense>
       </main>
       <Footer />
       <Toaster position="bottom-right" richColors />

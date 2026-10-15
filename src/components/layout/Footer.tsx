@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
+import { blogBase } from "../../lib/blogPaths";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
 import { currentHostname, linkForMode } from "@/lib/siteCapabilities";
 import { HeritageFooter } from "./HeritageFooter";
+import { isResort, resortInfo } from "@/lib/resort";
 
 export function Footer() {
   const { siteSlug } = useSiteFlags();
@@ -28,11 +30,19 @@ function SharedFooter() {
     <footer
       className={[
         "text-primary-foreground/80",
-        siteSlug === "spicebush" ? "sb-footer" : "bg-foreground",
+        isResort(siteSlug) ? "sb-footer" : "bg-foreground",
       ].join(" ")}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div
+          className={[
+            "grid grid-cols-1 gap-10",
+            // Spicebush's Contact column holds two sub-columns, so it gets more room.
+            isResort(siteSlug)
+              ? "md:grid-cols-[1fr_0.7fr_1.5fr]"
+              : "md:grid-cols-3",
+          ].join(" ")}
+        >
           {/* Brand */}
           <div>
             {brand.logo ? (
@@ -113,10 +123,30 @@ function SharedFooter() {
               {hasPosts && (
                 <li>
                   <Link
-                    to="/blog"
+                    to={blogBase(siteSlug)}
                     className="text-sm hover:text-primary-foreground transition-colors"
                   >
-                    News &amp; Guides
+                    {isResort(siteSlug) ? "Articles" : "News & Guides"}
+                  </Link>
+                </li>
+              )}
+              {isResort(siteSlug) && (
+                <li>
+                  <Link
+                    to="/things-to-do"
+                    className="text-sm hover:text-primary-foreground transition-colors"
+                  >
+                    Things to Do
+                  </Link>
+                </li>
+              )}
+              {isResort(siteSlug) && (
+                <li>
+                  <Link
+                    to="/resources"
+                    className="text-sm hover:text-primary-foreground transition-colors"
+                  >
+                    Resource Guides
                   </Link>
                 </li>
               )}
@@ -128,6 +158,13 @@ function SharedFooter() {
             <h3 className="text-sm font-semibold uppercase tracking-wider text-primary-foreground/40 mb-4">
               Contact
             </h3>
+            <div
+              className={
+                isResort(siteSlug)
+                  ? "grid grid-cols-1 sm:grid-cols-[auto_auto] sm:justify-start gap-x-12 gap-y-3"
+                  : undefined
+              }
+            >
             <ul className="space-y-3">
               <li className="flex items-start gap-2.5">
                 <Mail className="w-4 h-4 mt-0.5 shrink-0 text-primary-foreground/40" />
@@ -144,7 +181,7 @@ function SharedFooter() {
                 </div>
               </li>
               <li className="flex items-start gap-2.5">
-                <Phone className="w-4 h-4 mt-0.5 shrink-0 text-primary-foreground/40" />
+                <Mail className="w-4 h-4 mt-0.5 shrink-0 text-primary-foreground/40" />
                 <div>
                   <p className="text-xs text-primary-foreground/40">
                     Rental Inquiries
@@ -158,6 +195,31 @@ function SharedFooter() {
                 </div>
               </li>
             </ul>
+            {/* Spicebush: the old site's footer contact lines as a second
+                Contact column [zoe, 2026-09-30]. */}
+            {isResort(siteSlug) && (
+              <ul className="sb-contact-col space-y-3 text-sm">
+                <li className="flex items-start gap-2.5">
+                  <Phone className="w-4 h-4 mt-0.5 shrink-0 text-primary-foreground/40" />
+                  <div className="flex flex-col">
+                    <a href="tel:+18433635699" className="hover:text-primary-foreground transition-colors">843.363.5699</a>
+                    <a href="tel:+18884127375" className="hover:text-primary-foreground transition-colors">888.412.7375</a>
+                  </div>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Mail className="w-4 h-4 mt-0.5 shrink-0 text-primary-foreground/40" />
+                  <a href={`mailto:${resortInfo(siteSlug).email}`} className="hover:text-primary-foreground transition-colors">{resortInfo(siteSlug).email}</a>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary-foreground/40" />
+                  <span className="flex flex-col">
+                    <span className="whitespace-nowrap">{resortInfo(siteSlug).street}</span>
+                    <span className="whitespace-nowrap">Hilton Head Island, SC 29928</span>
+                  </span>
+                </li>
+              </ul>
+            )}
+            </div>
           </div>
         </div>
 
@@ -176,10 +238,30 @@ function SharedFooter() {
               The Club Group manages Hilton Head properties
             </a>
           </p>
-          <p className="sb-copyright text-xs text-primary-foreground/40">
-            © {new Date().getFullYear()} {brand.legalName}. All rights
-            reserved.
-          </p>
+          {isResort(siteSlug) ? (
+            <p className="sb-copyright text-xs">
+              Copyright © 1990 – {new Date().getFullYear()}
+              <span className="sb-dot" aria-hidden="true">•</span>
+              {brand.legalName}
+              <span className="sb-dot" aria-hidden="true">•</span>
+              All Rights Reserved
+              <span className="sb-dot" aria-hidden="true">•</span>
+              Powered by{" "}
+              <a href="https://lead-works.com/" target="_blank" rel="noopener noreferrer">
+                LeadWorks
+              </a>
+              <span className="sb-dot" aria-hidden="true">•</span>
+              {/* Content pages copied from the old site [zoe, 2026-09-30]. */}
+              <Link to="/privacy-policy">Privacy Policy</Link>
+              <span className="sb-dot" aria-hidden="true">•</span>
+              <Link to="/terms-conditions">Terms &amp; Conditions</Link>
+            </p>
+          ) : (
+            <p className="sb-copyright text-xs text-primary-foreground/40">
+              © {new Date().getFullYear()} {brand.legalName}. All rights
+              reserved.
+            </p>
+          )}
         </div>
       </div>
     </footer>

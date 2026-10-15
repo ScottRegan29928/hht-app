@@ -1,6 +1,13 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { landingFor } from "./seoLandingData";
+import {
+  propertySeo,
+  propertyCanonicalOverride,
+  searchTitle,
+  searchDescription,
+} from "./seoShared";
 
 // ── Prerender metadata resolver ──
 //
@@ -28,7 +35,11 @@ function clean(s: string | undefined | null): string | undefined {
   const stripped = s
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/[#*_`>|-]/g, " ")
+    // Strip markdown block markers at line starts and emphasis marks only.
+    // ⚠ Never strip "-" or "|" mid-text: that turned "Two-story" into
+    // "Two story" and ate the "|" in admin-set titles [audit, 2026-10-08].
+    .replace(/^\s{0,3}(#{1,6}\s|>\s?|[-*+]\s|\d+\.\s)/gm, "")
+    .replace(/[*_`]/g, "")
     .replace(/\s+/g, " ")
     .trim();
   if (!stripped) return undefined;
@@ -49,6 +60,8 @@ export type PrerenderMeta = {
   /** Visible content for the crawler's document body. */
   heading: string;
   body: string[];
+  /** Optional H2 sections (SEO landing pages carry their full copy). */
+  sections?: Array<{ h2: string; paragraphs: string[] }>;
   status: number;
 };
 
@@ -65,6 +78,9 @@ export const metaForPath = query({
     publishedTime: v.optional(v.string()),
     heading: v.string(),
     body: v.array(v.string()),
+    sections: v.optional(
+      v.array(v.object({ h2: v.string(), paragraphs: v.array(v.string()) }))
+    ),
     status: v.number(),
   }),
   handler: async (ctx, args): Promise<PrerenderMeta> => {
@@ -87,7 +103,9 @@ export const metaForPath = query({
       domain ? `https://${domain}${p === "/" ? "/" : p}` : undefined;
 
     const withSuffix = (t: string) =>
-      t === siteName || t.endsWith(suffix.trim()) ? t : t + suffix;
+      // A title already naming the site (imported Yoast titles end in
+      // "» Site Name") must not get a second suffix.
+      t.includes(siteName) || t.endsWith(suffix.trim()) ? t : t + suffix;
 
     const base = {
       siteName,
@@ -153,19 +171,19 @@ export const metaForPath = query({
     }
 
     if (seg[0] === "search") {
+      const t = searchTitle(args.siteSlug, siteName);
+      const d = searchDescription(args.siteSlug, siteName);
       return {
         ...base,
-        title: withSuffix("Search Properties"),
-        description:
-          clean(defaults?.metaDescription) ??
-          `Search available villas and weeks at ${siteName}.`,
-        heading: "Search Properties",
-        body: [`Search available villas and weeks at ${siteName}.`],
+        title: withSuffix(t),
+        description: d,
+        heading: t,
+        body: [d],
       };
     }
 
     // ── Blog index ──
-    if (seg[0] === "blog" && seg.length === 1) {
+    if ((seg[0] === "blog" || seg[0] === "articles") && seg.length === 1) {
       const desc = `Rental tips, island guides and community news from ${siteName}.`;
       return {
         ...base,
@@ -177,7 +195,7 @@ export const metaForPath = query({
     }
 
     // ── Blog post ──
-    if (seg[0] === "blog" && seg.length === 2) {
+    if ((seg[0] === "blog" || seg[0] === "articles") && seg.length === 2) {
       const post = await ctx.db
         .query("blogPosts")
         .withIndex("by_site_slug", (q) =>
@@ -242,6 +260,7 @@ export const metaForPath = query({
         return notFound();
       }
       const community = await ctx.db.get(property.communityId);
+      const pSeo = propertySeo(property, community?.name, args.siteSlug);
       const bits = [
         `${property.bedrooms} bedroom`,
         `${property.bathrooms} bath`,
@@ -272,13 +291,82 @@ export const metaForPath = query({
 
       return {
         ...base,
-        title: withSuffix(property.address),
-        description: clean(property.description) ?? summary,
+        title: withSuffix(pSeo.title),
+        description: pSeo.description,
+        canonical:
+          propertyCanonicalOverride(args.siteSlug, community?.slug, property.slug) ??
+          base.canonical,
         image: image ?? base.image,
         heading: property.address,
         body: [summary, clean(property.description)].filter(
           (x): x is string => !!x
         ),
+      };
+    }
+
+    // ── Code-routed SEO landing page (same copy the React page renders) ──
+    if (seg.length === 1) {
+      const lp = landingFor(args.siteSlug, seg[0]);
+      if (lp) {
+        const strip = (t: string) => t.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
+        return {
+          ...base,
+          title: withSuffix(lp.metaTitle),
+          description: lp.metaDescription,
+          image: domain ? `https://${domain}${lp.heroImage}` : base.image,
+          heading: lp.h1,
+          body: [strip(lp.intro)],
+          sections: [
+            ...lp.sections.map((s) => ({
+              h2: s.h2,
+              paragraphs: [...s.paragraphs, ...(s.bullets ?? [])].map(strip),
+            })),
+            {
+              h2: "Frequently Asked Questions",
+              paragraphs: lp.faqs.map((f) => `${f.q} ${strip(f.a)}`),
+            },
+          ],
+        };
+      }
+    }
+
+    // ── Code-routed resort pages (own / things-to-do / resources) ──
+    // These have their own React pages; describe them rather than 404 them.
+    if (
+      seg.length === 1 &&
+      (args.siteSlug === "swallowtail" || args.siteSlug === "spicebush") &&
+      [`own-at-${args.siteSlug}`, "things-to-do", "resources"].includes(seg[0])
+    ) {
+      // Mirrors the useSeo() calls in OwnPage / ThingsToDoPage / ResourcesPage.
+      const short = siteName.replace(/ at Sea Pines$/, "");
+      const own = {
+        title: `Own a Timeshare Week at ${siteName}, Hilton Head`,
+        description:
+          args.siteSlug === "swallowtail"
+            ? "Own your week at Swallowtail at Sea Pines on Hilton Head Island. Two-story, two-bedroom villas on the Heron Point course, across from The Shops at Sea Pines Center, with RCI exchange and an owner portal."
+            : "Own your week at Spicebush at Sea Pines on Hilton Head Island. Two bedroom villas near the beach, golf, and Harbour Town, with RCI exchange, predictable costs, and an owner portal.",
+        heading: `Why Own at ${short}`,
+      };
+      const pages: Record<string, { title: string; description: string; heading: string }> = {
+        [`own-at-${args.siteSlug}`]: own,
+        "things-to-do": {
+          title: "Things to Do in Sea Pines, Hilton Head",
+          description: `Beaches, water sports, golf, tennis, dining, shopping, and sightseeing, all within 2 miles of ${siteName} on Hilton Head Island.`,
+          heading: "So Much to See & Do",
+        },
+        resources: {
+          title: "Hilton Head Vacation & Timeshare Guides",
+          description: `Free Hilton Head vacation and timeshare ownership guides from ${siteName}.`,
+          heading: "Resource Guides",
+        },
+      };
+      const pg = pages[seg[0]];
+      return {
+        ...base,
+        title: withSuffix(pg.title),
+        description: pg.description,
+        heading: pg.heading,
+        body: [pg.description],
       };
     }
 

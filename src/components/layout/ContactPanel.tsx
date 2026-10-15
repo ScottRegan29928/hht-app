@@ -199,7 +199,7 @@ export function ContactPanel({ open, onClose }: Props) {
               <button
                 type="submit"
                 disabled={sending}
-                className="mt-auto w-full bg-[#014e6c] px-6 py-3.5 text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                className="contact-submit mt-auto w-full bg-[#014e6c] px-6 py-3.5 text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 style={{
                   fontFamily: "Quicksand, ui-sans-serif, system-ui, sans-serif",
                   fontWeight: 600,

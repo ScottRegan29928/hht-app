@@ -558,7 +558,9 @@ export const sitemapData = query({
     domain: v.union(v.string(), v.null()),
     pages: v.array(v.object({ slug: v.string(), updatedAt: v.number() })),
     posts: v.array(v.object({ slug: v.string(), updatedAt: v.number() })),
-    properties: v.array(v.object({ slug: v.string(), updatedAt: v.number() })),
+    properties: v.array(
+      v.object({ slug: v.string(), updatedAt: v.number(), communitySlug: v.optional(v.string()) })
+    ),
     communities: v.array(v.object({ slug: v.string() })),
   }),
   handler: async (ctx, args) => {
@@ -575,7 +577,8 @@ export const sitemapData = query({
         )
         .collect()
     )
-      .filter((p) => !p.seo?.noindex)
+      // The home record renders at "/", never at "/home" (that URL 404s).
+      .filter((p) => !p.seo?.noindex && !p.isHome)
       .map((p) => ({ slug: p.slug, updatedAt: p.updatedAt ?? p.createdAt }));
 
     const posts = (
@@ -603,9 +606,14 @@ export const sitemapData = query({
     }
     for (const c of communities) communityIds.add(c._id);
 
+    const commSlug = new Map(communities.map((c) => [c._id, c.slug]));
     const properties = (await ctx.db.query("properties").collect())
-      .filter((p) => communityIds.has(p.communityId))
-      .map((p) => ({ slug: p.slug, updatedAt: p._creationTime }));
+      .filter((p) => communityIds.has(p.communityId) && p.isActive)
+      .map((p) => ({
+        slug: p.slug,
+        updatedAt: p._creationTime,
+        communitySlug: commSlug.get(p.communityId),
+      }));
 
     return {
       domain: site?.domain ?? null,
@@ -687,5 +695,51 @@ export const seedHomePages = internalMutation({
       created.push(site.slug);
     }
     return { created, existing };
+  },
+});
+
+/**
+ * Flip due scheduled posts to published, stamping publishedAt = scheduledAt so
+ * the public date matches the date the post was scheduled for (cron, 15 min).
+ */
+export const publishDuePosts = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const due = await ctx.db
+      .query("blogPosts")
+      .withIndex("by_status_scheduled", (q) =>
+        q.eq("status", "draft").gt("scheduledAt", 0).lte("scheduledAt", now)
+      )
+      .collect();
+    for (const p of due) {
+      await ctx.db.patch(p._id, {
+        status: "published",
+        publishedAt: p.scheduledAt,
+        updatedAt: now,
+        updatedByName: "Scheduled publish",
+      });
+    }
+    return due.length;
+  },
+});
+
+/** Ops: set a site's home-page SEO title/description (internal; CLI only). */
+export const setHomeSeo = internalMutation({
+  args: { siteSlug: v.string(), metaTitle: v.string(), metaDescription: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const home = await ctx.db
+      .query("contentPages")
+      .withIndex("by_site_slug", (q) => q.eq("siteSlug", args.siteSlug).eq("slug", "home"))
+      .first();
+    if (!home) throw new Error("no home page for " + args.siteSlug);
+    await ctx.db.patch(home._id, {
+      seo: { ...(home.seo ?? {}), metaTitle: args.metaTitle, metaDescription: args.metaDescription },
+      updatedAt: Date.now(),
+      updatedByName: "Viktor (SEO keyword plan)",
+    });
+    return null;
   },
 });

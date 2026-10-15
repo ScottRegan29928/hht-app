@@ -82,6 +82,14 @@ export const SITE_BRAND: Record<string, SiteBrand> = {
     phoneHref: "tel:8433635699",
   },
   swallowtail: {
+    // The client's own swallowtail-butterfly lockup from
+    // swallowtailatseapines.com [scott, 2026-10-08]. White script on the
+    // transparent hero overlay and footer; navy script on the solid header.
+    logo: {
+      color: "/brand/swallowtail/logo-color.png",
+      white: "/brand/swallowtail/logo-white.png",
+      className: "h-[64px] sm:h-[92px] w-auto",
+    },
     phoneDisplay: "843.363.5699",
     phoneHref: "tel:8433635699",
     wordmarkTop: "Swallowtail",

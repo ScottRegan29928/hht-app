@@ -502,6 +502,8 @@ export const search = query({
           communitySlug: community?.slug ?? "",
           photoUrl,
           nightlyRate: (p as any).nightlyRate ?? null,
+          // Cards show HostAway's real lowest bookable nightly price, never the listing base.
+          nightlyFrom: (p as any).nightlyFrom ?? null,
           lowestSalePrice,
           saleWeekCount: saleWeeks.length,
         };

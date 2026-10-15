@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
+import { StripePayment } from "@/components/checkout/StripePayment";
+import { useStayQuote } from "@/lib/useStayQuote";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import {
@@ -17,6 +19,8 @@ import {
   ArrowLeft,
   AlertCircle,
   Loader2,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
 import {
   currentHostname,
@@ -32,6 +36,23 @@ function formatPhone(value: string): string {
   if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
+
+function money(cents: number) {
+  return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+type StartResult = {
+  sessionId: string;
+  clientSecret: string;
+  publishableKey: string;
+  intentType: "payment" | "setup";
+  mode: "test" | "live";
+  totalCents: number;
+  dueNowCents: number;
+  components: { title: string; type: string; total: number }[];
+  charges: { label: string; amountCents: number; dueDate: string | null }[];
+  policy: string[];
+};
 
 function formatDate(iso: string) {
   if (!iso) return "";
@@ -84,6 +105,21 @@ export function CheckoutPage() {
     api.booking.getBooking,
     bookingId ? { bookingId: bookingId as Id<"bookings"> } : "skip"
   );
+
+  // Pay-first online checkout (convex/rentalCheckout.ts). When Stripe isn't
+  // connected for this property, the page keeps the old request flow.
+  const payConfig = useQuery(
+    api.rentalCheckout.checkoutConfig,
+    isRental ? { propertyId: propertyId as Id<"properties"> } : "skip"
+  );
+  const payReady = isRental && !!payConfig?.ready;
+  const startCheckout = useAction(api.rentalCheckout.startCheckout);
+  const finalizeCheckout = useAction(api.rentalCheckout.finalizeCheckout);
+  const [payment, setPayment] = useState<StartResult | null>(null);
+  const [guests, setGuests] = useState(2);
+  // Live HostAway price — the property page and this sidebar always match the charge.
+  const stayQuote = useStayQuote(isRental ? propertyId ?? undefined : undefined, checkIn ?? "", checkOut ?? "", guests);
+  const [datesLost, setDatesLost] = useState<string | null>(null);
 
   const createWeekBooking = useMutation(api.booking.createBooking);
   const createRentalBooking = useMutation(api.booking.createRentalBooking);
@@ -205,9 +241,53 @@ export function CheckoutPage() {
     ? rentalInfo.totalPrice
     : weekInfo?.week.rentPrice ?? 0;
 
+  const startPayment = async () => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const r = (await startCheckout({
+        propertyId: propertyId as Id<"properties">,
+        checkIn,
+        checkOut,
+        guests,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        notes: form.notes || undefined,
+      })) as StartResult;
+      setPayment(r);
+    } catch (e: any) {
+      setError(cleanError(e));
+    }
+    setSubmitting(false);
+  };
+
+  const onAuthorized = async () => {
+    if (!payment) return;
+    const r: any = await finalizeCheckout({
+      sessionId: payment.sessionId as Id<"checkoutSessions">,
+    });
+    if (r.status === "confirmed") {
+      setBookingId(r.bookingId);
+      setStep("confirmed");
+      return;
+    }
+    if (r.status === "dates_lost") {
+      setDatesLost(r.error ?? "These dates were just booked by someone else.");
+      setPayment(null);
+      return;
+    }
+    throw new Error(r.error ?? "We could not complete the reservation.");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.firstName || !form.lastName || !form.email || !form.phone) return;
+    if (payReady) {
+      await startPayment();
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -253,10 +333,20 @@ export function CheckoutPage() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 className="w-8 h-8 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold mb-2">Reservation Submitted!</h1>
+          <h1 className="text-2xl font-bold mb-2">
+            {payment ? "Reservation Confirmed!" : "Reservation Submitted!"}
+          </h1>
           <p className="text-muted-foreground mb-6">
-            Your booking request has been received. You will receive a confirmation email at{" "}
-            <strong>{form.email}</strong> once payment is processed.
+            {payment ? (
+              <>
+                Your villa is reserved. A receipt is on its way to <strong>{form.email}</strong>.
+              </>
+            ) : (
+              <>
+                Your booking request has been received. You will receive a confirmation email at{" "}
+                <strong>{form.email}</strong> once payment is processed.
+              </>
+            )}
           </p>
 
           <div className="bg-muted/30 border rounded-xl p-5 text-left space-y-3 mb-6">
@@ -298,14 +388,22 @@ export function CheckoutPage() {
                 </>
               )}
               <span className="text-muted-foreground">Total</span>
-              <span className="font-bold text-lg">${totalPrice.toLocaleString()}</span>
+              <span className="font-bold text-lg">
+                {payment ? money(payment.totalCents) : stayQuote.status === "ready" ? money(stayQuote.totalCents) : isRental ? "—" : `$${totalPrice.toLocaleString()}`}
+              </span>
+              {payment &&
+                payment.charges.map((c) => (
+                  <PaymentRow key={c.label + c.dueDate} c={c} paid={payment.intentType === "payment"} />
+                ))}
             </div>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mb-6">
-            <strong>Next step:</strong> Payment processing will be available soon. A team member
-            will reach out to finalize your reservation.
-          </div>
+          {!payment && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mb-6">
+              <strong>Next step:</strong> Payment processing will be available soon. A team member
+              will reach out to finalize your reservation.
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
@@ -435,6 +533,121 @@ export function CheckoutPage() {
               </div>
             </div>
 
+            {payReady && (
+              <div className="bg-background border rounded-xl p-5">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  <Users className="w-4 h-4 inline mr-1 -mt-0.5" />
+                  Guests *
+                </label>
+                <select
+                  value={guests}
+                  disabled={!!payment}
+                  onChange={(e) => setGuests(Number(e.target.value))}
+                  className="w-full sm:w-40 px-3 py-2.5 border rounded-lg text-sm bg-background"
+                >
+                  {Array.from({ length: payConfig?.maxGuests ?? 8 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n} {n === 1 ? "guest" : "guests"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {datesLost && (
+              <div className="px-4 py-3 rounded-lg text-sm font-medium bg-amber-50 text-amber-800 border border-amber-200 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>
+                  {datesLost} Your card was not charged.{" "}
+                  <Link to={`/property/${propertySlug}?mode=rent`} className="underline">
+                    Choose new dates
+                  </Link>
+                </span>
+              </div>
+            )}
+
+            {payReady ? (
+              <div className="bg-background border rounded-xl p-5">
+                <h2 className="font-semibold mb-4 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-primary" />
+                  Payment
+                </h2>
+                {payConfig?.mode === "test" && (
+                  <div className="mb-4 px-3 py-2 rounded-lg text-xs bg-violet-50 text-violet-800 border border-violet-200">
+                    <strong>Test mode.</strong> No real charges. Use card 4242 4242 4242 4242, any
+                    future date, any CVC.
+                  </div>
+                )}
+                {!payment ? (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Your dates are reserved the moment payment is authorized. We'll confirm the
+                      final price, including taxes and fees, on the next step.
+                    </p>
+                    <button
+                      type="submit"
+                      disabled={
+                        submitting || !form.firstName || !form.lastName || !form.email || !form.phone
+                      }
+                      className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Checking availability…
+                        </>
+                      ) : (
+                        <>Continue to Payment</>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <div className="space-y-5">
+                    <div className="rounded-lg border bg-muted/20 p-4 text-sm space-y-1.5">
+                      {payment.charges.map((c) => (
+                        <div key={c.label + c.dueDate} className="flex justify-between">
+                          <span className={c.dueDate ? "text-muted-foreground" : "font-semibold"}>
+                            {c.dueDate ? `Charged ${formatDate(c.dueDate)}` : "Due today"}
+                          </span>
+                          <span className={c.dueDate ? "" : "font-semibold"}>{money(c.amountCents)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between border-t pt-1.5 mt-1.5">
+                        <span className="text-muted-foreground">Total stay</span>
+                        <span>{money(payment.totalCents)}</span>
+                      </div>
+                    </div>
+                    <StripePayment
+                      publishableKey={payment.publishableKey}
+                      clientSecret={payment.clientSecret}
+                      intentType={payment.intentType}
+                      email={form.email}
+                      phone={form.phone}
+                      name={`${form.firstName} ${form.lastName}`}
+                      buttonLabel={
+                        payment.intentType === "payment"
+                          ? `Pay ${money(payment.dueNowCents)} and Reserve`
+                          : "Reserve with This Card"
+                      }
+                      onAuthorized={onAuthorized}
+                    />
+                    <div className="text-xs text-muted-foreground border-t pt-4">
+                      <p className="font-semibold text-foreground mb-1 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5" /> Cancellation policy
+                      </p>
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {payment.policy.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-2">
+                        Later installments are charged automatically to the same card.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+            <>
             {/* Payment placeholder */}
             <div className="bg-background border rounded-xl p-5">
               <h2 className="font-semibold mb-4 flex items-center gap-2">
@@ -472,6 +685,8 @@ export function CheckoutPage() {
                 <>Complete Reservation</>
               )}
             </button>
+            </>
+            )}
           </form>
         </div>
 
@@ -545,27 +760,36 @@ export function CheckoutPage() {
 
               {/* Price breakdown */}
               <div className="border-t pt-4 space-y-2">
-                {isRental && rentalInfo ? (
+                {payment ? (
                   <>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        ${rentalInfo.nightlyRate}/night × {rentalInfo.nights} nights
-                      </span>
-                      <span className="font-medium">
-                        ${(rentalInfo.nightlyRate * rentalInfo.nights).toLocaleString()}
-                      </span>
-                    </div>
-                    {rentalInfo.cleaningFee > 0 && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Cleaning fee</span>
-                        <span className="font-medium">${rentalInfo.cleaningFee.toLocaleString()}</span>
+                    {payment.components.map((c) => (
+                      <div key={c.title} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{c.title}</span>
+                        <span className="font-medium">{money(Math.round(c.total * 100))}</span>
                       </div>
-                    )}
+                    ))}
                     <div className="border-t pt-2 flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">Total</span>
-                      <span className="text-2xl font-bold">${rentalInfo.totalPrice.toLocaleString()}</span>
+                      <span className="text-2xl font-bold">{money(payment.totalCents)}</span>
                     </div>
                   </>
+                ) : isRental && stayQuote.status === "ready" ? (
+                  <>
+                    {stayQuote.components.map((c) => (
+                      <div key={c.title + c.type} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{c.title}</span>
+                        <span className="font-medium">{money(Math.round(c.total * 100))}</span>
+                      </div>
+                    ))}
+                    <div className="border-t pt-2 flex items-center justify-between">
+                      <span className="text-muted-foreground font-medium">Total</span>
+                      <span className="text-2xl font-bold">{money(stayQuote.totalCents)}</span>
+                    </div>
+                  </>
+                ) : isRental ? (
+                  <p className="text-sm text-muted-foreground">
+                    {stayQuote.status === "unavailable" ? stayQuote.reason : "Getting the price…"}
+                  </p>
                 ) : (
                   <>
                     <div className="flex items-center justify-between">
@@ -583,5 +807,29 @@ export function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function cleanError(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e);
+  // Convex wraps server errors: "[CONVEX A(...)] Uncaught Error: <msg> at ..."
+  const m = raw.match(/Uncaught Error:\s*([^\n]+?)(?:\s+at\s|$)/);
+  return (m ? m[1] : raw).trim() || "Something went wrong. Please try again.";
+}
+
+function PaymentRow({
+  c,
+  paid,
+}: {
+  c: { label: string; amountCents: number; dueDate: string | null };
+  paid: boolean;
+}) {
+  return (
+    <>
+      <span className="text-muted-foreground">
+        {c.dueDate ? `Due ${formatDate(c.dueDate)}` : paid ? "Paid today" : "Card saved"}
+      </span>
+      <span className="font-medium">{money(c.amountCents)}</span>
+    </>
   );
 }

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { getNext52Weeks, formatWeekRange } from "@/lib/weekCalendar";
 import { useSiteFlags } from "@/lib/siteContext";
 import { facetLabel } from "../../../convex/searchFacets";
+import { isResort, resortInfo } from "@/lib/resort";
 
 export interface AvailableFacets {
   communities: Set<string>;
@@ -42,6 +43,10 @@ interface SearchFiltersProps {
   setAmenityMode: (v: "and" | "or") => void;
   onClear: () => void;
   availableFacets?: AvailableFacets | null;
+  /** Set when every villa on the site has the same layout. The bedroom
+   *  filter then has nothing to narrow, so a plain note replaces it
+   *  [zoe, 2026-09-30]. */
+  uniformLayout?: { bedrooms: number; bathrooms: number } | null;
   // Rental date range
   checkIn: string;
   setCheckIn: (v: string) => void;
@@ -141,6 +146,21 @@ function DropdownMultiSelect({ label, placeholder, options, selected, onChange }
   );
 }
 
+function LayoutNote({ layout }: { layout: { bedrooms: number; bathrooms: number } }) {
+  const bd = layout.bedrooms;
+  const ba = layout.bathrooms;
+  return (
+    <div className="sb-layout-note rounded-lg border border-input bg-background px-3 py-3">
+      <p className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+        Bedrooms &amp; Bathrooms
+      </p>
+      <p className="text-sm text-foreground">
+        All villas are {bd} bedroom, {ba} bath.
+      </p>
+    </div>
+  );
+}
+
 export function SearchFilters({
   communitySlugs,
   setCommunitySlugs,
@@ -156,6 +176,7 @@ export function SearchFilters({
   setAmenityMode,
   onClear,
   availableFacets,
+  uniformLayout,
   checkIn,
   setCheckIn,
   checkOut,
@@ -203,7 +224,11 @@ export function SearchFilters({
   );
 
   const amenityOptions = (allAmenities ?? [])
-    .map((key) => ({ value: key, label: amenityLabel(key) }))
+    // Spicebush: heating is unconfirmed, so the pool filter doesn't claim it [zoe, 2026-10-01].
+    .map((key) => ({
+      value: key,
+      label: isResort(siteSlug) && key === "pool_heated" ? "Swimming Pool" : amenityLabel(key),
+    }))
     .filter((a) => !availableFacets || availableFacets.amenities.has(a.value));
 
   // Today for min date on date picker
@@ -284,7 +309,9 @@ export function SearchFilters({
             onChange={setWeekNumbers}
           />
 
-          {/* Community */}
+          {/* Community: hidden on single-community sites like Spicebush, where
+              it has nothing to choose [zoe, 2026-09-30]. */}
+          {communityOptions.length > 1 && (
           <DropdownMultiSelect
             label="Community"
             placeholder="Communities"
@@ -292,8 +319,12 @@ export function SearchFilters({
             selected={communitySlugs}
             onChange={setCommunitySlugs}
           />
+          )}
 
-          {/* Bedrooms */}
+          {/* Bedrooms, or a layout note when every villa is the same */}
+          {uniformLayout ? (
+            <LayoutNote layout={uniformLayout} />
+          ) : (
           <div>
             <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
               Bedrooms
@@ -304,7 +335,7 @@ export function SearchFilters({
                   key={b}
                   onClick={() => setBedrooms(toggleValue(bedrooms, b))}
                   className={cn(
-                    "flex-1 py-2 rounded-lg text-sm font-medium transition-colors border",
+                    "sb-chip flex-1 py-2 rounded-lg text-sm font-medium transition-colors border",
                     bedrooms.includes(b)
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-background border-input hover:bg-muted text-muted-foreground"
@@ -315,6 +346,7 @@ export function SearchFilters({
               ))}
             </div>
           </div>
+          )}
 
           {/* Amenities */}
           {amenityOptions.length > 0 && (
@@ -366,7 +398,9 @@ export function SearchFilters({
             />
           </div>
 
-          {/* Community */}
+          {/* Community: hidden on single-community sites like Spicebush, where
+              it has nothing to choose [zoe, 2026-09-30]. */}
+          {communityOptions.length > 1 && (
           <DropdownMultiSelect
             label="Community"
             placeholder="Communities"
@@ -374,8 +408,12 @@ export function SearchFilters({
             selected={communitySlugs}
             onChange={setCommunitySlugs}
           />
+          )}
 
-          {/* Bedrooms */}
+          {/* Bedrooms, or a layout note when every villa is the same */}
+          {uniformLayout ? (
+            <LayoutNote layout={uniformLayout} />
+          ) : (
           <div>
             <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
               Bedrooms
@@ -386,7 +424,7 @@ export function SearchFilters({
                   key={b}
                   onClick={() => setBedrooms(toggleValue(bedrooms, b))}
                   className={cn(
-                    "flex-1 py-2 rounded-lg text-sm font-medium transition-colors border",
+                    "sb-chip flex-1 py-2 rounded-lg text-sm font-medium transition-colors border",
                     bedrooms.includes(b)
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-background border-input hover:bg-muted text-muted-foreground"
@@ -397,6 +435,7 @@ export function SearchFilters({
               ))}
             </div>
           </div>
+          )}
 
           {/* Amenities */}
           {amenityOptions.length > 0 && (
@@ -467,7 +506,7 @@ function AmenityFilter({
             key={a.value}
             onClick={() => setAmenities(toggleValue(amenities, a.value))}
             className={cn(
-              "py-2 px-2 rounded-lg text-xs font-medium transition-colors border text-center",
+              "sb-chip py-2 px-2 rounded-lg text-xs font-medium transition-colors border text-center",
               amenities.includes(a.value)
                 ? "bg-primary text-primary-foreground border-primary"
                 : "bg-background border-input hover:bg-muted text-muted-foreground"
