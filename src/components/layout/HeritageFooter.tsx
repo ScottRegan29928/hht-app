@@ -161,7 +161,7 @@ export function HeritageFooter() {
               top-aligned, 20px side margins each [zoe, 2026-10-09]. */}
           <div className="flex flex-wrap justify-center items-start pt-2 pb-4">
             <img
-              src="/brand/hv/airbnb-superhost-white.png"
+              src="/brand/hv/airbnb-superhost-white.webp"
               alt="Airbnb Superhost badge"
               width={200}
               height={83}
@@ -169,7 +169,7 @@ export function HeritageFooter() {
               loading="lazy"
             />
             <img
-              src="/brand/hv/vrbo-premier-host.png"
+              src="/brand/hv/vrbo-premier-host.webp"
               alt="Vrbo Premier Host logo"
               width={200}
               height={100}

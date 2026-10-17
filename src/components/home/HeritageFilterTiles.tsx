@@ -1,3 +1,4 @@
+import { webp } from "@/lib/heroWebp";
 import { Link } from "react-router-dom";
 import type { HomeContent } from "@/lib/homeContent";
 
@@ -50,7 +51,7 @@ export function HeritageFilterTiles({ content }: { content: HomeContent }) {
               className="group relative block overflow-hidden aspect-[279/239] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#968751] focus-visible:ring-offset-2"
             >
               <img
-                src={t.imageUrl}
+                src={webp(t.imageUrl)}
                 alt={t.label}
                 loading="lazy"
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"

@@ -94,7 +94,7 @@ export function OwnerActivatePage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <img
-            src="/brand/cgl/logo-color.png"
+            src="/brand/cgl/logo-color.webp"
             alt="The Club Group"
             className="h-[72px] w-auto mx-auto"
           />

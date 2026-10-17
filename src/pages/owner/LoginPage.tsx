@@ -101,7 +101,7 @@ export function OwnerLoginPage() {
       <div className="bg-background rounded-2xl shadow-lg border p-8 max-w-md w-full">
         <div className="text-center mb-8">
           <img
-            src="/brand/cgl/logo-color.png"
+            src="/brand/cgl/logo-color.webp"
             alt="The Club Group"
             className="h-[72px] w-auto mx-auto"
           />

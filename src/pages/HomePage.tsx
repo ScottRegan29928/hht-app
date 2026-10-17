@@ -1,3 +1,4 @@
+import { webp } from "@/lib/heroWebp";
 import { useQuery } from "convex/react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
@@ -126,7 +127,7 @@ export function HomePage() {
               <div className="hidden lg:block lg:w-1/2 relative mt-8 lg:mt-0">
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                   <img
-                    src={content.hero.images[0] ?? "/lighthouse.jpg"}
+                    src={webp(content.hero.images[0] ?? "/lighthouse.jpg")}
                     alt={
                       content.hero.images[0]
                         ? ""
@@ -294,7 +295,7 @@ export function HomePage() {
           ].join(" ")}
         >
           {isResort(siteSlug) && (
-            <SideParallaxImage src={`${resortInfo(siteSlug).assets}/golf.jpg`} />
+            <SideParallaxImage src={webp(`${resortInfo(siteSlug).assets}/golf.jpg`)} />
           )}
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">

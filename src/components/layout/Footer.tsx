@@ -49,6 +49,8 @@ function SharedFooter() {
               <img
                 src={brand.logo.white}
                 alt={brand.legalName}
+                width={brand.logo.width}
+                height={brand.logo.height}
                 className="h-[68px] w-auto mb-4"
               />
             ) : (

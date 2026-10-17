@@ -97,7 +97,7 @@ html:is([data-site="spicebush"], [data-site="swallowtail"]) button.border-white:
  * top edge is what keeps it [zoe, 2026-09-16].
  */
 html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-sand-section {
-  background-image: url("/brand/spicebush/sand.jpg");
+  background-image: url("/brand/spicebush/sand.webp");
   background-size: cover;
   background-position: 50% 0%;
   background-repeat: no-repeat;
@@ -106,7 +106,7 @@ html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-sand-section {
 }
 /* Swallowtail: its own copy of the sand + blue-wood photo from swallowtailatseapines.com. */
 html[data-site="swallowtail"] .sb-sand-section {
-  background-image: url("/brand/swallowtail/sand.jpg");
+  background-image: url("/brand/swallowtail/sand.webp");
 }
 
 /*
@@ -142,7 +142,7 @@ html:is([data-site="spicebush"], [data-site="swallowtail"]) .sb-footer {
      logo column, and a warm dark wash sits on top for legibility [zoe, 2026-09-16]. */
   background-image:
     linear-gradient(rgba(28, 20, 15, 0.62), rgba(28, 20, 15, 0.62)),
-    url("/brand/spicebush/footer.jpg");
+    url("/brand/spicebush/footer.webp");
   background-size: cover;
   background-position: 50% 50%;
   background-repeat: no-repeat;
@@ -153,7 +153,7 @@ html[data-site="swallowtail"] .sb-footer {
   background-color: #1c2733;
   background-image:
     linear-gradient(rgba(18, 28, 40, 0.6), rgba(18, 28, 40, 0.6)),
-    url("/brand/swallowtail/footer.jpg");
+    url("/brand/swallowtail/footer.webp");
 }
 
 /*

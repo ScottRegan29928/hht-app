@@ -219,11 +219,11 @@ export function Header() {
               <img
                 src={
                   overlay
-                    ? "/brand/hv/logo-horz-white.png"
-                    : "/brand/hv/logo-horz-color.png"
+                    ? "/brand/hv/logo-horz-white.webp"
+                    : "/brand/hv/logo-horz-color.webp"
                 }
                 alt={brand.legalName}
-                width={180}
+                width={153}
                 height={55}
                 className="h-[44px] sm:h-[55px] w-auto"
               />
@@ -231,6 +231,8 @@ export function Header() {
               <img
                 src={lightOnDark ? brand.logo.white : brand.logo.color}
                 alt={brand.legalName}
+                width={brand.logo.width}
+                height={brand.logo.height}
                 className={cn(
                   brand.logo.className ?? "h-[44px] sm:h-[55px] w-auto",
                   // md: comes after sm: in the cascade, so this wins.

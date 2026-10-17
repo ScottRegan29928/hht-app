@@ -38,7 +38,7 @@ export type SiteBrand = {
    * pin-and-wordmark. `white` is used on dark surfaces (hero overlay, footer),
    * `color` on light ones (solid header).
    */
-  logo?: { color: string; white: string; className?: string };
+  logo?: { color: string; white: string; className?: string; width?: number; height?: number };
 };
 
 const SEA_PINES_EYEBROW = "Sea Pines · Hilton Head Island";
@@ -47,8 +47,10 @@ export const SITE_BRAND: Record<string, SiteBrand> = {
   mhht: {
     // The Club Group operates My Hilton Head Timeshares [scott, 2026-09-10].
     logo: {
-      color: "/brand/cgl/logo-color.png",
-      white: "/brand/cgl/logo-white.png",
+      color: "/brand/cgl/logo-color.webp",
+      white: "/brand/cgl/logo-white.webp",
+      width: 200,
+      height: 187,
       className: "h-[48px] sm:h-[60px] w-auto",
     },
     phoneDisplay: "843.363.5699",
@@ -86,8 +88,10 @@ export const SITE_BRAND: Record<string, SiteBrand> = {
     // swallowtailatseapines.com [scott, 2026-10-08]. White script on the
     // transparent hero overlay and footer; navy script on the solid header.
     logo: {
-      color: "/brand/swallowtail/logo-color.png",
-      white: "/brand/swallowtail/logo-white.png",
+      color: "/brand/swallowtail/logo-color.webp",
+      white: "/brand/swallowtail/logo-white.webp",
+      width: 700,
+      height: 354,
       className: "h-[64px] sm:h-[92px] w-auto",
     },
     phoneDisplay: "843.363.5699",
@@ -109,8 +113,10 @@ export const SITE_BRAND: Record<string, SiteBrand> = {
     // [zoe, 2026-09-16]. White on the transparent hero overlay, green on the
     // solid inner-page header.
     logo: {
-      color: "/brand/spicebush/logo-green.png",
-      white: "/brand/spicebush/logo-white.png",
+      color: "/brand/spicebush/logo-green.webp",
+      white: "/brand/spicebush/logo-white.webp",
+      width: 700,
+      height: 415,
       className: "h-[64px] sm:h-[92px] w-auto",
     },
     phoneDisplay: "843.363.5699",

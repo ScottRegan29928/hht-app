@@ -1,3 +1,4 @@
+import { webp } from "@/lib/heroWebp";
 import { Link, useParams } from "react-router-dom";
 import { ContentPage } from "./ContentPage";
 import { useEffect, useMemo } from "react";
@@ -153,7 +154,7 @@ export function SeoLandingPage({ page }: { page: LandingPage }) {
       <section
         className="relative w-full overflow-hidden"
         style={{
-          backgroundImage: `url(${page.heroImage})`,
+          backgroundImage: `url(${webp(page.heroImage)})`,
           backgroundSize: "cover",
           backgroundPosition: "50% 50%",
         }}

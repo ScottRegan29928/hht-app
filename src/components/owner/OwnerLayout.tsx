@@ -190,6 +190,8 @@ export function OwnerLayout() {
               <img
                 src={brand.logo.white}
                 alt=""
+                width={brand.logo.width}
+                height={brand.logo.height}
                 className="h-9 w-auto object-contain"
               />
             ) : (
