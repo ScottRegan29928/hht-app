@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toWebpFile } from "@/lib/toWebp";
 import { useMutation, useConvex } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
@@ -96,7 +97,8 @@ export function HomeContentEditor({ siteSlug, value, onChange }: Props) {
 
   const patch = (part: Partial<HomeContent>) => onChange({ ...value, ...part });
 
-  const upload = async (file: File, key: string): Promise<string | null> => {
+  const upload = async (picked: File, key: string): Promise<string | null> => {
+    const file = await toWebpFile(picked);
     if (!file.type.startsWith("image/")) {
       toast.error("That file is not an image");
       return null;

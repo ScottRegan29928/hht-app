@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { toWebpFile } from "@/lib/toWebp";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -81,9 +82,10 @@ export function AccountPage() {
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const picked = e.target.files?.[0];
+    if (!picked) return;
     setUploading(true);
+    const file = await toWebpFile(picked);
     try {
       const url = await generateUploadUrl();
       const res = await fetch(url, {
