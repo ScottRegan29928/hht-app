@@ -19,6 +19,7 @@ const AdminPropertiesPage = lazy(() => import("./pages/admin/PropertiesPage").th
 const PropertyEditPage = lazy(() => import("./pages/admin/PropertyEditPage").then((m) => ({ default: m.PropertyEditPage })));
 const AdminCommunitiesPage = lazy(() => import("./pages/admin/CommunitiesPage").then((m) => ({ default: m.AdminCommunitiesPage })));
 const AdminAmenitiesPage = lazy(() => import("./pages/admin/AmenitiesPage").then((m) => ({ default: m.AdminAmenitiesPage })));
+const AdminReviewsPage = lazy(() => import("./pages/admin/ReviewsPage").then((m) => ({ default: m.AdminReviewsPage })));
 const AdminPaymentsPage = lazy(() => import("./pages/admin/PaymentsPage").then((m) => ({ default: m.AdminPaymentsPage })));
 const AdminWeeksPage = lazy(() => import("./pages/admin/WeeksPage").then((m) => ({ default: m.AdminWeeksPage })));
 const AdminSaleRequestsPage = lazy(() => import("@/pages/admin/SaleRequestsPage").then((m) => ({ default: m.AdminSaleRequestsPage })));
@@ -95,6 +96,7 @@ export default function App() {
             <Route path="properties/:id" element={<PropertyEditPage />} />
             <Route path="communities" element={<AdminCommunitiesPage />} />
             <Route path="amenities" element={<AdminAmenitiesPage />} />
+            <Route path="reviews" element={<AdminReviewsPage />} />
             <Route path="payments" element={<AdminPaymentsPage />} />
             <Route path="weeks" element={<AdminWeeksPage />} />
             <Route path="inquiries" element={<AdminInquiriesPage />} />

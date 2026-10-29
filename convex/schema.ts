@@ -515,9 +515,13 @@ const schema = defineSchema({
     status: v.union(
       v.literal("awaiting_payment"),
       v.literal("confirmed"),
+      v.literal("canceled"),
       v.literal("dates_lost"),
       v.literal("failed")
     ),
+    cancellationCheckedAt: v.optional(v.number()),
+    cancellationSyncError: v.optional(v.string()),
+    canceledAt: v.optional(v.number()),
     hostawayWrite: v.optional(
       v.union(v.literal("held_prelaunch"), v.literal("created"), v.literal("failed"))
     ),
@@ -530,6 +534,27 @@ const schema = defineSchema({
   })
     .index("by_status", ["status"])
     .index("by_intent", ["stripeIntentId"]),
+
+
+  guestReviews: defineTable({
+    hostawayReviewId: v.number(),
+    propertyId: v.id("properties"),
+    guestFirstName: v.string(),
+    body: v.string(),
+    reviewedAt: v.string(),
+    upstreamVisible: v.boolean(),
+    hiddenOnSite: v.boolean(),
+    response: v.optional(v.string()),
+    responseUpdatedAt: v.optional(v.number()),
+    syncedAt: v.number(),
+  }).index("by_hostaway", ["hostawayReviewId"])
+    .index("by_property", ["propertyId"]),
+  reviewResponseHistory: defineTable({
+    reviewId: v.id("guestReviews"),
+    body: v.string(),
+    authorProfileId: v.id("userProfiles"),
+    createdAt: v.number(),
+  }).index("by_review", ["reviewId"]),
 
   syncState: defineTable({
     key: v.string(),

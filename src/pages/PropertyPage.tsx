@@ -27,6 +27,7 @@ import { lockedModeFor, siteSells } from "@/lib/siteCapabilities";
 import { useSiteFlags } from "@/lib/siteContext";
 import { PropertyMap } from "@/components/property/PropertyMap";
 import { FridayNote } from "../components/property/FridayNote";
+import { GuestReviews } from "../components/property/GuestReviews";
 import { DescriptionSections } from "../components/property/DescriptionSections";
 import { FeatureGrid } from "@/components/property/FeatureGrid";
 import { AvailabilityCalendar, useBookedDates } from "@/components/AvailabilityCalendar";
@@ -253,6 +254,8 @@ export function PropertyPage() {
             selectedRange={isRent && checkIn && checkOut ? { checkIn, checkOut } : undefined}
           />
           )}
+
+          {siteSells(siteSlug, "rent") && <GuestReviews propertyId={property._id} />}
 
           {/* Amenities (from HostAway sync, minus any hidden by an admin) */}
           {isResort(siteSlug) && visibleAmenityTags.length > 0 ? (
