@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Dog, Turtle, Sunrise, Sunset, Waves } from "lucide-react";
+import { ArrowUpRight, CloudSun, Turtle, Sunrise, Sunset, Waves } from "lucide-react";
 import {
-  DOG_LINK, TURTLE_LINK, TIDE_LINK,
-  dogRule, eventTime, islandDate, islandTime, isTurtleSeason, parseTides, tideApiUrl, tideSummary,
-  type Tide,
+  TURTLE_LINK, TIDE_LINK, WEATHER_API, WEATHER_LINK, parseWeather,
+  eventTime, islandDate, islandTime, isTurtleSeason, parseTides, tideApiUrl, tideSummary,
+  type Tide, type Weather,
 } from "@/lib/beachDay";
 import "./beach-day.css";
 
@@ -36,7 +36,24 @@ export default function BeachDaySection() {
   const [tideState, setTideState] = useState("loading");
   const [sun, setSun] = useState<{ sunrise: Date; sunset: Date } | null>(null);
   const [sunState, setSunState] = useState("loading");
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const [weatherState, setWeatherState] = useState("loading");
+  const weatherRefresh = Math.floor(now.getTime() / 600000);
   const date = islandDate(now);
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+    setWeather(null); setWeatherState("loading");
+    getJson(WEATHER_API, controller.signal)
+      .then((data) => {
+        const observation = parseWeather(data.properties, new Date());
+        if (!observation) throw new Error("No recent weather observation");
+        if (active) { setWeather(observation); setWeatherState("ready"); }
+      })
+      .catch(() => { if (active) setWeatherState("unavailable"); });
+    return () => { active = false; controller.abort(); window.clearTimeout(timeout); };
+  }, [weatherRefresh]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60000);
     const update = () => { if (!document.hidden) setNow(new Date()); };
@@ -68,7 +85,6 @@ export default function BeachDaySection() {
   }, [date]);
 
   const tide = tideSummary(tides, now);
-  const dogs = dogRule(now);
   const sunHeading = sun ? (now < sun.sunrise ? "A new day ahead" :
     now < sun.sunset ? "Time to enjoy the daylight" : "The sun has set") :
     sunState === "loading" ? "Checking sun times…" : "Sun times unavailable";
@@ -114,14 +130,20 @@ export default function BeachDaySection() {
           </article>
           <article className="beach-day-column">
             <header>
-              <p className="beach-day-label"><Dog size={26} strokeWidth={1.5} aria-hidden="true" /> Dogs on the beach</p>
-              <h3>{dogs.title}</h3>
+              <p className="beach-day-label"><CloudSun size={26} strokeWidth={1.5} aria-hidden="true" /> Current weather</p>
+              <h3 aria-live="polite">{weather ? `${weather.temperature}°F · ${weather.description}` :
+                weatherState === "loading" ? "Checking the weather…" : "Weather unavailable"}</h3>
             </header>
             <div className="beach-day-column-body">
-              <p>{dogs.detail} Follow posted restrictions.</p>
-              <p className="beach-day-property-note">Swallowtail does not allow pets. Beach rules are separate.</p>
+              <div className="beach-day-times" aria-live="polite">
+                <div><span>Wind</span><strong>{weather?.wind ?? "Unavailable"}</strong></div>
+                <div><span>Humidity</span><strong>{weather?.humidity != null ? `${weather.humidity}%` : "Unavailable"}</strong></div>
+              </div>
+              <p className="beach-day-small">{weather
+                ? `Observed at Hilton Head Island Airport at ${islandTime(weather.at)} Eastern Time. National Weather Service data.`
+                : "Current airport observations are unavailable. Check the National Weather Service for local conditions."}</p>
             </div>
-            <SourceLink href={DOG_LINK}>Town dog rules</SourceLink>
+            <SourceLink href={WEATHER_LINK}>Local forecast</SourceLink>
           </article>
           <article className="beach-day-column">
             <header>

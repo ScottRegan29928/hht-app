@@ -83,3 +83,36 @@ export function tideApiUrl(now: Date): string {
     time_zone: "gmt", units: "english", interval: "hilo", format: "json",
   });
 }
+
+
+export const WEATHER_API = "https://api.weather.gov/stations/KHXD/observations/latest";
+export const WEATHER_LINK = "https://forecast.weather.gov/MapClick.php?lat=32.13&lon=-80.79";
+export type Weather = { at: Date; temperature: number; description: string; wind: string | null; humidity: number | null };
+type Observation = {
+  timestamp?: string; textDescription?: string;
+  temperature?: { value?: number | null };
+  windSpeed?: { value?: number | null };
+  windDirection?: { value?: number | null };
+  relativeHumidity?: { value?: number | null };
+};
+export function parseWeather(observation: Observation | null | undefined, now: Date): Weather | null {
+  if (!observation) return null;
+  const at = new Date(observation.timestamp ?? "");
+  const age = now.getTime() - at.getTime();
+  const celsius = observation.temperature?.value;
+  if (!Number.isFinite(at.getTime()) || age > 2 * 3600000 || age < -300000 ||
+      typeof celsius !== "number" || !Number.isFinite(celsius)) return null;
+  const speed = observation.windSpeed?.value;
+  const bearing = observation.windDirection?.value;
+  const direction = typeof bearing === "number" && Number.isFinite(bearing) && bearing >= 0 && bearing <= 360
+    ? ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(bearing / 45) % 8] : "";
+  const humidity = observation.relativeHumidity?.value;
+  return {
+    at, temperature: Math.round(celsius * 9 / 5 + 32),
+    description: observation.textDescription?.trim() || "Current conditions",
+    wind: typeof speed === "number" && Number.isFinite(speed) && speed >= 0
+      ? speed === 0 ? "Calm" : `${direction ? direction + " " : ""}${Math.round(speed / 1.609344)} mph` : null,
+    humidity: typeof humidity === "number" && Number.isFinite(humidity) && humidity >= 0 && humidity <= 100
+      ? Math.round(humidity) : null,
+  };
+}
