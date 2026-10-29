@@ -87,3 +87,10 @@ test("tide rows follow the next actual event, whether incoming or outgoing", () 
   expect(outgoing.events.map((event) => event.type)).toEqual(["L", "H"]);
   expect(outgoing.events[0].at?.toISOString()).toBe("2026-10-30T06:00:00.000Z");
 });
+
+import { TIDE_STATION, TIDE_LINK, tideApiUrl } from "../src/lib/beachDay";
+test("Braddock Point station drives both predictions and the official table", () => {
+  expect(TIDE_STATION).toBe("8669625");
+  expect(new URL(tideApiUrl(new Date("2026-10-29T23:00:00Z"))).searchParams.get("station")).toBe("8669625");
+  expect(new URL(TIDE_LINK).searchParams.get("id")).toBe("8669625");
+});
