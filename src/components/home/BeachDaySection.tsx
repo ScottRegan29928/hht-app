@@ -8,7 +8,7 @@ import {
 import "./beach-day.css";
 
 function SourceLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return <a href={href} target="_blank" rel="noopener noreferrer" className="beach-day-link">
+  return <a href={href} target="_blank" rel="noopener noreferrer" className="beach-day-link sb-btn-maroon">
     {children}<ArrowUpRight size={16} aria-hidden="true" />
   </a>;
 }

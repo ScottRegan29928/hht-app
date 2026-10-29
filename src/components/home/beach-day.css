@@ -6,7 +6,7 @@
 .beach-day h2 { font-family: var(--font-display); font-size: clamp(1.85rem, 3.3vw, 2.75rem); line-height: 1.25; }
 .beach-day-intro > p { color: var(--muted-foreground); font-size: 1rem; line-height: 1.75; max-width: 760px; margin-top: 1rem; }
 .beach-day-layout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem; }
-.beach-day-column { display: flex; flex-direction: column; min-width: 0; padding: 1.6rem 0 1.4rem; border-top: 3px solid #891f11; border-bottom: 1px solid var(--border); }
+.beach-day-column { display: flex; flex-direction: column; min-width: 0; padding: 1.6rem 1rem 1.4rem; border: 1px solid #891f11; border-top-width: 3px; }
 .beach-day-column header { min-height: 7rem; }
 .beach-day-label { color: #891f11; font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; display: flex; gap: .6rem; align-items: center; }
 .beach-day-label svg { flex-shrink: 0; }
@@ -17,9 +17,8 @@
 .beach-day-times > div { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
 .beach-day-times span { font-size: .8rem; color: var(--muted-foreground); }
 .beach-day-times strong { font-size: .95rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; color: oklch(0.3 0.07 220); }
-.beach-day-link { display: flex; align-items: center; justify-content: space-between; gap: .45rem; font-size: .76rem; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; padding: .65rem 0 0; line-height: 1.5; color: oklch(0.3 0.07 220); border-top: 1px solid var(--border); margin-top: .5rem; }
+.beach-day-link { display: flex; align-items: center; justify-content: center; gap: .45rem; font-size: .76rem; text-align: center; text-decoration: none; padding: .8rem .5rem; min-height: 3.4rem; line-height: 1.5; margin-top: 1rem; }
 .beach-day-link svg { flex-shrink: 0; }
-.beach-day-link:hover { text-decoration-thickness: 2px; }
 .beach-day-link:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 .beach-day-column-body > .beach-day-small { font-size: .74rem; line-height: 1.7; }
 .beach-day-column-body > .beach-day-property-note { color: var(--foreground); font-size: .75rem; border-left: 2px solid #891f11; padding-left: .7rem; }
@@ -32,7 +31,7 @@
   .beach-day { padding: 3rem 0; }
   .beach-day-inner { padding: 0 1rem; }
   .beach-day-layout { grid-template-columns: 1fr; }
-  .beach-day-column { padding: 1.5rem 0; }
+  .beach-day-column { padding: 1.5rem; }
   .beach-day-column header { min-height: 0; margin-bottom: 1.2rem; }
   .beach-day-times { max-width: 350px; }
 }
