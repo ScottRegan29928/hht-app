@@ -1,11 +1,22 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Dog, Turtle, Sunset, Waves } from "lucide-react";
+import { ArrowUpRight, Dog, Turtle, Sunrise, Sunset, Waves } from "lucide-react";
 import {
   DOG_LINK, TURTLE_LINK, TIDE_LINK,
   dogRule, eventTime, islandDate, islandTime, isTurtleSeason, parseTides, tideApiUrl, tideSummary,
   type Tide,
 } from "@/lib/beachDay";
 import "./beach-day.css";
+
+function TideIcon({ high }: { high: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
+      strokeLinecap="round" strokeLinejoin="round" className="beach-day-event-icon" aria-hidden="true">
+      <path d="M12 3v9" />
+      <path d={high ? "m8 7 4-4 4 4" : "m8 8 4 4 4-4"} />
+      <path d="M3 16c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0M3 21c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0" />
+    </svg>
+  );
+}
 
 function SourceLink({ href, children }: { href: string; children: React.ReactNode }) {
   return <a href={href} target="_blank" rel="noopener noreferrer" className="beach-day-link sb-btn-maroon">
@@ -80,8 +91,8 @@ export default function BeachDaySection() {
             </header>
             <div className="beach-day-column-body">
               <div className="beach-day-times" aria-live="polite">
-                <div><span>Next low tide</span><strong>{tide.low ? eventTime(tide.low.at, now) : tideState === "loading" ? "Loading…" : "Check NOAA"}</strong></div>
-                <div><span>Next high tide</span><strong>{tide.high ? eventTime(tide.high.at, now) : tideState === "loading" ? "Loading…" : "Check NOAA"}</strong></div>
+                <div><span className="beach-day-event-label"><TideIcon high={false} />Next low tide</span><strong>{tide.low ? eventTime(tide.low.at, now) : tideState === "loading" ? "Loading…" : "Check NOAA"}</strong></div>
+                <div><span className="beach-day-event-label"><TideIcon high />Next high tide</span><strong>{tide.high ? eventTime(tide.high.at, now) : tideState === "loading" ? "Loading…" : "Check NOAA"}</strong></div>
               </div>
               <p className="beach-day-small">NOAA predictions for Port Royal Plantation, Hilton Head. Timing at Sea Pines may differ.</p>
             </div>
@@ -94,8 +105,8 @@ export default function BeachDaySection() {
             </header>
             <div className="beach-day-column-body">
               <div className="beach-day-times" aria-live="polite">
-                <div><span>Sunrise</span><strong>{sun ? islandTime(sun.sunrise) : sunState === "loading" ? "Loading…" : "Unavailable"}</strong></div>
-                <div><span>Sunset</span><strong>{sun ? islandTime(sun.sunset) : sunState === "loading" ? "Loading…" : "Unavailable"}</strong></div>
+                <div><span className="beach-day-event-label"><Sunrise className="beach-day-event-icon" strokeWidth={1.5} aria-hidden="true" />Sunrise</span><strong>{sun ? islandTime(sun.sunrise) : sunState === "loading" ? "Loading…" : "Unavailable"}</strong></div>
+                <div><span className="beach-day-event-label"><Sunset className="beach-day-event-icon" strokeWidth={1.5} aria-hidden="true" />Sunset</span><strong>{sun ? islandTime(sun.sunset) : sunState === "loading" ? "Loading…" : "Unavailable"}</strong></div>
               </div>
               <p className="beach-day-small">Today's sun times for Sea Pines, shown in Eastern Time.</p>
             </div>
