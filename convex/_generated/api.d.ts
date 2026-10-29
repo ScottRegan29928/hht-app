@@ -8,6 +8,10 @@
  * @module
  */
 
+import type * as bookingReconciliation from "../bookingReconciliation.js";
+import type * as cancellationSync from "../cancellationSync.js";
+import type * as guestReviews from "../guestReviews.js";
+import type * as reviewPolicy from "../reviewPolicy.js";
 import type * as admin from "../admin.js";
 import type * as amenityDefaults from "../amenityDefaults.js";
 import type * as amenitySettings from "../amenitySettings.js";
@@ -58,6 +62,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  bookingReconciliation: typeof bookingReconciliation;
+  cancellationSync: typeof cancellationSync;
+  guestReviews: typeof guestReviews;
+  reviewPolicy: typeof reviewPolicy;
   admin: typeof admin;
   amenityDefaults: typeof amenityDefaults;
   amenitySettings: typeof amenitySettings;

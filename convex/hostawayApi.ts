@@ -214,6 +214,13 @@ export const syncCalendar = internalAction({
     ctx,
     { daysAhead = 180, batchSize = 3, limit = 40 }
   ): Promise<any> => {
+    // Reconcile website-created holds against the exact reservation first.
+    // Failure must not prevent ordinary calendar refreshes.
+    try {
+      await ctx.runAction(internal.cancellationSync.reconcile, {});
+    } catch (e) {
+      console.error("Cancellation reconciliation failed; calendar sync continues", String(e));
+    }
     const token = await getToken(ctx);
 
     const properties = await ctx.runQuery(

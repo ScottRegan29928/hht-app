@@ -35,6 +35,7 @@ const navItems = [
   { label: "Search Filters", path: "/management/amenities", icon: SlidersHorizontal },
   { label: "Owners", path: "/management/owners", icon: Users },
   { label: "Inquiries", path: "/management/inquiries", icon: MessageSquare },
+  { label: "Guest Reviews", path: "/management/reviews", icon: MessageSquare },
   { label: "Rental Payments", path: "/management/payments", icon: CreditCard },
   { label: "Sale Requests", path: "/management/sale-requests", icon: Tag },
   { label: "Pages", path: "/management/pages", icon: FileText },

@@ -28,7 +28,7 @@ export function AdminPaymentsPage() {
 
   const [schedule, setSchedule] = useState<Inst[]>([]);
   const [confirmed, setConfirmed] = useState(false);
-  const [chargeMode, setChargeMode] = useState<"card_capture" | "card_on_file">("card_capture");
+  const [chargeMode, setChargeMode] = useState<"card_capture" | "card_on_file">("card_on_file");
   const [filter, setFilter] = useState("");
 
   useEffect(() => {
@@ -220,7 +220,9 @@ export function AdminPaymentsPage() {
             />
             <span>
               Website charges the first installment; HostAway charges the rest
-              <span className="block text-xs text-muted-foreground">Default.</span>
+              <span className="block text-xs text-muted-foreground">
+                Don't use with HostAway auto-payments on: HostAway charges the first installment again.
+              </span>
             </span>
           </label>
           <label className="flex items-start gap-2">
@@ -233,7 +235,7 @@ export function AdminPaymentsPage() {
             <span>
               Website saves the card; HostAway charges every installment
               <span className="block text-xs text-muted-foreground">
-                Use if the test booking shows HostAway charging the first installment again.
+                Default. HostAway shows the payments as paid and is the single ledger.
               </span>
             </span>
           </label>

@@ -37,4 +37,7 @@ crons.interval("sync-hostaway-photos", { hours: 24 }, internal.hostawayApi.syncP
 // sites) once their scheduledAt passes [scott, 2026-10-08].
 crons.interval("publish-scheduled-posts", { minutes: 15 }, internal.content.publishDuePosts, {});
 
+// Guest reviews are read-only from Hostaway; management replies live here.
+crons.interval("sync-guest-reviews", { hours: 24 }, internal.guestReviews.sync, {});
+
 export default crons;

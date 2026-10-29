@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
  * so the whole thing works with keyboard and screen readers without a custom
  * focus-trap, and it degrades to a stacked block on mobile.
  */
-export function HeaderSearchBar({ dark = false }: { dark?: boolean }) {
+export function HeaderSearchBar({ dark = false, onSearched }: { dark?: boolean; onSearched?: () => void }) {
   const navigate = useNavigate();
   const { siteSlug } = useSiteFlags();
   const searchMode = lockedModeFor(siteSlug) ?? "rent";
@@ -52,7 +52,10 @@ export function HeaderSearchBar({ dark = false }: { dark?: boolean }) {
     if (checkIn) params.set("checkIn", checkIn);
     if (checkOut) params.set("checkOut", checkOut);
     if (guests) params.set("guests", guests);
-    navigate(`/search?${params.toString()}`);
+    // `state.headerSearch` tells an already-mounted SearchPage to re-read the
+    // URL; otherwise its own URL sync writes the old filters straight back.
+    navigate(`/search?${params.toString()}`, { state: { headerSearch: Date.now() } });
+    onSearched?.();
   }
 
   const today = new Date().toISOString().slice(0, 10);
