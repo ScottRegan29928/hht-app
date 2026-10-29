@@ -594,7 +594,8 @@ export function toE164(raw: string | undefined): string | undefined {
   return `+${digits}`;
 }
 
-async function createHostawayReservation(token: string, s: any, listingId: number) {
+/** Exported for transport-level tests; not a callable Convex function. */
+export async function createHostawayReservation(token: string, s: any, listingId: number) {
   const res = await fetch(`${HOSTAWAY_API}/reservations?forceOverbooking=0`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -611,7 +612,10 @@ async function createHostawayReservation(token: string, s: any, listingId: numbe
       numberOfGuests: s.guests,
       totalPrice: s.totalCents / 100,
       currency: "USD",
-      comment: `Booked online at ${s.site ?? "our website"}; first installment charged via website Stripe checkout.${s.notes ? " Guest note: " + s.notes : ""}`,
+      // Special Requests belongs in Guest Notes. Hostaway's generic comment
+      // field is not the reservation note or an Inbox conversation.
+      guestNote: s.notes?.trim() || undefined,
+      comment: `Booked online at ${s.site ?? "our website"}; ${s.chargeMode === "card_on_file" ? "card saved via website; Hostaway manages installment charges." : "first installment charged via website Stripe checkout."}${s.notes ? " Guest note: " + s.notes : ""}`,
       stripeGuestId: s.stripeCustomerId,
     }),
   });
