@@ -1,52 +1,44 @@
 /* Swallowtail's existing Cinzel, blue, maroon, and neutral brand tokens. */
-.beach-day { background: #fff; color: var(--foreground); padding: 5rem 0; scroll-margin-top: 110px; }
+.beach-day { background: #fff; color: var(--foreground); padding: 4.5rem 0; scroll-margin-top: 110px; }
 .beach-day-inner { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
-.beach-day-intro { display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem; align-items: end; margin-bottom: 2rem; }
+.beach-day-intro { margin-bottom: 1.8rem; }
 .beach-day-kicker { color: #891f11; text-transform: uppercase; font-size: .75rem; font-weight: 600; letter-spacing: .16em; margin-bottom: .85rem; }
-.beach-day h2 { font-family: var(--font-display); font-size: clamp(1.85rem, 3.3vw, 2.75rem); line-height: 1.2; }
-.beach-day-intro > p { color: var(--muted-foreground); font-size: 1.05rem; line-height: 1.75; max-width: 430px; margin-bottom: .15rem; }
+.beach-day h2 { font-family: var(--font-display); font-size: clamp(1.85rem, 3.3vw, 2.75rem); line-height: 1.25; }
+.beach-day-intro > p { color: var(--muted-foreground); font-size: 1rem; line-height: 1.75; max-width: 760px; margin-top: 1rem; }
 .beach-day-dateline { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--border); padding: 1rem 0; font-size: .8rem; color: var(--muted-foreground); }
-.beach-day-layout { display: grid; grid-template-columns: 1.08fr 1fr; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; }
-.beach-day-water { background: oklch(0.3 0.07 220); color: #fff; display: flex; flex-direction: column; }
-.beach-day-tide { padding: 2rem 2.5rem 1.75rem; flex: 1; }
-.beach-day-label { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .13em; display: flex; gap: .7rem; align-items: center; }
-.beach-day h3 { font-family: var(--font-display); line-height: 1.35; font-size: 1.3rem; margin-top: 1rem; }
-.beach-day-station { font-size: .75rem; margin-top: .6rem; color: rgba(255,255,255,.8); line-height: 1.6; }
-.beach-day-times { display: grid; grid-template-columns: 1fr 1fr; margin: 1.8rem 0 1.4rem; gap: 1rem; }
-.beach-day-times > div { border-left: 2px solid rgba(255,255,255,.45); padding-left: 1rem; }
-.beach-day-times span { display: block; font-size: .8rem; color: rgba(255,255,255,.8); margin-bottom: .5rem; }
-.beach-day-times strong { display: block; font-size: 1.1rem; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.5; }
-.beach-day-link { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; padding: .5rem 0; line-height: 1.5; }
+.beach-day-layout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 3px solid #891f11; border-bottom: 1px solid var(--border); }
+.beach-day-column { display: flex; flex-direction: column; min-width: 0; padding: 1.6rem 1.5rem 1.4rem; }
+.beach-day-column + .beach-day-column { border-left: 1px solid var(--border); }
+.beach-day-column header { min-height: 7rem; }
+.beach-day-label { color: #891f11; font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; display: flex; gap: .6rem; align-items: center; }
+.beach-day-label svg { flex-shrink: 0; }
+.beach-day h3 { font-family: var(--font-display); line-height: 1.4; font-size: 1.13rem; margin-top: 1rem; }
+.beach-day-column-body { flex: 1; }
+.beach-day-column-body > p { font-size: .84rem; line-height: 1.75; color: var(--muted-foreground); margin: 0 0 1rem; }
+.beach-day-times { display: grid; gap: 1rem; margin-bottom: 1.5rem; }
+.beach-day-times > div { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+.beach-day-times span { font-size: .8rem; color: var(--muted-foreground); }
+.beach-day-times strong { font-size: .95rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; color: oklch(0.3 0.07 220); }
+.beach-day-link { display: flex; align-items: center; justify-content: space-between; gap: .45rem; font-size: .76rem; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; padding: .65rem 0 0; line-height: 1.5; color: oklch(0.3 0.07 220); border-top: 1px solid var(--border); margin-top: .5rem; }
+.beach-day-link svg { flex-shrink: 0; }
 .beach-day-link:hover { text-decoration-thickness: 2px; }
 .beach-day-link:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
-.beach-day-small { font-size: .72rem; line-height: 1.65; color: rgba(255,255,255,.78); margin-top: .65rem; max-width: 380px; }
-.beach-day-sun { padding: 1.6rem 2.5rem; border-top: 1px solid rgba(255,255,255,.25); display: flex; align-items: flex-start; gap: 1rem; }
-.beach-day-sun > svg { flex-shrink: 0; margin-top: .25rem; }
-.beach-day-sun h3 { font-size: 1rem; margin-top: 0; }
-.beach-day-sun p { margin-top: .6rem; font-size: .8rem; display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; line-height: 1.6; }
-.beach-day-sun .beach-day-link { font-size: .7rem; font-weight: 400; color: rgba(255,255,255,.8); }
-.beach-day-notes { background: var(--card); }
-.beach-day-note { padding: 1.8rem 2.25rem; }
-.beach-day-note + .beach-day-note { border-top: 1px solid var(--border); }
-.beach-day-note-heading { display: flex; align-items: center; gap: .7rem; color: #891f11; }
-.beach-day-note > p { font-size: .85rem; line-height: 1.75; color: var(--muted-foreground); margin-top: .7rem; }
-.beach-day-note > .beach-day-property-note { color: var(--foreground); font-size: .75rem; border-left: 2px solid #891f11; padding-left: .75rem; }
-.beach-day-note .beach-day-link { color: oklch(0.3 0.07 220); margin-top: .5rem; }
+.beach-day-column-body > .beach-day-small { font-size: .74rem; line-height: 1.7; }
+.beach-day-column-body > .beach-day-property-note { color: var(--foreground); font-size: .75rem; border-left: 2px solid #891f11; padding-left: .7rem; }
 .beach-day-footer { font-size: .72rem; line-height: 1.8; color: var(--muted-foreground); margin-top: 1.1rem; max-width: 1000px; }
-@media (max-width: 900px) {
-  .beach-day-layout { grid-template-columns: 1fr; }
-  .beach-day-intro { grid-template-columns: 1fr; gap: 1.25rem; }
-  .beach-day-intro > p { max-width: 620px; }
-  .beach-day-break { display: none; }
+@media (max-width: 1099px) {
+  .beach-day-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .beach-day-column:nth-child(3) { border-left: 0; }
+  .beach-day-column:nth-child(n+3) { border-top: 1px solid var(--border); }
+  .beach-day-column header { min-height: 6.4rem; }
 }
-@media (max-width: 540px) {
+@media (max-width: 599px) {
   .beach-day { padding: 3rem 0; }
   .beach-day-inner { padding: 0 1rem; }
   .beach-day-dateline { flex-direction: column; gap: .3rem; }
-  .beach-day-tide, .beach-day-note { padding: 1.5rem; }
-  .beach-day-sun { padding: 1.5rem; gap: .75rem; }
-  .beach-day-sun > svg { width: 28px; }
-  .beach-day-times { gap: .7rem; }
-  .beach-day-times > div { padding-left: .7rem; }
-  .beach-day-times strong { font-size: .95rem; }
+  .beach-day-layout { grid-template-columns: 1fr; }
+  .beach-day-column { padding: 1.5rem 0; }
+  .beach-day-column + .beach-day-column { border-left: 0; border-top: 1px solid var(--border); }
+  .beach-day-column header { min-height: 0; margin-bottom: 1.2rem; }
+  .beach-day-times { max-width: 350px; }
 }
