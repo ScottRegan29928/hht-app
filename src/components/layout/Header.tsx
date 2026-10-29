@@ -138,6 +138,7 @@ export function Header() {
   const [mobileStayOpen, setMobileStayOpen] = useState(false);
   const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/";
   // Heritage's hero is a full-bleed photo banner recreated from
@@ -157,9 +158,14 @@ export function Header() {
   // transparent hero overlay is light-on-dark, and it uses the white logo.
   const lightOnDark = overlay;
 
+  // "Search Properties" used to be a plain link to /search, so on the rental
+  // page itself it did nothing [justin via scott, 2026-10-17]. It now opens
+  // the same Where/When/Who search pill mhht carries, in a row under the nav.
   const searchLink = (
-<Link
-              to="/search"
+            <button
+              type="button"
+              onClick={() => setSearchOpen((o) => !o)}
+              aria-expanded={searchOpen}
               className={cn(
                 "ml-2 flex items-center whitespace-nowrap gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 lightOnDark
@@ -167,9 +173,9 @@ export function Header() {
                   : "bg-primary text-primary-foreground hover:bg-primary/90"
               )}
             >
-              <Search className="w-4 h-4" />
+              {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
               Search Properties
-            </Link>
+            </button>
   );
 
   return (
@@ -441,6 +447,11 @@ export function Header() {
         {headerSearch && (
           <div className="flex justify-center pb-3 sm:pb-4">
             <HeaderSearchBar dark={lightOnDark} />
+          </div>
+        )}
+        {!headerSearch && searchOpen && (
+          <div className="flex justify-center pb-3 sm:pb-4">
+            <HeaderSearchBar dark={lightOnDark} onSearched={() => setSearchOpen(false)} />
           </div>
         )}
         </div>

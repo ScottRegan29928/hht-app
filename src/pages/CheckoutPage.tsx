@@ -339,7 +339,7 @@ export function CheckoutPage() {
           <p className="text-muted-foreground mb-6">
             {payment ? (
               <>
-                Your villa is reserved. A receipt is on its way to <strong>{form.email}</strong>.
+                Your villa is reserved and your first payment has been charged. Confirmation details will be sent to <strong>{form.email}</strong>.
               </>
             ) : (
               <>
@@ -624,9 +624,7 @@ export function CheckoutPage() {
                       phone={form.phone}
                       name={`${form.firstName} ${form.lastName}`}
                       buttonLabel={
-                        payment.intentType === "payment"
-                          ? `Pay ${money(payment.dueNowCents)} and Reserve`
-                          : "Reserve with This Card"
+                        `Pay ${money(payment.dueNowCents)} and Reserve`
                       }
                       onAuthorized={onAuthorized}
                     />
@@ -827,7 +825,7 @@ function PaymentRow({
   return (
     <>
       <span className="text-muted-foreground">
-        {c.dueDate ? `Due ${formatDate(c.dueDate)}` : paid ? "Paid today" : "Card saved"}
+        {c.dueDate ? `Due ${formatDate(c.dueDate)}` : paid ? "Paid today" : "Charged today"}
       </span>
       <span className="font-medium">{money(c.amountCents)}</span>
     </>

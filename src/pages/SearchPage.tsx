@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useSeo } from "@/lib/seo";
 import { useSite } from "@/lib/siteContext";
 import { searchTitle, searchDescription } from "../../convex/seoShared";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useSiteFlags } from "../lib/siteContext";
@@ -183,6 +183,21 @@ export function SearchPage() {
     const next = parseMulti(urlType);
     setListingTypesRaw((cur) => (cur.join(",") === next.join(",") ? cur : next));
   }, [urlType, lockedMode]);
+
+  // Same problem for the header search pill: submitting it while already on
+  // /search doesn't remount this page, so adopt the new URL explicitly
+  // [justin via scott, 2026-10-17].
+  const location = useLocation();
+  const headerSearchStamp = (location.state as { headerSearch?: number } | null)?.headerSearch;
+  useEffect(() => {
+    if (!headerSearchStamp) return;
+    setCommunitySlugs(parseMulti(searchParams.get("community")));
+    setCheckIn(searchParams.get("checkIn") ?? "");
+    setCheckOut(searchParams.get("checkOut") ?? "");
+    setGuests(searchParams.get("guests") ?? "");
+    setQ(searchParams.get("q") ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headerSearchStamp]);
 
   const clearFilters = () => {
     setCommunitySlugs([]);

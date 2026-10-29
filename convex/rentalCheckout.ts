@@ -91,7 +91,9 @@ async function readSettings(ctx: any): Promise<Settings> {
     : {
         schedule: DEFAULT_SCHEDULE,
         scheduleConfirmed: true, // confirmed by Justin 2026-10-10
-        chargeMode: "card_capture",
+        // HostAway charges installment 1 itself the moment a card is attached,
+        // so website capture double-charged Justin's live test [hostaway, 2026-10-17].
+        chargeMode: "card_on_file",
         accountOverrides: [],
       };
 }
@@ -566,18 +568,38 @@ export const startCheckout = action({
 
 /**
  * HostAway reservation create. ⚠ Gated (HOSTAWAY_WRITES_ENABLED + live key).
- * The payment-method hand-off fields are UNPROVEN: HostAway support said
- * "pass the payment intent/method ID to the reservation via API" without
- * naming the field. The first live test booking must confirm (a) the card is
- * attached in HostAway and (b) HostAway does not re-charge the first
- * installment we already captured. Until then this stays off.
+ *
+ * channelId: HostAway only accepts 2000 (direct), 2002 (homeaway) or 2020
+ * (partner) on create — 2013 (bookingengine) is rejected with "Wrong channel
+ * ID". That bug failed Justin's first live test on 2026-10-16. We use 2000.
+ *
+ * Card hand-off: there is no card field on the reservation object. The
+ * documented route is POST /v1/paymentCards/{reservationId}/addPaymentMethodId
+ * with the Stripe PaymentMethod id (saved to the customer via
+ * setup_future_usage=off_session, same Stripe account HostAway charges from).
  */
-async function createHostawayReservation(token: string, s: any, listingId: number, paymentMethodId: string | null) {
+/**
+ * HostAway parses phones as international. "(843) 298-2494" went in as
+ * +8432982494 and showed as a Vietnam (+84) number [justin, 2026-10-16].
+ * Send E.164; bare 10-digit (or 1+10) numbers are US/Canada.
+ */
+export function toE164(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return undefined;
+  if (trimmed.startsWith("+")) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return `+${digits}`;
+}
+
+async function createHostawayReservation(token: string, s: any, listingId: number) {
   const res = await fetch(`${HOSTAWAY_API}/reservations?forceOverbooking=0`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      channelId: 2013, // bookingengine — keeps website bookings in their own channel
+      channelId: 2000, // direct — the only sensible create channel for our own site
       listingMapId: listingId,
       arrivalDate: s.checkIn,
       departureDate: s.checkOut,
@@ -585,13 +607,12 @@ async function createHostawayReservation(token: string, s: any, listingId: numbe
       guestLastName: s.lastName,
       guestName: `${s.firstName} ${s.lastName}`,
       guestEmail: s.email,
-      phone: s.phone,
+      phone: toE164(s.phone),
       numberOfGuests: s.guests,
       totalPrice: s.totalCents / 100,
       currency: "USD",
-      comment: s.notes,
+      comment: `Booked online at ${s.site ?? "our website"}; first installment charged via website Stripe checkout.${s.notes ? " Guest note: " + s.notes : ""}`,
       stripeGuestId: s.stripeCustomerId,
-      stripePaymentMethodId: paymentMethodId,
     }),
   });
   const data = await res.json().catch(() => null);
@@ -599,6 +620,23 @@ async function createHostawayReservation(token: string, s: any, listingId: numbe
     throw new Error(`HostAway reservation failed: ${data?.message ?? res.status}`);
   }
   return Number(data.result?.id);
+}
+
+/** Attach the saved Stripe card to the HostAway reservation. Never throws. */
+async function attachHostawayCard(token: string, reservationId: number, paymentMethodId: string | null) {
+  if (!paymentMethodId) return "no payment method on the intent";
+  try {
+    const res = await fetch(`${HOSTAWAY_API}/paymentCards/${reservationId}/addPaymentMethodId`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentMethodId }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || data?.status !== "success") return `card attach failed: ${data?.message ?? res.status}`;
+    return null;
+  } catch (e: any) {
+    return `card attach failed: ${String(e?.message ?? e)}`;
+  }
 }
 
 export const finalizeCheckout = action({
@@ -669,8 +707,16 @@ export const finalizeCheckout = action({
     let reservationId: number | undefined;
     if (HOSTAWAY_WRITES_ENABLED && s.stripeMode === "live") {
       try {
-        reservationId = await createHostawayReservation(token, s, listingId!, paymentMethodId);
+        reservationId = await createHostawayReservation(token, s, listingId!);
         hostawayWrite = "created";
+        const attachErr = await attachHostawayCard(token, reservationId, paymentMethodId);
+        if (attachErr) {
+          console.error(`[checkout ${sessionId}] HostAway reservation ${reservationId}: ${attachErr}`);
+          await ctx.runMutation(internal.rentalCheckout.patchSession, {
+            sessionId,
+            patch: { error: `Reservation ${reservationId} created; ${attachErr} — add card in HostAway manually` },
+          });
+        }
       } catch (e: any) {
         await voidAuth();
         await ctx.runMutation(internal.rentalCheckout.releaseDates, {
@@ -856,5 +902,13 @@ export const dryRun = internalAction({
       policy: cancellationPolicyText(policyId),
       plan: quote ? planCharges(quote.totalCents, a.checkIn, todayET(), c.settings.schedule) : null,
     };
+  },
+});
+
+/** One-off ops switch (CLI only): `npx convex run rentalCheckout:setChargeMode '{"chargeMode":"card_on_file"}'`. */
+export const setChargeMode = internalMutation({
+  args: { chargeMode: v.union(v.literal("card_capture"), v.literal("card_on_file")) },
+  handler: async (ctx, { chargeMode }) => {
+    await upsertSettings(ctx, { chargeMode }, "viktor (cli)");
   },
 });
