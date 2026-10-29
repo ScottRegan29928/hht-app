@@ -40,3 +40,50 @@ describe("island-local beach planning", () => {
     expect(tideSummary(tides, new Date("2026-11-01")).high).toBeUndefined();
   });
 });
+
+
+import { parseWeather } from "../src/lib/beachDay";
+describe("current weather observations", () => {
+  const now = new Date("2026-10-29T22:00:00Z");
+  const observation = {
+    timestamp: "2026-10-29T21:50:00+00:00", textDescription: "Clear",
+    temperature: { value: 21 }, windSpeed: { value: 12.96 },
+    windDirection: { value: 80 }, relativeHumidity: { value: 82.99 },
+  };
+  test("converts official metric observations to guest-friendly units", () => {
+    const weather = parseWeather(observation, now);
+    expect(weather?.temperature).toBe(70);
+    expect(weather?.wind).toBe("E 8 mph");
+    expect(weather?.humidity).toBe(83);
+  });
+  test("rejects stale, future, missing, and invalid temperatures", () => {
+    expect(parseWeather(observation, new Date("2026-10-30T00:00:00Z"))).toBeNull();
+    expect(parseWeather(observation, new Date("2026-10-29T20:00:00Z"))).toBeNull();
+    expect(parseWeather(undefined, now)).toBeNull();
+    expect(parseWeather({ ...observation, temperature: { value: null } }, now)).toBeNull();
+    expect(parseWeather({ ...observation, timestamp: "bad" }, now)).toBeNull();
+  });
+  test("keeps zero readings and does not invent missing measurements", () => {
+    const weather = parseWeather({ ...observation, temperature: { value: 0 },
+      windSpeed: { value: 0 }, relativeHumidity: { value: null } }, now);
+    expect(weather?.temperature).toBe(32);
+    expect(weather?.wind).toBe("Calm");
+    expect(weather?.humidity).toBeNull();
+  });
+});
+
+
+test("tide rows follow the next actual event, whether incoming or outgoing", () => {
+  const tides = parseTides([
+    { t: "2026-10-29 18:00", type: "L" },
+    { t: "2026-10-30 00:00", type: "H" },
+    { t: "2026-10-30 06:00", type: "L" },
+    { t: "2026-10-30 12:00", type: "H" },
+  ]);
+  const incoming = tideSummary(tides, new Date("2026-10-29T23:00:00Z"));
+  expect(incoming.events.map((event) => event.type)).toEqual(["H", "L"]);
+  expect(incoming.events[0].at?.toISOString()).toBe("2026-10-30T00:00:00.000Z");
+  const outgoing = tideSummary(tides, new Date("2026-10-30T01:00:00Z"));
+  expect(outgoing.events.map((event) => event.type)).toEqual(["L", "H"]);
+  expect(outgoing.events[0].at?.toISOString()).toBe("2026-10-30T06:00:00.000Z");
+});
