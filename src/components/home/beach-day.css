@@ -5,10 +5,8 @@
 .beach-day-kicker { color: #891f11; text-transform: uppercase; font-size: .75rem; font-weight: 600; letter-spacing: .16em; margin-bottom: .85rem; }
 .beach-day h2 { font-family: var(--font-display); font-size: clamp(1.85rem, 3.3vw, 2.75rem); line-height: 1.25; }
 .beach-day-intro > p { color: var(--muted-foreground); font-size: 1rem; line-height: 1.75; max-width: 760px; margin-top: 1rem; }
-.beach-day-dateline { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--border); padding: 1rem 0; font-size: .8rem; color: var(--muted-foreground); }
-.beach-day-layout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 3px solid #891f11; border-bottom: 1px solid var(--border); }
-.beach-day-column { display: flex; flex-direction: column; min-width: 0; padding: 1.6rem 1.5rem 1.4rem; }
-.beach-day-column + .beach-day-column { border-left: 1px solid var(--border); }
+.beach-day-layout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem; }
+.beach-day-column { display: flex; flex-direction: column; min-width: 0; padding: 1.6rem 0 1.4rem; border-top: 3px solid #891f11; border-bottom: 1px solid var(--border); }
 .beach-day-column header { min-height: 7rem; }
 .beach-day-label { color: #891f11; font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; display: flex; gap: .6rem; align-items: center; }
 .beach-day-label svg { flex-shrink: 0; }
@@ -28,17 +26,13 @@
 .beach-day-footer { font-size: .72rem; line-height: 1.8; color: var(--muted-foreground); margin-top: 1.1rem; max-width: 1000px; }
 @media (max-width: 1099px) {
   .beach-day-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .beach-day-column:nth-child(3) { border-left: 0; }
-  .beach-day-column:nth-child(n+3) { border-top: 1px solid var(--border); }
   .beach-day-column header { min-height: 6.4rem; }
 }
 @media (max-width: 599px) {
   .beach-day { padding: 3rem 0; }
   .beach-day-inner { padding: 0 1rem; }
-  .beach-day-dateline { flex-direction: column; gap: .3rem; }
   .beach-day-layout { grid-template-columns: 1fr; }
   .beach-day-column { padding: 1.5rem 0; }
-  .beach-day-column + .beach-day-column { border-left: 0; border-top: 1px solid var(--border); }
   .beach-day-column header { min-height: 0; margin-bottom: 1.2rem; }
   .beach-day-times { max-width: 350px; }
 }

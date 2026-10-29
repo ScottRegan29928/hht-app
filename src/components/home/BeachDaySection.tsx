@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Dog, Turtle, Sunset, Waves } from "lucide-react";
 import {
-  DOG_LINK, TURTLE_LINK, TIDE_LINK, ISLAND_ZONE,
+  DOG_LINK, TURTLE_LINK, TIDE_LINK,
   dogRule, eventTime, islandDate, islandTime, isTurtleSeason, parseTides, tideApiUrl, tideSummary,
   type Tide,
 } from "@/lib/beachDay";
@@ -58,9 +58,6 @@ export default function BeachDaySection() {
 
   const tide = tideSummary(tides, now);
   const dogs = dogRule(now);
-  const dateLabel = new Intl.DateTimeFormat("en-US", {
-    timeZone: ISLAND_ZONE, weekday: "long", month: "long", day: "numeric",
-  }).format(now);
   const sunHeading = sun ? (now < sun.sunrise ? "A new day ahead" :
     now < sun.sunset ? "Time to enjoy the daylight" : "The sun has set") :
     sunState === "loading" ? "Checking sun times…" : "Sun times unavailable";
@@ -74,7 +71,6 @@ export default function BeachDaySection() {
           </div>
           <p>A quick look at the tides, daylight, and beach essentials, including a little care for the loggerheads that share our shore.</p>
         </div>
-        <div className="beach-day-dateline"><span>{dateLabel}</span><span>Hilton Head Island · Eastern Time</span></div>
         <div className="beach-day-layout">
           <article className="beach-day-column">
             <header>
