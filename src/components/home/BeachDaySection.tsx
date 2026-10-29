@@ -107,8 +107,12 @@ export default function BeachDaySection() {
             </header>
             <div className="beach-day-column-body">
               <div className="beach-day-times" aria-live="polite">
-                <div><span className="beach-day-event-label"><TideIcon high={false} />Next low tide</span><strong>{tide.low ? eventTime(tide.low.at, now) : tideState === "loading" ? "Loading…" : "Check NOAA"}</strong></div>
-                <div><span className="beach-day-event-label"><TideIcon high />Next high tide</span><strong>{tide.high ? eventTime(tide.high.at, now) : tideState === "loading" ? "Loading…" : "Check NOAA"}</strong></div>
+                {tide.events.map((event) => (
+                  <div key={event.type}>
+                    <span className="beach-day-event-label"><TideIcon high={event.type === "H"} />Next {event.type === "H" ? "high" : "low"} tide</span>
+                    <strong>{event.at ? eventTime(event.at, now) : tideState === "loading" ? "Loading…" : "Check NOAA"}</strong>
+                  </div>
+                ))}
               </div>
               <p className="beach-day-small">NOAA predictions for Port Royal Plantation, Hilton Head. Timing at Sea Pines may differ.</p>
             </div>
@@ -157,7 +161,6 @@ export default function BeachDaySection() {
             <SourceLink href={TURTLE_LINK}>Protect our loggerheads</SourceLink>
           </article>
         </div>
-        <p className="beach-day-footer">Daily tide predictions and sun times, with beach guidance from the Town of Hilton Head Island. Not a swimming-safety report. Check posted signs and local advisories before entering the water.</p>
       </div>
     </section>
   );

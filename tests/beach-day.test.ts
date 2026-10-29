@@ -71,3 +71,19 @@ describe("current weather observations", () => {
     expect(weather?.humidity).toBeNull();
   });
 });
+
+
+test("tide rows follow the next actual event, whether incoming or outgoing", () => {
+  const tides = parseTides([
+    { t: "2026-10-29 18:00", type: "L" },
+    { t: "2026-10-30 00:00", type: "H" },
+    { t: "2026-10-30 06:00", type: "L" },
+    { t: "2026-10-30 12:00", type: "H" },
+  ]);
+  const incoming = tideSummary(tides, new Date("2026-10-29T23:00:00Z"));
+  expect(incoming.events.map((event) => event.type)).toEqual(["H", "L"]);
+  expect(incoming.events[0].at?.toISOString()).toBe("2026-10-30T00:00:00.000Z");
+  const outgoing = tideSummary(tides, new Date("2026-10-30T01:00:00Z"));
+  expect(outgoing.events.map((event) => event.type)).toEqual(["L", "H"]);
+  expect(outgoing.events[0].at?.toISOString()).toBe("2026-10-30T06:00:00.000Z");
+});

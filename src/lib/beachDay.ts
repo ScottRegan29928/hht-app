@@ -68,6 +68,9 @@ export function tideSummary(tides: Tide[], now: Date) {
   const next = tides.find((tide) => tide.at > now);
   const previous = tides.filter((tide) => tide.at <= now).at(-1);
   return {
+    events: (["H", "L"] as const)
+      .map((type) => ({ type, at: tides.find((tide) => tide.type === type && tide.at > now)?.at }))
+      .sort((a, b) => (a.at?.getTime() ?? Infinity) - (b.at?.getTime() ?? Infinity)),
     direction: next && previous ? (next.type === "H" ? "Water on the way in" : "Water on the way out") : null,
     high: tides.find((tide) => tide.type === "H" && tide.at > now),
     low: tides.find((tide) => tide.type === "L" && tide.at > now),
