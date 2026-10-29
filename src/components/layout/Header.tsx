@@ -428,6 +428,7 @@ export function Header() {
 
           {/* Mobile menu button */}
           <button
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
             onClick={() => setMobileOpen(!mobileOpen)}
             className={cn(
               "p-2 rounded-lg transition-colors",
@@ -539,6 +540,11 @@ export function Header() {
             >
               Contact
             </button>
+            {!headerSearch && <button
+              type="button"
+              onClick={() => { setMobileOpen(false); setSearchOpen(true); }}
+              className={cn("block w-full text-left px-4 py-3 rounded-lg text-sm font-medium", lightOnDark ? "text-white hover:bg-white/15" : "text-muted-foreground hover:text-foreground hover:bg-muted")}
+            >Search Properties</button>}
             {brand.phoneDisplay && (
               <a
                 href={brand.phoneHref}
