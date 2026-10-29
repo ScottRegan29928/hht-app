@@ -1,6 +1,6 @@
 /** Independent public-data utilities. All guest-facing times use Hilton Head's zone. */
 export const ISLAND_ZONE = "America/New_York";
-export const TIDE_STATION = "8669167"; // NOAA: Port Royal Plantation, Hilton Head
+export const TIDE_STATION = "8669625"; // NOAA: Braddock Point, Hilton Head Island
 export const TIDE_LINK = `https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=${TIDE_STATION}`;
 export const DOG_LINK = "https://hiltonheadislandsc.gov/our_island/beach/animals_on_the_beach.php";
 export const TURTLE_LINK = "https://hiltonheadislandsc.gov/our_island/wildlife/sea_turtle_protection.php";

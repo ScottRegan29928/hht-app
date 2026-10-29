@@ -114,7 +114,7 @@ export default function BeachDaySection() {
                   </div>
                 ))}
               </div>
-              <p className="beach-day-small">NOAA predictions for Port Royal Plantation, Hilton Head. Timing at Sea Pines may differ.</p>
+              <p className="beach-day-small">NOAA predictions for Braddock Point, Hilton Head Island. Local conditions may vary.</p>
             </div>
             <SourceLink href={TIDE_LINK}>NOAA tide table</SourceLink>
           </article>
