@@ -5,6 +5,7 @@ import {
   eventTime, islandDate, islandTime, isTurtleSeason, parseTides, tideApiUrl, tideSummary,
   type Tide, type Weather,
 } from "@/lib/beachDay";
+import { currentMoonPhase, moonIconPath } from "@/lib/moonPhase";
 import "./beach-day.css";
 
 function TideIcon({ high }: { high: boolean }) {
@@ -85,6 +86,7 @@ export default function BeachDaySection() {
   }, [date]);
 
   const tide = tideSummary(tides, now);
+  const moon = currentMoonPhase(now);
   const sunHeading = sun ? (now < sun.sunrise ? "A new day ahead" :
     now < sun.sunset ? "Time to enjoy the daylight" : "The sun has set") :
     sunState === "loading" ? "Checking sun times…" : "Sun times unavailable";
@@ -127,8 +129,19 @@ export default function BeachDaySection() {
               <div className="beach-day-times" aria-live="polite">
                 <div><span className="beach-day-event-label"><Sunrise className="beach-day-event-icon" strokeWidth={1.5} aria-hidden="true" />Sunrise</span><strong>{sun ? islandTime(sun.sunrise) : sunState === "loading" ? "Loading…" : "Unavailable"}</strong></div>
                 <div><span className="beach-day-event-label"><Sunset className="beach-day-event-icon" strokeWidth={1.5} aria-hidden="true" />Sunset</span><strong>{sun ? islandTime(sun.sunset) : sunState === "loading" ? "Loading…" : "Unavailable"}</strong></div>
+                <div>
+                  <span className="beach-day-event-label">
+                    <svg viewBox="0 0 24 24" className="beach-day-event-icon" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity=".1" />
+                      <path d={moonIconPath(moon.angle)} fill="currentColor" />
+                      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                    </svg>
+                    Moon phase
+                  </span>
+                  <strong>{moon.name}</strong>
+                </div>
               </div>
-              <p className="beach-day-small">Today's sun times for Sea Pines, shown in Eastern Time.</p>
+              <p className="beach-day-small">Today's sun times for Sea Pines, shown in Eastern Time. Moon phase calculated for the current time.</p>
             </div>
             <SourceLink href="https://sunrise-sunset.org/">Sunrise-Sunset.org</SourceLink>
           </article>
