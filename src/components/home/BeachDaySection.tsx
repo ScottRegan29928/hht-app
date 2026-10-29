@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Dog, Turtle, Sunrise, Sunset, Waves } from "lucide-react";
+import { ArrowUpRight, Dog, Turtle, Sunset, Waves } from "lucide-react";
 import {
   DOG_LINK, TURTLE_LINK, TIDE_LINK, ISLAND_ZONE,
   dogRule, eventTime, islandDate, islandTime, isTurtleSeason, parseTides, tideApiUrl, tideSummary,
@@ -61,60 +61,74 @@ export default function BeachDaySection() {
   const dateLabel = new Intl.DateTimeFormat("en-US", {
     timeZone: ISLAND_ZONE, weekday: "long", month: "long", day: "numeric",
   }).format(now);
-  const sunHeading = sun ? (now < sun.sunrise ? "First light, then a full day" :
-    now < sun.sunset ? "Save a moment for sunset" : "The sun has set for today") : "A little more time outside";
+  const sunHeading = sun ? (now < sun.sunrise ? "A new day ahead" :
+    now < sun.sunset ? "Time to enjoy the daylight" : "The sun has set") :
+    sunState === "loading" ? "Checking sun times…" : "Sun times unavailable";
   return (
     <section id="beach-day" className="beach-day" aria-labelledby="beach-day-title">
       <div className="beach-day-inner">
         <div className="beach-day-intro">
           <div>
             <p className="beach-day-kicker">Your Sea Pines field notes</p>
-            <h2 id="beach-day-title">Before your toes<br className="beach-day-break" /> meet the sand.</h2>
+            <h2 id="beach-day-title">Before your toes meet the sand.</h2>
           </div>
           <p>A quick look at the tides, daylight, and beach essentials, including a little care for the loggerheads that share our shore.</p>
         </div>
         <div className="beach-day-dateline"><span>{dateLabel}</span><span>Hilton Head Island · Eastern Time</span></div>
         <div className="beach-day-layout">
-          <div className="beach-day-water">
-            <div className="beach-day-tide">
-              <p className="beach-day-label"><Waves size={22} aria-hidden="true" /> The rhythm of the water</p>
-              <h3>{tide.direction ?? (tideState === "loading" ? "Checking the tides…" : "Tide times unavailable")}</h3>
-              <p className="beach-day-station">NOAA reference: Port Royal Plantation, Hilton Head</p>
+          <article className="beach-day-column">
+            <header>
+              <p className="beach-day-label"><Waves size={26} strokeWidth={1.5} aria-hidden="true" /> Tides</p>
+              <h3>{tide.direction ? (tide.direction === "Water on the way in" ? "Incoming tide" : "Outgoing tide") :
+                tideState === "loading" ? "Checking the tides…" : "Tide times unavailable"}</h3>
+            </header>
+            <div className="beach-day-column-body">
               <div className="beach-day-times" aria-live="polite">
                 <div><span>Next low tide</span><strong>{tide.low ? eventTime(tide.low.at, now) : tideState === "loading" ? "Loading…" : "Check NOAA"}</strong></div>
                 <div><span>Next high tide</span><strong>{tide.high ? eventTime(tide.high.at, now) : tideState === "loading" ? "Loading…" : "Check NOAA"}</strong></div>
               </div>
-              <SourceLink href={TIDE_LINK}>Open the NOAA tide table</SourceLink>
-              <p className="beach-day-small">Predicted tides, not measured conditions. Timing at Sea Pines may differ.</p>
+              <p className="beach-day-small">NOAA predictions for Port Royal Plantation, Hilton Head. Timing at Sea Pines may differ.</p>
             </div>
-            <div className="beach-day-sun">
-              <Sunset size={38} strokeWidth={1.25} aria-hidden="true" />
-              <div>
-                <h3>{sunHeading}</h3>
-                <p>{sun ? <><Sunrise size={16} aria-hidden="true" /> Sunrise {islandTime(sun.sunrise)}<span>·</span>Sunset {islandTime(sun.sunset)}</> :
-                  sunState === "loading" ? "Checking today's sunrise and sunset…" : "Sun times are unavailable right now."}</p>
-                <SourceLink href="https://sunrise-sunset.org/">Sun times by Sunrise-Sunset.org</SourceLink>
+            <SourceLink href={TIDE_LINK}>NOAA tide table</SourceLink>
+          </article>
+          <article className="beach-day-column">
+            <header>
+              <p className="beach-day-label"><Sunset size={26} strokeWidth={1.5} aria-hidden="true" /> Daylight</p>
+              <h3>{sunHeading}</h3>
+            </header>
+            <div className="beach-day-column-body">
+              <div className="beach-day-times" aria-live="polite">
+                <div><span>Sunrise</span><strong>{sun ? islandTime(sun.sunrise) : sunState === "loading" ? "Loading…" : "Unavailable"}</strong></div>
+                <div><span>Sunset</span><strong>{sun ? islandTime(sun.sunset) : sunState === "loading" ? "Loading…" : "Unavailable"}</strong></div>
               </div>
+              <p className="beach-day-small">Today's sun times for Sea Pines, shown in Eastern Time.</p>
             </div>
-          </div>
-          <div className="beach-day-notes">
-            <article className="beach-day-note">
-              <div className="beach-day-note-heading"><Dog size={24} strokeWidth={1.5} aria-hidden="true" /><p className="beach-day-label">Paws on the shoreline</p></div>
+            <SourceLink href="https://sunrise-sunset.org/">Sunrise-Sunset.org</SourceLink>
+          </article>
+          <article className="beach-day-column">
+            <header>
+              <p className="beach-day-label"><Dog size={26} strokeWidth={1.5} aria-hidden="true" /> Dogs on the beach</p>
               <h3>{dogs.title}</h3>
-              <p>{dogs.detail} Follow posted restrictions, and keep wildlife undisturbed.</p>
-              <p className="beach-day-property-note">Beach rules are separate from resort rules. Swallowtail does not allow pets.</p>
-              <SourceLink href={DOG_LINK}>Read the Town's dog rules</SourceLink>
-            </article>
-            <article className="beach-day-note">
-              <div className="beach-day-note-heading"><Turtle size={24} strokeWidth={1.5} aria-hidden="true" /><p className="beach-day-label">Share the shore with loggerheads</p></div>
-              <h3>{isTurtleSeason(now) ? "Turtle season: lights out at 10 PM" : "A darker shore. A safer journey."}</h3>
-              <p>May 1 through October 31: turn off or properly shield lights visible from the beach from 10 PM to 6 AM. Close curtains if indoor light reaches the shore.</p>
-              <p>Give turtles and nests space, fill in sand holes, and take beach gear home each evening.</p>
-              <SourceLink href={TURTLE_LINK}>Help protect Hilton Head's sea turtles</SourceLink>
-            </article>
-          </div>
+            </header>
+            <div className="beach-day-column-body">
+              <p>{dogs.detail} Follow posted restrictions.</p>
+              <p className="beach-day-property-note">Swallowtail does not allow pets. Beach rules are separate.</p>
+            </div>
+            <SourceLink href={DOG_LINK}>Town dog rules</SourceLink>
+          </article>
+          <article className="beach-day-column">
+            <header>
+              <p className="beach-day-label"><Turtle size={26} strokeWidth={1.5} aria-hidden="true" /> Sea turtles</p>
+              <h3>{isTurtleSeason(now) ? "Lights out at 10 PM" : "Keep the shore dark"}</h3>
+            </header>
+            <div className="beach-day-column-body">
+              <p>May 1–October 31: turn off or properly shield beach-visible lights from 10 PM to 6 AM. Close curtains if indoor light reaches the shore.</p>
+              <p className="beach-day-small">Give loggerheads and nests space, fill sand holes, and remove beach gear each evening.</p>
+            </div>
+            <SourceLink href={TURTLE_LINK}>Protect our loggerheads</SourceLink>
+          </article>
         </div>
-        <p className="beach-day-footer">Tides and sun times load for the island's current date. Beach rules: Town of Hilton Head Island. This is a planning guide, not a surf or swimming-safety report. Check posted signs and local advisories before entering the water.</p>
+        <p className="beach-day-footer">Daily tide predictions and sun times, with beach guidance from the Town of Hilton Head Island. Not a swimming-safety report. Check posted signs and local advisories before entering the water.</p>
       </div>
     </section>
   );
