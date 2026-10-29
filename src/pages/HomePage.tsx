@@ -1,3 +1,4 @@
+import { BeachDayLazy } from "@/components/home/BeachDayLazy";
 import { webp } from "@/lib/heroWebp";
 import { useQuery } from "convex/react";
 import { Link } from "react-router-dom";
@@ -318,6 +319,8 @@ export function HomePage() {
           </div>
         </section>
       )}
+
+      {siteSlug === "swallowtail" && <BeachDayLazy />}
 
       {/* ── CTA Section ──
           Off by default on Heritage [scott, 2026-09-08]; now a backend toggle. */}
