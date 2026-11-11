@@ -320,7 +320,7 @@ export function HomePage() {
         </section>
       )}
 
-      {siteSlug === "swallowtail" && <BeachDayLazy />}
+      {isResort(siteSlug) && <BeachDayLazy />}
 
       {/* ── CTA Section ──
           Off by default on Heritage [scott, 2026-09-08]; now a backend toggle. */}
