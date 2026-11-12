@@ -54,7 +54,7 @@ export function isHostawayOwned(field: string): boolean {
 }
 
 /** True when this property's data comes from HostAway and should be locked. */
-export function isHostawayLinked(property: { hostawayId?: number | null }): boolean {
+export function isHostawayLinked(property: { hostawayId?: string | number | null }): boolean {
   return property.hostawayId !== undefined && property.hostawayId !== null;
 }
 

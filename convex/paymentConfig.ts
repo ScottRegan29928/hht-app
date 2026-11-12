@@ -15,6 +15,8 @@
  *    with a per-property override.
  */
 
+import { sameHostawayId, type HostawayId } from "./hostawayIds";
+
 export type StripeAccountKey = "heritage" | "seapines";
 
 export const STRIPE_ACCOUNTS: Record<
@@ -134,12 +136,12 @@ export function planCharges(
 export const POLICY_FIRM = 614465;
 export const POLICY_STRICT = 614466;
 
-export function cancellationPolicyText(policyId?: number | null): string[] {
+export function cancellationPolicyText(policyId?: HostawayId | null): string[] {
   const common = [
     "All cancellations must be submitted in writing.",
     "Any refund issued will be less applicable payment processing fees.",
   ];
-  if (policyId === POLICY_STRICT) {
+  if (sameHostawayId(policyId, POLICY_STRICT)) {
     return [
       "100% refund if you cancel 60 days or more before arrival.",
       "No refund for cancellations made within 60 days of arrival.",

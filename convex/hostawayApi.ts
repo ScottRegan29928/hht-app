@@ -18,6 +18,8 @@ import { internal } from "./_generated/api";
  * someone executed it by hand, which is not a real production sync.
  */
 
+import { requireHostawayId } from "./hostawayIds";
+
 const HOSTAWAY_API = "https://api.hostaway.com/v1";
 
 const TOKEN_KEY = "hostaway:accessToken";
@@ -343,19 +345,19 @@ export const syncPhotos = internalAction({
       throw new Error(`HostAway listings failed: ${res.status}`);
     }
     const body = await res.json();
-    const byId = new Map<number, string[]>();
+    const byId = new Map<string, string[]>();
     for (const l of body.result ?? []) {
       const urls = (l.listingImages ?? [])
         .map((i: { url?: string }) => i.url)
         .filter((u: string | undefined): u is string => Boolean(u));
-      if (urls.length) byId.set(Number(l.id), urls);
+      if (urls.length) byId.set(requireHostawayId(l.id), urls);
     }
 
     const props: any[] = await ctx.runQuery(internal.hostawaySync.getAllProperties, {});
     let updated = 0;
     for (const p of props) {
       if (!p.hostawayId) continue;
-      const fresh = byId.get(Number(p.hostawayId));
+      const fresh = byId.get(requireHostawayId(p.hostawayId));
       if (!fresh) continue;
       const cur = p.photoUrls ?? [];
       const same =
