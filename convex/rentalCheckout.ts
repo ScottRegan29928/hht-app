@@ -598,6 +598,12 @@ export function toE164(raw: string | undefined): string | undefined {
   return `+${digits}`;
 }
 
+/**
+ * Creation succeeded upstream but its reference cannot be used safely.
+ * Distinguish this from a rejected create: never free the local hold or retry.
+ */
+class HostawayReservationIdentityError extends Error {}
+
 /** Exported for transport-level tests; not a callable Convex function. */
 export async function createHostawayReservation(token: string, s: any, listingId: HostawayId) {
   const res = await fetch(`${HOSTAWAY_API}/reservations?forceOverbooking=0`, {
@@ -627,7 +633,11 @@ export async function createHostawayReservation(token: string, s: any, listingId
   if (!res.ok || data?.status !== "success") {
     throw new Error(`HostAway reservation failed: ${data?.message ?? res.status}`);
   }
-  return requireHostawayId(data.result?.id);
+  try {
+    return requireHostawayId(data.result?.id);
+  } catch {
+    throw new HostawayReservationIdentityError("Hostaway accepted the reservation but returned an unusable ID");
+  }
 }
 
 /** Attach the saved Stripe card to the HostAway reservation. Never throws. */
@@ -727,6 +737,14 @@ export const finalizeCheckout = action({
         }
       } catch (e: any) {
         await voidAuth();
+        if (e instanceof HostawayReservationIdentityError) {
+          const error = "Hostaway accepted your reservation, but its reference could not be verified. Your dates remain held. Please contact the property manager before trying again.";
+          await ctx.runMutation(internal.rentalCheckout.patchSession, {
+            sessionId,
+            patch: { status: "failed", hostawayWrite: "created", error },
+          });
+          return { status: "failed", error };
+        }
         await ctx.runMutation(internal.rentalCheckout.releaseDates, {
           sessionId,
           status: "failed",
