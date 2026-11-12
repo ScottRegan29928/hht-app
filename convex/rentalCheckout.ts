@@ -48,6 +48,8 @@ import {
   type StripeAccountKey,
 } from "./paymentConfig";
 
+import { requireHostawayId, type HostawayId } from "./hostawayIds";
+
 const HOSTAWAY_API = "https://api.hostaway.com/v1";
 
 function env(): Record<string, string | undefined> {
@@ -277,20 +279,21 @@ export const markConfirmed = internalMutation({
   args: {
     sessionId: v.id("checkoutSessions"),
     hostawayWrite: v.string(),
-    hostawayReservationId: v.optional(v.number()),
+    hostawayReservationId: v.optional(v.union(v.string(), v.number())),
   },
   handler: async (ctx, { sessionId, hostawayWrite, hostawayReservationId }) => {
     const s = await ctx.db.get(sessionId);
     if (!s?.bookingId) throw new Error("No claimed booking for this session");
+    const reservationId = hostawayReservationId === undefined ? undefined : requireHostawayId(hostawayReservationId);
     await ctx.db.patch(s.bookingId, {
       status: "confirmed",
       amountPaid: s.chargeMode === "card_capture" ? s.dueNowCents / 100 : 0,
-      hostawayReservationId,
+      hostawayReservationId: reservationId,
     });
     await ctx.db.patch(sessionId, {
       status: "confirmed",
       hostawayWrite: hostawayWrite as any,
-      hostawayReservationId,
+      hostawayReservationId: reservationId,
       error: undefined,
       updatedAt: Date.now(),
     });
@@ -344,7 +347,7 @@ async function stripe(
 
 async function hostawayAvailable(
   token: string,
-  listingId: number,
+  listingId: HostawayId,
   checkIn: string,
   checkOut: string
 ): Promise<{ ok: boolean; reason?: string }> {
@@ -373,7 +376,7 @@ async function hostawayAvailable(
 }
 
 /** HostAway's own price calculation (read-only POST; creates nothing). */
-async function hostawayQuote(token: string, listingId: number, checkIn: string, checkOut: string, guests: number) {
+async function hostawayQuote(token: string, listingId: HostawayId, checkIn: string, checkOut: string, guests: number) {
   const res = await fetch(`${HOSTAWAY_API}/listings/${listingId}/calendar/priceDetails`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -389,10 +392,11 @@ async function hostawayQuote(token: string, listingId: number, checkIn: string, 
   return { totalCents: Math.round(total * 100), components };
 }
 
-async function hostawayPolicyId(token: string, listingId: number): Promise<number | null> {
+async function hostawayPolicyId(token: string, listingId: HostawayId): Promise<string | null> {
   const res = await getWithRetry(`${HOSTAWAY_API}/listings/${listingId}`, token);
   if (!res.ok) return null;
-  return (await res.json())?.result?.cancellationPolicyId ?? null;
+  const id = (await res.json())?.result?.cancellationPolicyId;
+  return id == null ? null : requireHostawayId(id);
 }
 
 // ───────────────────────── public: quote ─────────────────────────
@@ -595,7 +599,7 @@ export function toE164(raw: string | undefined): string | undefined {
 }
 
 /** Exported for transport-level tests; not a callable Convex function. */
-export async function createHostawayReservation(token: string, s: any, listingId: number) {
+export async function createHostawayReservation(token: string, s: any, listingId: HostawayId) {
   const res = await fetch(`${HOSTAWAY_API}/reservations?forceOverbooking=0`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -623,11 +627,11 @@ export async function createHostawayReservation(token: string, s: any, listingId
   if (!res.ok || data?.status !== "success") {
     throw new Error(`HostAway reservation failed: ${data?.message ?? res.status}`);
   }
-  return Number(data.result?.id);
+  return requireHostawayId(data.result?.id);
 }
 
 /** Attach the saved Stripe card to the HostAway reservation. Never throws. */
-async function attachHostawayCard(token: string, reservationId: number, paymentMethodId: string | null) {
+export async function attachHostawayCard(token: string, reservationId: HostawayId, paymentMethodId: string | null) {
   if (!paymentMethodId) return "no payment method on the intent";
   try {
     const res = await fetch(`${HOSTAWAY_API}/paymentCards/${reservationId}/addPaymentMethodId`, {
@@ -708,7 +712,7 @@ export const finalizeCheckout = action({
 
     // 4. HostAway reservation (gated until go-live; never in test mode).
     let hostawayWrite: "held_prelaunch" | "created" = "held_prelaunch";
-    let reservationId: number | undefined;
+    let reservationId: string | undefined;
     if (HOSTAWAY_WRITES_ENABLED && s.stripeMode === "live") {
       try {
         reservationId = await createHostawayReservation(token, s, listingId!);

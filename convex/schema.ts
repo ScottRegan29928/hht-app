@@ -188,7 +188,7 @@ const schema = defineSchema({
     // Owner (Phase 2 — owner self-service)
     ownerId: v.optional(v.id("users")),
     // External references
-    hostawayId: v.optional(v.number()), // Hostaway listing ID for API sync
+    hostawayId: v.optional(v.union(v.string(), v.number())), // Hostaway listing ID for API sync
     // Per-property HostAway sync tracking. HostAway throttles requests from
     // Convex's egress, so a run may not cover every property; these let the
     // next run prioritise the stalest and surface anything going cold.
@@ -452,7 +452,7 @@ const schema = defineSchema({
     checkoutSessionId: v.optional(v.id("checkoutSessions")),
     amountPaid: v.optional(v.number()),          // dollars captured at booking
     stripeAccount: v.optional(v.string()),       // "heritage" | "seapines"
-    hostawayReservationId: v.optional(v.number()),
+    hostawayReservationId: v.optional(v.union(v.string(), v.number())),
     guests: v.optional(v.number()),
     // Notes
     notes: v.optional(v.string()),
@@ -509,7 +509,7 @@ const schema = defineSchema({
     dueNowCents: v.number(),
     quote: v.any(),      // HostAway priceDetails components
     charges: v.any(),    // planned installments
-    cancellationPolicyId: v.optional(v.number()),
+    cancellationPolicyId: v.optional(v.union(v.string(), v.number())),
     stripeCustomerId: v.optional(v.string()),
     stripeIntentId: v.optional(v.string()),
     status: v.union(
@@ -525,7 +525,7 @@ const schema = defineSchema({
     hostawayWrite: v.optional(
       v.union(v.literal("held_prelaunch"), v.literal("created"), v.literal("failed"))
     ),
-    hostawayReservationId: v.optional(v.number()),
+    hostawayReservationId: v.optional(v.union(v.string(), v.number())),
     bookingId: v.optional(v.id("bookings")),
     calendarBookingId: v.optional(v.id("calendarBookings")),
     error: v.optional(v.string()),
@@ -537,7 +537,7 @@ const schema = defineSchema({
 
 
   guestReviews: defineTable({
-    hostawayReviewId: v.number(),
+    hostawayReviewId: v.union(v.string(), v.number()),
     propertyId: v.id("properties"),
     guestFirstName: v.string(),
     body: v.string(),

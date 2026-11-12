@@ -5,6 +5,8 @@ import { internal } from "./_generated/api";
 import { getToken, getWithRetry } from "./hostawayApi";
 import { reviewVisible, publicReview } from "./reviewPolicy";
 
+import { requireHostawayId, hostawayId, legacyHostawayId } from "./hostawayIds";
+
 async function requireRentalAdmin(ctx: any) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not signed in");
@@ -62,15 +64,24 @@ export const importBatch = internalMutation({
   args: { rows: v.array(v.any()), syncedAt: v.number() }, returns: v.any(),
   handler: async (ctx, { rows, syncedAt }): Promise<any> => {
     const properties = await ctx.db.query("properties").collect();
-    const byHostaway = new Map(properties.filter(p => p.hostawayId).map(p => [p.hostawayId, p._id]));
+    const byHostaway = new Map(properties.filter(p => p.hostawayId).map(p => [requireHostawayId(p.hostawayId), p._id]));
     let imported = 0;
     for (const row of rows) {
       if (row.type !== "guest-to-host") continue;
-      const propertyId = byHostaway.get(Number(row.listingMapId));
-      if (!propertyId || !Number.isFinite(Number(row.id))) continue;
-      const existing = await ctx.db.query("guestReviews").withIndex("by_hostaway", q => q.eq("hostawayReviewId", Number(row.id))).unique();
+      const listingId = hostawayId(row.listingMapId);
+      const reviewId = hostawayId(row.id);
+      if (!listingId || !reviewId) throw new Error("Invalid Hostaway review identity; sync aborted");
+      const propertyId = byHostaway.get(listingId);
+      if (!propertyId) continue;
+      let existing = await ctx.db.query("guestReviews").withIndex("by_hostaway", q => q.eq("hostawayReviewId", reviewId)).unique();
+      // Retain the original row, local reply, and moderation as old numeric IDs
+      // become strings. Never coerce a large ID into an imprecise legacy key.
+      const legacyId = legacyHostawayId(reviewId);
+      if (!existing && legacyId !== null) {
+        existing = await ctx.db.query("guestReviews").withIndex("by_hostaway", q => q.eq("hostawayReviewId", legacyId)).unique();
+      }
       // Preserve moderation decisions and locally written management responses.
-      const doc = { hostawayReviewId: Number(row.id), propertyId,
+      const doc = { hostawayReviewId: reviewId, propertyId,
         guestFirstName: String(row.reviewerName ?? row.guestName ?? "Guest").trim().split(/\s+/)[0] || "Guest",
         body: String(row.publicReview ?? "").trim(),
         reviewedAt: String(row.submittedAt ?? row.updatedOn ?? row.insertedOn ?? "").slice(0, 10),

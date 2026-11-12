@@ -57,7 +57,7 @@ if not HOSTAWAY_CLIENT_ID or not HOSTAWAY_CLIENT_SECRET:
 
 # Manual overrides for listings with non-standard names
 LISTING_OVERRIDES = {
-    392484: {"community": "swallowtail-at-sea-pines", "unit": "2885", "name": "2885 Swallowtail"},
+    "392484": {"community": "swallowtail-at-sea-pines", "unit": "2885", "name": "2885 Swallowtail"},
 }
 
 # Community name → slug mapping for matching
@@ -71,6 +71,17 @@ COMMUNITY_MAP = {
     "twin oaks": "twin-oaks",
     "ketch court": "ketch-court",
 }
+
+
+def hostaway_id(value) -> str:
+    """Preserve text/JSON integer IDs; normalize only lossless legacy floats."""
+    if isinstance(value, str) and value.isascii() and value.isdigit() and int(value) > 0:
+        return value
+    if type(value) is int and value > 0:
+        return str(value)
+    if type(value) is float and value.is_integer() and 0 < value <= 9007199254740991:
+        return str(int(value))
+    raise ValueError("Invalid or unsafe Hostaway ID")
 
 
 def get_token() -> str:
@@ -175,12 +186,12 @@ def format_time(hour: int | None) -> str | None:
 
 
 BED_TYPE_MAP = {
-    1: "Double Bed",
-    2: "King Bed",
-    3: "Single Bed",
-    4: "Sofa Bed",
-    5: "Bunk Bed",
-    6: "Queen Bed",
+    "1": "Double Bed",
+    "2": "King Bed",
+    "3": "Single Bed",
+    "4": "Sofa Bed",
+    "5": "Bunk Bed",
+    "6": "Queen Bed",
 }
 
 
@@ -203,13 +214,13 @@ def sync_listings(token: str, dry_run: bool = False):
     print(f"  DB: {len(db_properties)} properties, {len(communities)} communities")
 
     community_by_slug = {c["slug"]: c for c in communities}
-    prop_by_hostaway_id = {p["hostawayId"]: p for p in db_properties if p.get("hostawayId")}
+    prop_by_hostaway_id = {hostaway_id(p["hostawayId"]): p for p in db_properties if p.get("hostawayId")}
     prop_by_slug = {p["slug"]: p for p in db_properties}
 
     stats = {"updated": 0, "created": 0, "skipped": 0, "errors": 0}
 
     for ha in ha_listings:
-        ha_id = ha["id"]
+        ha_id = hostaway_id(ha["id"])
         ha_name = ha.get("name", ha.get("externalListingName", f"Listing {ha_id}"))
 
         # Check for manual overrides
@@ -254,7 +265,7 @@ def sync_listings(token: str, dry_run: bool = False):
         beds_count = 0
         for bt in bed_types_raw:
             if isinstance(bt, dict):
-                type_name = BED_TYPE_MAP.get(bt.get("bedTypeId"), f"Bed Type {bt.get('bedTypeId')}")
+                type_name = BED_TYPE_MAP.get(str(bt.get("bedTypeId")), f"Bed Type {bt.get('bedTypeId')}")
                 qty = bt.get("quantity", 1)
                 beds_count += qty
                 for _ in range(qty):
@@ -331,7 +342,7 @@ def sync_calendar(token: str, dry_run: bool = False, days_ahead: int = 180):
     stats = {"properties": 0, "blocked_ranges": 0, "errors": 0}
 
     for prop in props_with_ha:
-        ha_id = prop["hostawayId"]
+        ha_id = hostaway_id(prop["hostawayId"])
         prop_id = prop["_id"]
 
         try:

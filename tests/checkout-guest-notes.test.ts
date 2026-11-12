@@ -23,7 +23,7 @@ function transport(result: any = { status: "success", result: { id: 123 } }, sta
 describe("Hostaway special-request handoff", () => {
   test("sends the guest request to Guest Notes on the existing reservation-create call", async () => {
     const calls = transport();
-    expect(await createHostawayReservation("test-token", session, 392457)).toBe(123);
+    expect(await createHostawayReservation("test-token", session, 392457)).toBe("123");
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe("https://api.hostaway.com/v1/reservations?forceOverbooking=0");
     expect(calls[0].init.method).toBe("POST");

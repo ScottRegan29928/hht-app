@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 
+import { requireHostawayId, type HostawayId } from "./hostawayIds";
+
 // ── Query: get all properties with hostawayId for matching ──
 export const getAllProperties = internalQuery({
   args: {},
@@ -8,7 +10,7 @@ export const getAllProperties = internalQuery({
     const properties = await ctx.db.query("properties").collect();
     return properties.map((p) => ({
       _id: p._id,
-      hostawayId: (p as any).hostawayId as number | undefined,
+      hostawayId: (p as any).hostawayId as HostawayId | undefined,
       address: p.address,
       slug: p.slug,
       unitNumber: p.unitNumber,
@@ -22,6 +24,7 @@ export const getAllProperties = internalQuery({
     }));
   },
 });
+
 
 // ── Query: get all communities for slug lookup ──
 export const getAllCommunities = internalQuery({
@@ -40,7 +43,7 @@ export const getAllCommunities = internalQuery({
 export const upsertProperty = internalMutation({
   args: {
     existingId: v.optional(v.id("properties")),
-    hostawayId: v.number(),
+    hostawayId: v.union(v.string(), v.number()),
     address: v.string(),
     slug: v.string(),
     unitNumber: v.string(),
@@ -68,6 +71,7 @@ export const upsertProperty = internalMutation({
   },
   handler: async (ctx, args) => {
     const { existingId, ...data } = args;
+    data.hostawayId = requireHostawayId(data.hostawayId);
     const now = Date.now();
 
     if (existingId) {
