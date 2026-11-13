@@ -1,6 +1,21 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, type MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
+
+/** Match the site SEO settings guard in content.ts and its existing admin roles. */
+async function requireAdmin(ctx: MutationCtx): Promise<void> {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) throw new Error("Not signed in");
+  const profile = await ctx.db
+    .query("userProfiles")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .first();
+  const adminRoles = ["admin", "admin_user", "admin_rental", "admin_sales"];
+  if (!profile || !adminRoles.includes(profile.role)) {
+    throw new Error("Admin access required");
+  }
+}
 
 /**
  * Multi-site foundation.
@@ -114,6 +129,7 @@ export const updateSite = mutation({
     }),
   },
   handler: async (ctx, { id, patch }) => {
+    await requireAdmin(ctx);
     await ctx.db.patch(id, { ...patch, updatedAt: Date.now() });
   },
 });
