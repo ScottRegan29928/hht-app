@@ -6,16 +6,17 @@
  * The Club Group (asutton@cglhhi.com) and, via match alerts, real owners.
  * Until launch, notification mail is recorded in Convex and NOT sent.
  *
- * ⚠ TO GO LIVE: flip GO_LIVE to true and redeploy Convex. That is the whole
- * change. Do not remove individual guards — they all read this one flag, which
- * is why there is no way to half-launch.
+ * Heritage-only launch, 2026-11-13: inquiry notifications and replies are
+ * released only for the exact Heritage site slug. Other sites and marketplace
+ * matches remain held. GO_LIVE stays false; do not use a global flip for a
+ * single-site launch. All senders must consult this central gate.
  *
  * ⚠ Auth mail is deliberately EXEMPT (see ALWAYS_SEND). Owner invites and
  * password resets are the only way into the portals; holding them would lock
  * Scott and the client out of their own demo.
  */
 
-/** Flip to `true` at launch. */
+/** Global release remains off while the other sites are pre-launch. */
 export const GO_LIVE = false;
 
 /**
@@ -44,9 +45,14 @@ const ALWAYS_SEND: ReadonlySet<EmailKind> = new Set<EmailKind>([
  * True when this kind of mail must not leave the building yet.
  * Callers should record the row/attempt as usual and skip only the send.
  */
-export function isEmailHeld(kind: EmailKind): boolean {
-  if (GO_LIVE) return false;
-  return !ALWAYS_SEND.has(kind);
+export function isEmailHeld(kind: EmailKind, siteSlug?: string): boolean {
+  if (GO_LIVE || ALWAYS_SEND.has(kind)) return false;
+  // A site launch must not email owners in the shared marketplace or release
+  // notifications for another tenant, an unscoped legacy row, or an unknown site.
+  if (siteSlug === "heritage" && (kind === "inquiry" || kind === "inquiry_reply")) {
+    return false;
+  }
+  return true;
 }
 
 /** Uniform server log line, so a held send is visible instead of silent. */

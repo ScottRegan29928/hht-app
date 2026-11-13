@@ -21,6 +21,7 @@
 export const HOST_TO_SLUG: Record<string, string> = {
   // Heritage Vacations
   "heritagevacations.com": "heritage",
+  "portal.heritagevacations.com": "heritage",
   "hv.lead-works.com": "heritage",
   "hv.hht.lead-works.com": "heritage",
   // My Hilton Head Timeshare
@@ -35,6 +36,13 @@ export const HOST_TO_SLUG: Record<string, string> = {
   "spicebush.lead-works.com": "spicebush",
   "spicebush.hht.lead-works.com": "spicebush",
 };
+
+/** Keep the portal's public-site link off its management-only hostname. */
+export function publicSiteHrefForHostname(hostname: string): string {
+  return normalizeHost(hostname) === "portal.heritagevacations.com"
+    ? "https://heritagevacations.com"
+    : "/";
+}
 
 /** Site names, for the tab title before the query lands. */
 export const SLUG_TO_NAME: Record<string, string> = {

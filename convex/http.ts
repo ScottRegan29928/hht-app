@@ -41,6 +41,9 @@ http.route({
       { loc: base + "/", priority: "1.0" },
       { loc: base + "/search", priority: "0.8" },
     ];
+    if (siteSlug === "heritage") {
+      urls.push({ loc: base + "/accessibility", priority: "0.4" });
+    }
     // Code-routed (non-CMS) SEO pages on the resort sites [scott: SEO pages in sitemap].
     const resortSite = siteSlug === "spicebush" || siteSlug === "swallowtail";
     if (resortSite) {

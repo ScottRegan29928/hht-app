@@ -5,6 +5,7 @@ import { Header } from "./components/layout/Header";
 import { Footer } from "./components/layout/Footer";
 import { HomePage } from "./pages/HomePage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useSiteFlags } from "./lib/siteContext";
 // PropertyDetailPage removed — all week actions are inline on PropertiesPage
 
 // Perf [2026-10-15]: every route except the home page is code-split so the
@@ -44,6 +45,7 @@ const OwnersPage = lazy(() => import("./pages/admin/OwnersPage").then((m) => ({ 
 const OwnerDetailPage = lazy(() => import("./pages/admin/OwnerDetailPage").then((m) => ({ default: m.OwnerDetailPage })));
 const UsersPage = lazy(() => import("./pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })));
 const CheckoutPage = lazy(() => import("./pages/CheckoutPage").then((m) => ({ default: m.CheckoutPage })));
+const AccessibilityPage = lazy(() => import("./pages/AccessibilityPage"));
 const ResourcesRoute = lazy(() => import("./pages/ResourcesPage"));
 const ThingsToDoRoute = lazy(() => import("./pages/ThingsToDoPage"));
 const OwnRoute = lazy(() => import("./pages/OwnPage"));
@@ -67,6 +69,7 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  const { siteSlug } = useSiteFlags();
   const location = useLocation();
   // /adminlogin must be in the admin branch too, or it renders inside the
   // public site shell instead of the login card [scott, 2026-09-10].
@@ -163,8 +166,11 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <ScrollToTop />
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-white focus:text-[#002d42] focus:px-4 focus:py-3 focus:underline">
+        Skip to main content
+      </a>
       <Header />
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         <Suspense fallback={<div className="min-h-screen" />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -178,6 +184,7 @@ export default function App() {
             }
           />
           <Route path="/search" element={<SearchPage />} />
+          {siteSlug === "heritage" && <Route path="/accessibility" element={<AccessibilityPage />} />}
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/blog" element={<BlogIndexPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />

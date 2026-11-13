@@ -126,8 +126,9 @@ export function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1.5">Email</label>
+            <label htmlFor="admin-email" className="block text-sm font-medium mb-1.5">Email</label>
             <input
+              id="admin-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -140,11 +141,12 @@ export function AdminLoginPage() {
 
           {mode === "signIn" && (
             <div>
-              <label className="block text-sm font-medium mb-1.5">
+              <label htmlFor="admin-password" className="block text-sm font-medium mb-1.5">
                 Password
               </label>
               <div className="relative">
                 <input
+                  id="admin-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -172,10 +174,11 @@ export function AdminLoginPage() {
           {mode === "resetVerify" && (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1.5">
+                <label htmlFor="admin-code" className="block text-sm font-medium mb-1.5">
                   Reset code
                 </label>
                 <input
+                  id="admin-code"
                   type="text"
                   inputMode="numeric"
                   value={code}
@@ -187,11 +190,12 @@ export function AdminLoginPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">
+                <label htmlFor="admin-newPassword" className="block text-sm font-medium mb-1.5">
                   New password
                 </label>
                 <div className="relative">
                   <input
+                    id="admin-newPassword"
                     type={showPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -221,13 +225,13 @@ export function AdminLoginPage() {
           )}
 
           {notice && (
-            <div className="text-sm text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2 rounded-lg">
+            <div role="status" className="text-sm text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2 rounded-lg">
               {notice}
             </div>
           )}
 
           {error && (
-            <div className="text-sm text-red-500 bg-red-50 dark:bg-red-950/20 px-3 py-2 rounded-lg">
+            <div role="alert" className="text-sm text-red-500 bg-red-50 dark:bg-red-950/20 px-3 py-2 rounded-lg">
               {error}
             </div>
           )}

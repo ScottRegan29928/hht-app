@@ -96,7 +96,12 @@ export function sisterSiteUrl(
   const host = PRODUCTION_HOSTS.has(normalizeHost(hostname))
     ? entry.prod
     : entry.staging;
-  return `https://${host}${path}`;
+  // MHHT production still serves its legacy WordPress sales inventory.
+  // Its homepage is "View All Homes"; the new SPA /search route is not live
+  // there yet. Keep staging searches unchanged until MHHT's own launch.
+  const destination = targetSlug === "mhht" && host === entry.prod &&
+    (path.split(/[?#]/)[0] === "/search" || path.split(/[?#]/)[0] === "/search/") ? "/" : path;
+  return `https://${host}${destination}`;
 }
 
 export type ModeLink = {

@@ -155,6 +155,7 @@ export function HeritageHero({ content }: { content: HomeContent }) {
                 className="inline-flex items-center justify-center border border-white text-white transition-opacity hover:opacity-90"
                 style={{
                   backgroundColor: GOLD,
+                  color: "#171d24",
                   fontFamily: "Quicksand, ui-sans-serif, system-ui, sans-serif",
                   fontWeight: 400,
                   fontSize: "16px",

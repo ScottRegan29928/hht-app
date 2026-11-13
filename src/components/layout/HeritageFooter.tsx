@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useSiteFlags } from "@/lib/siteContext";
@@ -152,10 +153,13 @@ export function HeritageFooter() {
               href="https://lead-works.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white/80 hover:text-white hover:underline"
+              className="text-white/80 underline underline-offset-2 hover:text-white"
             >
               LeadWorks
             </a>
+          </p>
+          <p className="text-center text-sm text-white pb-3">
+            <Link to="/accessibility" className="underline underline-offset-2">Accessibility</Link>
           </p>
           {/* Badges row, matching heritagevacations.com: 200px-wide images,
               top-aligned, 20px side margins each [zoe, 2026-10-09]. */}

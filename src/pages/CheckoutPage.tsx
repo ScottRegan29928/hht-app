@@ -461,10 +461,11 @@ export function CheckoutPage() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  <label htmlFor="checkout-firstName" className="block text-sm font-medium text-muted-foreground mb-1">
                     First Name *
                   </label>
                   <input
+                    id="checkout-firstName"
                     type="text"
                     required
                     value={form.firstName}
@@ -474,10 +475,11 @@ export function CheckoutPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  <label htmlFor="checkout-lastName" className="block text-sm font-medium text-muted-foreground mb-1">
                     Last Name *
                   </label>
                   <input
+                    id="checkout-lastName"
                     type="text"
                     required
                     value={form.lastName}
@@ -487,12 +489,13 @@ export function CheckoutPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  <label htmlFor="checkout-email" className="block text-sm font-medium text-muted-foreground mb-1">
                     Email *
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
+                      id="checkout-email"
                       type="email"
                       required
                       value={form.email}
@@ -503,12 +506,13 @@ export function CheckoutPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  <label htmlFor="checkout-phone" className="block text-sm font-medium text-muted-foreground mb-1">
                     Phone *
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
+                      id="checkout-phone"
                       type="tel"
                       required
                       value={form.phone}
@@ -520,10 +524,11 @@ export function CheckoutPage() {
                 </div>
               </div>
               <div className="mt-4">
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                <label htmlFor="checkout-notes" className="block text-sm font-medium text-muted-foreground mb-1">
                   Special Requests
                 </label>
                 <textarea
+                  id="checkout-notes"
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   rows={3}
@@ -535,11 +540,12 @@ export function CheckoutPage() {
 
             {payReady && (
               <div className="bg-background border rounded-xl p-5">
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                <label htmlFor="checkout-guests" className="block text-sm font-medium text-muted-foreground mb-1">
                   <Users className="w-4 h-4 inline mr-1 -mt-0.5" />
                   Guests *
                 </label>
                 <select
+                  id="checkout-guests"
                   value={guests}
                   disabled={!!payment}
                   onChange={(e) => setGuests(Number(e.target.value))}
