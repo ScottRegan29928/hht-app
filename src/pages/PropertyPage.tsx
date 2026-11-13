@@ -489,6 +489,7 @@ export function PropertyPage() {
                       </label>
                       <input
                         type="date"
+                        aria-label="Check-in"
                         value={checkIn}
                         min={today}
                         onChange={(e) => {
@@ -508,6 +509,7 @@ export function PropertyPage() {
                       </label>
                       <input
                         type="date"
+                        aria-label="Check-out"
                         value={checkOut}
                         min={checkIn || today}
                         onChange={(e) => setCheckOut(e.target.value)}

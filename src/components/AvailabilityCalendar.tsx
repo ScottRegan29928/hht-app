@@ -125,7 +125,7 @@ export function AvailabilityCalendar({
 
                   let className = "text-[11px] py-1 rounded-sm ";
                   if (isPast) {
-                    className += "text-muted-foreground/40";
+                    className += "text-muted-foreground";
                   } else if (isConflict) {
                     // Selected dates that overlap with booked → red with ring
                     className += "bg-red-200 text-red-800 ring-2 ring-red-400 font-bold";

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
+import { publicSiteHrefForHostname } from "@/lib/siteHosts";
 
 const navItems = [
   { label: "Dashboard", path: "/management", icon: LayoutDashboard },
@@ -152,6 +153,7 @@ export function AdminLayout() {
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close management navigation"
             className="lg:hidden text-primary-foreground/60 hover:text-primary-foreground"
           >
             <X className="w-5 h-5" />
@@ -191,6 +193,7 @@ export function AdminLayout() {
           <Link
             to="/management/account"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close management navigation"
             className={`
               flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
               ${
@@ -221,7 +224,7 @@ export function AdminLayout() {
           </Link>
 
           <a
-            href="/"
+            href={publicSiteHrefForHostname(window.location.hostname)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/5 transition-colors"
@@ -245,6 +248,8 @@ export function AdminLayout() {
         <header className="h-14 bg-background border-b flex items-center px-4 lg:px-6 gap-3">
           <button
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open management navigation"
+            aria-expanded={sidebarOpen}
             className="lg:hidden text-muted-foreground hover:text-foreground"
           >
             <Menu className="w-5 h-5" />

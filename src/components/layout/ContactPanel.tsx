@@ -22,6 +22,8 @@ export function ContactPanel({ open, onClose }: Props) {
   const submit = useMutation(api.inquiries.submit);
   const panelRef = useRef<HTMLDivElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,9 +36,32 @@ export function ContactPanel({ open, onClose }: Props) {
   // Close on Escape, and keep background scroll locked while open.
   useEffect(() => {
     if (!open) return;
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement : null;
+    const focusable = () => Array.from(panelRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex="0"]'
+    ) ?? []).filter((el) => el.getClientRects().length > 0);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCloseRef.current();
+      }
+      if (e.key === "Tab") {
+        const items = focusable();
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (!first) { e.preventDefault(); return; }
+        if (e.shiftKey && (document.activeElement === first || !panelRef.current?.contains(document.activeElement))) {
+          e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && (document.activeElement === last || !panelRef.current?.contains(document.activeElement))) {
+          e.preventDefault(); first.focus();
+        }
+      }
     };
+    const onFocus = (e: FocusEvent) => {
+      if (!panelRef.current?.contains(e.target as Node)) focusable()[0]?.focus();
+    };
+    document.addEventListener("focusin", onFocus);
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -46,8 +71,10 @@ export function ContactPanel({ open, onClose }: Props) {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
       clearTimeout(t);
+      document.removeEventListener("focusin", onFocus);
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   // Reset back to a blank form once the panel has closed, so reopening it
   // doesn't show the previous confirmation.
@@ -101,7 +128,7 @@ export function ContactPanel({ open, onClose }: Props) {
           edge at translate-x-full and creates a page-wide horizontal
           scrollbar (2x viewport width on mobile). Fixed + inset-0 keeps it
           out of flow, so it cannot affect the sticky header. */}
-      <div className="pointer-events-none fixed inset-0 z-[61] overflow-hidden">
+      <div inert={!open} aria-hidden={!open} className="pointer-events-none fixed inset-0 z-[61] overflow-hidden">
       <div
         ref={panelRef}
         role="dialog"
@@ -218,7 +245,7 @@ export function ContactPanel({ open, onClose }: Props) {
 }
 
 const inputClass =
-  "w-full border border-input bg-white px-3 py-2.5 text-[15px] text-foreground outline-none transition-colors focus:border-[#014e6c]";
+  "w-full border border-input bg-white px-3 py-2.5 text-[15px] text-foreground outline-none transition-colors focus:border-[#014e6c] focus-visible:ring-2 focus-visible:ring-[#014e6c] focus-visible:ring-offset-2";
 
 function Field({
   label,

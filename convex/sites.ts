@@ -128,7 +128,7 @@ export const seedSites = internalMutation({
         slug: "heritage",
         name: "Heritage Vacations",
         domain: "heritagevacations.com",
-        altDomains: ["hv.lead-works.com", "hv.hht.lead-works.com"],
+        altDomains: ["hv.lead-works.com", "hv.hht.lead-works.com", "portal.heritagevacations.com"],
         scopeMode: "all" as const,
         communitySlugs: undefined,
         ownerPortalEnabled: false,

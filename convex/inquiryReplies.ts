@@ -134,6 +134,7 @@ export const reply = mutation({
       authorEmail: profile.email,
       body: text,
       original: inquiry.message,
+      siteSlug: inquiry.siteSlug,
     });
 
     return replyId;
@@ -160,12 +161,12 @@ export const send = internalAction({
     authorEmail: v.optional(v.string()),
     body: v.string(),
     original: v.optional(v.string()),
+    siteSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // ⚠ Pre-launch: the reply is saved and shown in the portal thread, but no
-    // mail leaves. Recorded as an explicit reason so nobody reads the reply as
-    // delivered. One flag in convex/goLive.ts controls this.
-    if (isEmailHeld("inquiry_reply")) {
+    // Replies remain recorded even when their site's email is still held.
+    // The site comes from the inquiry row, not from a caller-supplied form value.
+    if (isEmailHeld("inquiry_reply", args.siteSlug)) {
       console.info(heldEmailNote("inquiry_reply", args.to));
       await ctx.runMutation(internal.inquiryReplies.markEmailed, {
         replyId: args.replyId,

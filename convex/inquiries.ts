@@ -214,8 +214,8 @@ export const notify = internalAction({
     message: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
-    // ⚠ Pre-launch: record only. One flag in convex/goLive.ts controls this.
-    if (isEmailHeld("inquiry")) {
+    // The central gate releases only the launched site and mail kinds.
+    if (isEmailHeld("inquiry", args.siteSlug)) {
       console.info(heldEmailNote("inquiry", args.routedTo));
       return;
     }
