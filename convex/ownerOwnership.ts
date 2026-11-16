@@ -72,10 +72,28 @@ export function matchesOwnerSearch(owner: {
   return (owner.ownershipGroups ?? []).some(group => {
     const propertyTokens = tokens([group.propertyName, group.propertyAddress, group.communityName,
       group.communitySlug, group.unitNumber, ...group.weeks, ...group.unresolvedWeeks].join(" "));
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (/^(week|weeks|unit|units)$/.test(part) && /^\d+$/.test(parts[i + 1] ?? "")) {
-        const number = parts[++i];
+    // Source-style resort initials (e.g. Night Heron -> NH69-13) are
+    // resolved from the actual resort label, never a hard-coded resort map.
+    let invalidPair = false;
+    const scopedTerm = term.replace(/\b([a-z]+)(\d+)-(\d+)\b/g, (pair, prefix: string, unit: string, week: string) => {
+      const initials = tokens(group.communityName).filter(t => !/^\d+$/.test(t)).map(t => t[0]).join("");
+      const unitPrefix = group.unitNumber.toLowerCase().match(/^[a-z]+/)?.[0];
+      if ((prefix !== unitPrefix && !(prefix.length >= 2 && initials.startsWith(prefix))) ||
+          !tokens(group.unitNumber).includes(unit) || !group.weeks.map(String).includes(week)) {
+        invalidPair = true;
+        return pair;
+      }
+      return `unit ${unit} week ${week}`;
+    }).replace(/\b(\d+)-(\d+)\b/g, (_pair, unit: string, week: string) => {
+      if (!tokens(group.unitNumber).includes(unit) || !group.weeks.map(String).includes(week)) invalidPair = true;
+      return `unit ${unit} week ${week}`;
+    });
+    if (invalidPair) return false;
+    const scopedParts = tokens(scopedTerm);
+    for (let i = 0; i < scopedParts.length; i++) {
+      const part = scopedParts[i];
+      if (/^(week|weeks|unit|units)$/.test(part) && /^\d+$/.test(scopedParts[i + 1] ?? "")) {
+        const number = scopedParts[++i];
         const values = part.startsWith("week") ? group.weeks.map(String) : tokens(group.unitNumber);
         if (!values.includes(number)) return false;
       } else if (!matchesToken(propertyTokens, part) &&

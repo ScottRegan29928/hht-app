@@ -118,3 +118,19 @@ test("combined ownership numbers cannot borrow contact phone digits", () => {
   expect(matchesOwnerSearch(o, "578-44")).toBe(false);
   expect(matchesOwnerSearch(o, "578 555")).toBe(true);
 });
+
+test("source-style resort-initial pairs resolve from the actual resort label without a map", () => {
+  const nightHeron = owner([holding("Night Heron", "69", 13)]);
+  expect(matchesOwnerSearch(nightHeron, "NH69-13")).toBe(true);
+  expect(matchesOwnerSearch(nightHeron, "nh69-13")).toBe(true);
+  expect(matchesOwnerSearch(nightHeron, "Synthetic NH69-13")).toBe(true);
+  expect(matchesOwnerSearch(nightHeron, "NH69-1")).toBe(false);
+  expect(matchesOwnerSearch(nightHeron, "SB69-13")).toBe(false);
+  expect(matchesOwnerSearch(owner([holding("Spicebush", "69", 13)]), "NH69-13")).toBe(false);
+  expect(matchesOwnerSearch(owner([holding("Night Heron", "69", 12), holding("Night Heron", "70", 13)]), "NH69-13")).toBe(false);
+});
+
+test("numeric source pairs preserve unit-week roles even when both numbers are valid weeks", () => {
+  expect(matchesOwnerSearch(owner([holding("Spicebush", "44", 4)]), "4-44")).toBe(false);
+  expect(matchesOwnerSearch(owner([holding("Spicebush", "4", 44)]), "4-44")).toBe(true);
+});
