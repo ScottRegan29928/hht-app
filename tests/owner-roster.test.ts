@@ -242,6 +242,9 @@ describe("gated roster reads and contact details", () => {
       lastName: "", phone: "+44 20 7000 0000 ext 123", homeCity: "Corrected city" });
     expect(f.rows.userProfiles[0].email).toBeUndefined();
     expect(f.rows.userProfiles[0].phone).toBe("+44 20 7000 0000 ext 123");
+    await run(updateOwner, f.ctx, { ownerId: detail._id, firstName: "Synthetic",
+      lastName: "", phone: "(724) 962-2230 (home)" });
+    expect(f.rows.userProfiles[0].phone).toBe("(724) 962-2230 (home)");
   });
 });
 
@@ -304,6 +307,8 @@ test("read-only cards never provide inventory IDs or actionable sale forms", () 
   expect(rosterSection).not.toContain("weekId");
   expect(rosterSection).not.toContain("<button");
   expect(rosterSection).toContain("read-only");
+  expect(source).toContain('weeks.length === 0 && !roster.holdings.length');
+  expect(source).toContain('View your ownership records and available listing options');
   const importSource = readFileSync(new URL("../convex/ownerRoster.ts", import.meta.url), "utf8");
   expect(importSource).not.toContain("scheduler");
   expect(importSource).not.toContain('query("weeks")');
@@ -311,4 +316,7 @@ test("read-only cards never provide inventory IDs or actionable sale forms", () 
   const adminSource = readFileSync(new URL("../src/pages/admin/OwnersPage.tsx", import.meta.url), "utf8");
   expect(adminSource).toContain("filteredOwners?.slice(0, visibleCount)");
   expect(adminSource).toContain("Show 50 more owners");
+  const dashboard = readFileSync(new URL("../src/pages/owner/DashboardPage.tsx", import.meta.url), "utf8");
+  expect(dashboard).toContain("roster?.rosterWeekCount ? roster.rosterWeekCount : stats.ownedWeeks");
+  expect(dashboard).toContain("View your ownership records and available listing options");
 });

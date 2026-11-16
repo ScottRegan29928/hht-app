@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 // Roster records are evidence supplied by management, NOT booking inventory.
 export const rosterHolding = v.object({
+  // Actual display resort, e.g. "Night Heron"; NEVER the source filename.
   sourceResort: v.string(),
   communitySlug: v.optional(v.string()),
   unitNumber: v.string(),

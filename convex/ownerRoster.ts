@@ -16,6 +16,7 @@ const contactFields = ["firstName", "lastName", "displayName", "contactEmail",
 
 /** Internal-only, no notifications, never reads or writes weeks/properties/bookings.
  * Each row supplies the COMPLETE holdings snapshot for its stable rosterKey.
+ * sourceResort must name the actual resort; file provenance belongs in source.
  * Dry run validates the entire batch before returning; failures write nothing.
  */
 export const importBatch = internalMutation({

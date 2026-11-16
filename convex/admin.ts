@@ -15,7 +15,7 @@ import { internal } from "./_generated/api";
 function formatPhone(value?: string): string | undefined {
   if (!value) return value;
   const digits = value.replace(/\D/g, "");
-  if (digits.length !== 10) return value; // return as-is if not 10 digits
+  if (digits.length !== 10 || !/^[\d\s()+.\-]+$/.test(value)) return value; // Preserve labels, extensions and multiple numbers
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 

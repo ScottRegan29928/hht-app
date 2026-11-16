@@ -133,7 +133,7 @@ export function OwnerDashboardPage() {
         <StatCard
           icon={Calendar}
           label="Owned Weeks"
-          value={stats.ownedWeeks}
+          value={roster?.rosterWeekCount ? roster.rosterWeekCount : stats.ownedWeeks}
           tint="bg-sky-50 text-sky-700 border-sky-100"
         />
         <StatCard
@@ -167,7 +167,7 @@ export function OwnerDashboardPage() {
             <div>
               <h3 className="font-semibold mb-1">My Weeks</h3>
               <p className="text-sm text-muted-foreground">
-                View your weeks and list them for sale or trade
+                View your ownership records and available listing options
               </p>
             </div>
             <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />

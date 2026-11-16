@@ -37,7 +37,7 @@ export function OwnerPropertiesPage() {
   const [editingRequestId, setEditingRequestId] =
     useState<Id<"saleRequests"> | null>(null);
 
-  if (weeks === undefined) {
+  if (weeks === undefined || roster === undefined) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="animate-pulse text-muted-foreground">
@@ -114,7 +114,7 @@ export function OwnerPropertiesPage() {
       <div>
         <h1 className="text-2xl font-bold">My Weeks</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          View your owned weeks and list them for sale
+          View your ownership records and available listing options
         </p>
       </div>
 
@@ -135,7 +135,7 @@ export function OwnerPropertiesPage() {
           </ul>
         </section>
       )}
-      {weeks.length === 0 ? (
+      {weeks.length === 0 && !roster.holdings.length ? (
         <div className="bg-background rounded-xl border p-8 text-center">
           <Home className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
           <h2 className="text-lg font-semibold mb-2">No Inventory Weeks Assigned</h2>
