@@ -1,3 +1,4 @@
+import { groupedOwnership } from "./ownerOwnership";
 import { assertUniqueOwnerLogin, holdingSummary } from "./ownerRosterData";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
@@ -809,6 +810,8 @@ export const listOwners = query({
       .withIndex("by_role", (q: any) => q.eq("role", "owner"))
       .collect();
 
+    // Resolve legacy resort labels once, within the admin-only directory query.
+    const communities = await ctx.db.query("communities").collect();
     // Enrich each owner with properties via week-level ownership
     return await Promise.all(
       owners
@@ -829,6 +832,7 @@ export const listOwners = query({
           return {
             ...ownerSummary,
             ...holdingSummary(rosterHoldings),
+            ownershipGroups: groupedOwnership(rosterHoldings, ownedWeeks, properties, communities),
             fullName:
               [owner.firstName, owner.lastName].filter(Boolean).join(" ") ||
               owner.displayName ||

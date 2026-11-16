@@ -332,3 +332,41 @@ test("owner detail invitation control is disabled without an approved sign-in em
   expect(source).toContain("Source contact email is separate and does not enable portal invitations.");
   expect(source).toContain("if (!email || owner?.isLinked) return;");
 });
+
+
+describe("admin owner-card ownership projection", () => {
+  test("includes compact imported groups without exposing raw holdings or changing records", async () => {
+    const f = fixture();
+    f.rows.userProfiles.push({ _id: "admin", userId: "user-a", role: "admin" },
+      { _id: "owner", role: "owner", displayName: "Synthetic Owner", createdAt: 1,
+        rosterHoldings: [{ ...holding("Spicebush", "spicebush", "578"), weekNumber: 44 },
+          { ...holding("Spicebush", "spicebush", "579"), weekNumber: 4 }],
+        contactEmail: "source@example.test", importNotes: "Synthetic review note" });
+    const before = JSON.stringify(f.rows);
+    const listed = await run(listOwners, f.ctx);
+    expect(listed[0].ownershipGroups).toHaveLength(2);
+    expect(listed[0].ownershipGroups[0]).toMatchObject({ propertyName: "Spicebush", unitNumber: "578", weeks: [44] });
+    expect(listed[0].ownershipGroups[1]).toMatchObject({ unitNumber: "579", weeks: [4] });
+    expect(listed[0].rosterHoldings).toBeUndefined();
+    expect(listed[0].contactEmail).toBe("source@example.test");
+    expect(listed[0].importNotes).toBe("Synthetic review note");
+    expect(listed[0].isLinked).toBe(false);
+    expect(f.writes).toEqual([]);
+    expect(JSON.stringify(f.rows)).toBe(before);
+  });
+  test("legacy groups derive only from assigned weeks/properties and resolve DB resort labels", async () => {
+    const f = fixture();
+    f.rows.userProfiles.push({ _id: "admin", userId: "user-a", role: "admin" },
+      { _id: "owner", role: "owner", firstName: "Legacy", createdAt: 1 });
+    f.rows.communities = [{ _id: "c", name: "Synthetic DB Resort", slug: "synthetic-resort" }];
+    f.rows.properties.push({ _id: "p", address: "Synthetic Villa Address", name: "Wrong field", unitNumber: "578", communityId: "c" });
+    f.rows.weeks.push({ _id: "w", propertyId: "p", ownerId: "owner", weekNumber: 44 },
+      { _id: "other-owner-week", propertyId: "p", ownerId: "someone-else", weekNumber: 4 });
+    const listed = await run(listOwners, f.ctx);
+    expect(listed[0].ownershipGroups).toEqual([{ propertyName: "Synthetic Villa Address", propertyAddress: "Synthetic Villa Address",
+      communityName: "Synthetic DB Resort", communitySlug: "synthetic-resort", unitNumber: "578", weeks: [44], unresolvedWeeks: [] }]);
+    expect(listed[0].propertyCount).toBe(1);
+    expect(listed[0].weekCount).toBe(1);
+    expect(f.writes).toEqual([]);
+  });
+});
