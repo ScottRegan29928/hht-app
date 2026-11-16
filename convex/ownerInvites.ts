@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { assertUniqueOwnerLogin } from "./ownerRosterData";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 /**
@@ -69,7 +70,10 @@ async function inferSiteSlug(ctx: any, profileId: any): Promise<string> {
     .withIndex("by_owner", (q: any) => q.eq("ownerId", profileId))
     .collect();
 
-  const communitySlugs = new Set<string>();
+  const profile = await ctx.db.get(profileId);
+  const communitySlugs = new Set<string>(
+    (profile?.rosterHoldings ?? []).map((h: any) => h.communitySlug).filter(Boolean)
+  );
   for (const w of weeks.slice(0, 25)) {
     const property = await ctx.db.get(w.propertyId);
     if (!property?.communityId) continue;
@@ -97,7 +101,14 @@ export const prepare = internalMutation({
     const profile = await ctx.db.get(profileId);
     if (!profile) throw new Error("Owner not found");
     if (profile.role !== "owner") throw new Error("Not an owner profile");
-    if (!profile.email) throw new Error("That owner has no email address");
+    if (profile.rosterKey) {
+      const site = await ctx.db.query("sites").withIndex("by_slug", q => q.eq("slug", siteSlug)).first();
+      if (!site?.ownerPortalEnabled || !(profile.rosterHoldings ?? []).some(h =>
+          h.communitySlug && (site.communitySlugs ?? []).includes(h.communitySlug)))
+        throw new Error("Imported owner has no holdings in the requested portal");
+    }
+    if (!profile.email) throw new Error("Owner needs a reviewed sign-in email");
+    await assertUniqueOwnerLogin(ctx, profile);
     if (profile.userId) {
       throw new Error(
         "That owner already has a sign-in. Send them a password reset instead."
@@ -379,6 +390,13 @@ export const accept = mutation({
 
     const profile = await ctx.db.get(invite.profileId);
     if (!profile) throw new Error("Owner record not found");
+    if (profile.role !== "owner") throw new Error("Not an owner profile");
+    await assertUniqueOwnerLogin(ctx, profile);
+    if (profile.email?.toLowerCase() !== invite.email.toLowerCase())
+      throw new Error("Owner email changed; request a new invitation");
+    if (profile.userId && profile.userId !== userId) throw new Error("Owner already linked to another account");
+    const linked = await ctx.db.query("userProfiles").withIndex("by_userId", q => q.eq("userId", userId)).collect();
+    if (linked.some(p => p._id !== profile._id)) throw new Error("Account already linked to another profile");
     if (!(profile as any).userId) {
       await ctx.db.patch(invite.profileId, { userId });
     }

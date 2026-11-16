@@ -1,6 +1,7 @@
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { rosterHolding } from "./ownerRosterData";
 
 const schema = defineSchema({
   ...authTables,
@@ -18,6 +19,13 @@ const schema = defineSchema({
     ),
     displayName: v.optional(v.string()),
     email: v.optional(v.string()),
+    // Imported source identities must never be merged by email alone.
+    rosterKey: v.optional(v.string()),
+    rosterSource: v.optional(v.string()),
+    rosterImportedAt: v.optional(v.number()),
+    contactEmail: v.optional(v.string()),
+    importNotes: v.optional(v.string()),
+    rosterHoldings: v.optional(v.array(rosterHolding)),
     // Owner profile fields
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
@@ -32,7 +40,8 @@ const schema = defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_role", ["role"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_rosterKey", ["rosterKey"]),
 
   // ── Sites ──
   // One deployment serves four hostnames. A site record decides which

@@ -45,7 +45,7 @@ async function requirePortalViewer(ctx: any): Promise<Profile> {
     }
   }
 
-  if (!profile) throw new Error("Owner access required");
+  if (!profile || (profile.rosterKey && profile.userId !== userId)) throw new Error("Owner access required");
   if (profile.role !== "owner" && !ADMIN_ROLES.includes(profile.role)) {
     throw new Error("Owner access required");
   }
@@ -215,6 +215,11 @@ export const myResorts = query({
       .collect();
 
     const slugs = new Set<string>([siteSlug]);
+    const sitesForRoster = await ctx.db.query("sites").collect();
+    for (const site of sitesForRoster.filter((s: any) => s.ownerPortalEnabled)) {
+      if ((viewer.rosterHoldings ?? []).some(h => h.communitySlug &&
+          (site.communitySlugs ?? []).includes(h.communitySlug))) slugs.add(site.slug);
+    }
     for (const w of weeks) {
       const property: any = await ctx.db.get(w.propertyId);
       const community: any = property?.communityId
@@ -249,7 +254,10 @@ export const overview = query({
         .query("weeks")
         .withIndex("by_owner", (q: any) => q.eq("ownerId", viewer._id))
         .collect();
-      let allowed = false;
+      const targetSite = await ctx.db.query("sites")
+        .withIndex("by_slug", (q: any) => q.eq("slug", siteSlug)).first();
+      let allowed = !!targetSite?.ownerPortalEnabled && (viewer.rosterHoldings ?? [])
+        .some(h => h.communitySlug && (targetSite.communitySlugs ?? []).includes(h.communitySlug));
       for (const w of weeks) {
         const property: any = await ctx.db.get(w.propertyId);
         const community: any = property?.communityId

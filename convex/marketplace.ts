@@ -139,7 +139,7 @@ async function requireOwnerProfile(ctx: any): Promise<ViewerProfile> {
         .query("userProfiles")
         .withIndex("by_email", (q: any) => q.eq("email", authUser.email))
         .first();
-      if (byEmail && byEmail.role === "owner") profile = byEmail;
+      if (byEmail && byEmail.role === "owner" && !byEmail.rosterKey) profile = byEmail;
     }
   }
 

@@ -18,13 +18,6 @@ import {
 } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 
-function formatPhone(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 10);
-  if (digits.length <= 3) return digits.length ? `(${digits}` : "";
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-}
-
 export function OwnerDetailPage() {
   const { ownerId } = useParams();
   const navigate = useNavigate();
@@ -77,14 +70,14 @@ export function OwnerDetailPage() {
   };
 
   const handleSave = async () => {
-    if (!ownerId || !form.firstName || !form.lastName || !form.email) return;
+    if (!ownerId) return;
     setSaving(true);
     try {
       await updateOwner({
         ownerId: ownerId as Id<"userProfiles">,
         firstName: form.firstName,
         lastName: form.lastName,
-        email: form.email,
+        email: form.email || undefined,
         phone: form.phone || undefined,
         homeAddress: form.homeAddress || undefined,
         homeCity: form.homeCity || undefined,
@@ -162,6 +155,21 @@ export function OwnerDetailPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {owner.rosterKey && (
+        <section className="rounded-xl border p-5 space-y-2" aria-label="Imported roster details">
+          <h2 className="font-semibold">Imported ownership records</h2>
+          <p className="text-sm text-muted-foreground">Source: {owner.rosterSource} · Key: {owner.rosterKey}</p>
+          <p className="text-sm">Source contact: {owner.contactEmail || "Not provided"}</p>
+          {!owner.email && <p className="text-sm text-amber-700">Review required: no approved sign-in email. No invitation can be sent.</p>}
+          {owner.importNotes && <p className="text-sm text-amber-700">{owner.importNotes}</p>}
+          <p className="text-sm">{owner.rosterHoldings?.length ?? 0} roster weeks (read-only; not inventory)</p>
+          <ul className="grid gap-2 text-sm sm:grid-cols-2">
+            {owner.rosterHoldings?.map((h, index) => <li key={index}>
+              {h.sourceResort} · Unit {h.unitNumber} · Week {h.weekNumber ?? h.sourceUnitWeek}
+            </li>)}
+          </ul>
+        </section>
+      )}
       {/* Back + Header */}
       <div className="flex items-center gap-3">
         <button
@@ -246,7 +254,7 @@ export function OwnerDetailPage() {
             <input
               type="tel"
               value={form.phone}
-              onChange={(e) => handleUpdate("phone", formatPhone(e.target.value))}
+              onChange={(e) => handleUpdate("phone", e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm bg-muted/30 focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="(555) 123-4567"
             />
@@ -310,7 +318,7 @@ export function OwnerDetailPage() {
           <div className="flex justify-end pt-2">
             <button
               onClick={handleSave}
-              disabled={saving || !form.firstName || !form.lastName || !form.email}
+              disabled={saving}
               className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               <Save className="w-4 h-4" />

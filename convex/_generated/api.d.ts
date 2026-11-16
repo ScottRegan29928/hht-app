@@ -33,6 +33,7 @@ import type * as marketplaceMatches from "../marketplaceMatches.js";
 import type * as mergeDuplicates from "../mergeDuplicates.js";
 import type * as migrations from "../migrations.js";
 import type * as newsletter from "../newsletter.js";
+import type * as ownerRoster from "../ownerRoster.js";
 import type * as owner from "../owner.js";
 import type * as ownerAccount from "../ownerAccount.js";
 import type * as ownerInvites from "../ownerInvites.js";
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   mergeDuplicates: typeof mergeDuplicates;
   migrations: typeof migrations;
   newsletter: typeof newsletter;
+  ownerRoster: typeof ownerRoster;
   owner: typeof owner;
   ownerAccount: typeof ownerAccount;
   ownerInvites: typeof ownerInvites;

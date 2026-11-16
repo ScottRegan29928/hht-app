@@ -20,7 +20,7 @@ async function requireOwner(ctx: any) {
         .query("userProfiles")
         .withIndex("by_email", (q: any) => q.eq("email", authUser.email))
         .first();
-      if (byEmail && byEmail.role === "owner") {
+      if (byEmail && byEmail.role === "owner" && !byEmail.rosterKey) {
         profile = byEmail;
       }
     }
@@ -48,7 +48,9 @@ export const currentUser = query({
       const avatarUrl = profile.avatarStorageId
         ? await ctx.storage.getUrl(profile.avatarStorageId)
         : null;
-      return { ...profile, avatarUrl, needsLink: false };
+      // Other-resort source holdings and import provenance are management-only.
+      const { rosterHoldings, rosterKey, rosterSource, rosterImportedAt, importNotes, contactEmail, ...account } = profile;
+      return { ...account, avatarUrl, needsLink: false };
     }
 
     // Second: check by email (pre-registered owner who just signed up)
@@ -62,7 +64,7 @@ export const currentUser = query({
       if (
         unlinkedProfile &&
         unlinkedProfile.role === "owner" &&
-        !unlinkedProfile.userId
+        !unlinkedProfile.userId && !unlinkedProfile.rosterKey
       ) {
         return { ...unlinkedProfile, needsLink: true };
       }
@@ -83,6 +85,7 @@ export const claimProfile = mutation({
     if (!profile) throw new Error("Profile not found");
     if (profile.role !== "owner") throw new Error("Not an owner profile");
     if (profile.userId) throw new Error("Profile already linked");
+    if (profile.rosterKey) throw new Error("Use the owner invitation to activate this roster profile");
 
     // Verify email match
     const authUser = await ctx.db.get(userId);

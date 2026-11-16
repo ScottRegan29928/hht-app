@@ -22,6 +22,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 
 export function OwnerPropertiesPage() {
   const weeks = useQuery(api.owner.listOwnedWeeks);
+  const roster = useQuery(api.ownerRoster.myHoldings);
   const submitRequest = useMutation(api.owner.submitSaleRequest);
   const updateRequest = useMutation(api.owner.updateSaleRequest);
   const withdrawRequest = useMutation(api.owner.withdrawSaleRequest);
@@ -117,12 +118,29 @@ export function OwnerPropertiesPage() {
         </p>
       </div>
 
+      {!!roster?.holdings.length && (
+        <section className="rounded-xl border p-5 space-y-3" aria-label="Imported ownership records">
+          <h2 className="text-lg font-semibold">Ownership records</h2>
+          <p className="text-sm text-muted-foreground">
+            {roster.rosterWeekCount} roster weeks across {roster.rosterPropertyCount} properties.
+            These management records are read-only, not bookable inventory or sale listings.
+          </p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {roster.holdings.map((h, index) => (
+              <li key={index} className="rounded-lg bg-muted/40 p-3 text-sm">
+                <strong>{h.sourceResort}</strong> · Unit {h.unitNumber}
+                <span className="block">Week {h.weekNumber ?? h.sourceUnitWeek}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {weeks.length === 0 ? (
         <div className="bg-background rounded-xl border p-8 text-center">
           <Home className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold mb-2">No Weeks Assigned</h2>
+          <h2 className="text-lg font-semibold mb-2">No Inventory Weeks Assigned</h2>
           <p className="text-sm text-muted-foreground">
-            Contact your administrator to have weeks assigned to your account.
+            Inventory weeks are managed separately from the ownership records above. Contact management with corrections.
           </p>
         </div>
       ) : (

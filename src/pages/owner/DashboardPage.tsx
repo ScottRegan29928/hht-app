@@ -24,6 +24,7 @@ import {
 
 export function OwnerDashboardPage() {
   const stats = useQuery(api.owner.dashboardStats);
+  const roster = useQuery(api.ownerRoster.myHoldings);
   const requests = useQuery(api.owner.listSaleRequests);
   const { siteName } = useSiteFlags();
   const { siteSlug, setSiteSlug, resorts, multi } = useAssociationSite();
@@ -121,6 +122,12 @@ export function OwnerDashboardPage() {
         </Link>
       )}
 
+      {!!roster?.rosterWeekCount && (
+        <Link to="/owner/properties" className="block rounded-xl border p-4 text-sm">
+          <strong>{roster.rosterWeekCount} roster weeks</strong> across {roster.rosterPropertyCount} properties.
+          <span className="block text-muted-foreground">View your read-only ownership records in My Weeks.</span>
+        </Link>
+      )}
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
