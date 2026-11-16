@@ -52,7 +52,7 @@ export function groupedOwnership(
       a.unitNumber.localeCompare(b.unitNumber, undefined, { numeric: true }));
 }
 
-const tokens = (value: string) => value.toLowerCase().match(/[\p{L}]+|\d+/gu) ?? [];
+const tokens = (value: string): string[] => value.toLowerCase().match(/[\p{L}]+|\d+/gu) ?? [];
 const matchesToken = (values: string[], term: string) => values.some(value =>
   /^\d+$/.test(term) ? value === term : value.includes(term));
 
