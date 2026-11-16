@@ -132,7 +132,7 @@ export function OwnerDetailPage() {
   // one-time activation link instead.
   const handleSendInvite = async () => {
     const email = owner?.email;
-    if (!email) return;
+    if (!email || owner?.isLinked) return;
     try {
       setActionMsg({ type: "success", text: "Sending invitation…" });
       const res = await sendInvite({ profileId: ownerId as Id<"userProfiles"> });
@@ -238,7 +238,7 @@ export function OwnerDetailPage() {
           </div>
           <div>
             <label className="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
-              <Mail className="w-3.5 h-3.5" /> Email *
+              <Mail className="w-3.5 h-3.5" /> Sign-in Email
             </label>
             <input
               type="email"
@@ -334,11 +334,13 @@ export function OwnerDetailPage() {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={handleSendInvite}
-            disabled={owner.isLinked}
+            disabled={owner.isLinked || !owner.email}
             title={
               owner.isLinked
                 ? "This owner already has portal access"
-                : "Emails a one-time link to choose a password"
+                : !owner.email
+                  ? "Review required: add an approved sign-in email before inviting"
+                  : "Emails a one-time link to choose a password"
             }
             className="inline-flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-medium hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
@@ -357,7 +359,9 @@ export function OwnerDetailPage() {
         </div>
         {!owner.isLinked && (
           <p className="text-xs text-muted-foreground">
-            This owner has no portal access yet. Send a portal invitation and they can choose a password.
+            {owner.email
+              ? "This owner has no portal access yet. Send a portal invitation and they can choose a password."
+              : "Review required: no approved sign-in email. Source contact email is separate and does not enable portal invitations."}
           </p>
         )}
       </div>

@@ -320,3 +320,15 @@ test("read-only cards never provide inventory IDs or actionable sale forms", () 
   expect(dashboard).toContain("roster?.rosterWeekCount ? roster.rosterWeekCount : stats.ownedWeeks");
   expect(dashboard).toContain("View your ownership records and available listing options");
 });
+
+
+test("owner detail invitation control is disabled without an approved sign-in email", () => {
+  const source = readFileSync(new URL("../src/pages/admin/OwnerDetailPage.tsx", import.meta.url), "utf8");
+  const inviteControl = source.split("onClick={handleSendInvite}")[1].split("</button>")[0];
+  expect(inviteControl).toContain("disabled={owner.isLinked || !owner.email}");
+  expect(inviteControl).toContain("Review required: add an approved sign-in email before inviting");
+  expect(source).toContain("Sign-in Email");
+  expect(source).not.toContain('w-3.5 h-3.5" /> Email *');
+  expect(source).toContain("Source contact email is separate and does not enable portal invitations.");
+  expect(source).toContain("if (!email || owner?.isLinked) return;");
+});
