@@ -1,3 +1,4 @@
+import { assertUniqueOwnerLogin, holdingSummary } from "./ownerRosterData";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import {
@@ -13,8 +14,8 @@ import { internal } from "./_generated/api";
 // ── Helper: format phone to (xxx) xxx-xxxx ──
 function formatPhone(value?: string): string | undefined {
   if (!value) return value;
-  const digits = value.replace(/\D/g, "").slice(0, 10);
-  if (digits.length < 10) return value; // return as-is if not 10 digits
+  const digits = value.replace(/\D/g, "");
+  if (digits.length !== 10 || !/^[\d\s()+.\-]+$/.test(value)) return value; // Preserve labels, extensions and multiple numbers
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
@@ -824,12 +825,14 @@ export const listOwners = query({
             await Promise.all(propertyIds.map((id) => ctx.db.get(id as any)))
           ).filter(Boolean) as any[];
 
+          const { rosterHoldings, ...ownerSummary } = owner;
           return {
-            ...owner,
+            ...ownerSummary,
+            ...holdingSummary(rosterHoldings),
             fullName:
               [owner.firstName, owner.lastName].filter(Boolean).join(" ") ||
               owner.displayName ||
-              owner.email ||
+              (owner.rosterKey ? "Name not supplied" : owner.email) ||
               "—",
             propertyCount: properties.length,
             weekCount: ownedWeeks.length,
@@ -887,7 +890,7 @@ export const getOwner = query({
       fullName:
         [owner.firstName, owner.lastName].filter(Boolean).join(" ") ||
         owner.displayName ||
-        "—",
+        (owner.rosterKey ? "Name not supplied" : "—"),
       isLinked: !!owner.userId,
       properties: enrichedProperties,
     };
@@ -899,7 +902,7 @@ export const createOwner = mutation({
   args: {
     firstName: v.string(),
     lastName: v.string(),
-    email: v.string(),
+    email: v.optional(v.string()),
     phone: v.optional(v.string()),
     homeAddress: v.optional(v.string()),
     homeCity: v.optional(v.string()),
@@ -910,6 +913,8 @@ export const createOwner = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
+    if (!args.email?.trim()) throw new Error("New manual owners require an email");
+    await assertUniqueOwnerLogin(ctx, { email: args.email });
     // Check for duplicate email
     const existing = await ctx.db
       .query("userProfiles")
@@ -940,7 +945,7 @@ export const updateOwner = mutation({
     ownerId: v.id("userProfiles"),
     firstName: v.string(),
     lastName: v.string(),
-    email: v.string(),
+    email: v.optional(v.string()),
     phone: v.optional(v.string()),
     homeAddress: v.optional(v.string()),
     homeCity: v.optional(v.string()),
@@ -953,11 +958,14 @@ export const updateOwner = mutation({
     const owner = await ctx.db.get(ownerId);
     if (!owner || owner.role !== "owner") throw new Error("Owner not found");
 
+    const email = args.email?.trim().toLowerCase() || undefined;
+    if (owner.userId && email !== owner.email) throw new Error("Linked owners must change their own sign-in email in Account");
+    if (email) await assertUniqueOwnerLogin(ctx, { ...owner, email });
     // Check duplicate email (exclude self)
-    const existing = await ctx.db
+    const existing = email ? await ctx.db
       .query("userProfiles")
-      .withIndex("by_email", (q: any) => q.eq("email", args.email))
-      .first();
+      .withIndex("by_email", (q: any) => q.eq("email", email))
+      .first() : null;
     if (existing && existing._id !== ownerId) {
       throw new Error("An account with this email already exists");
     }
@@ -965,14 +973,14 @@ export const updateOwner = mutation({
     await ctx.db.patch(ownerId, {
       firstName: args.firstName,
       lastName: args.lastName,
-      email: args.email,
+      email,
       phone: formatPhone(args.phone),
       homeAddress: args.homeAddress,
       homeCity: args.homeCity,
       homeState: args.homeState,
       homeCountry: args.homeCountry,
       homePostalCode: args.homePostalCode,
-      displayName: `${args.firstName} ${args.lastName}`,
+      displayName: [args.firstName, args.lastName].filter(Boolean).join(" ") || owner.displayName,
     });
   },
 });

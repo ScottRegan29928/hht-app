@@ -34,6 +34,8 @@ export function OwnersPage() {
   const [actionMsg, setActionMsg] = useState<{ id: string; type: "success" | "error"; text: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+  const [resortFilter, setResortFilter] = useState("");
+  const [visibleCount, setVisibleCount] = useState(50);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -53,11 +55,13 @@ export function OwnersPage() {
   });
 
   const filteredOwners = owners?.filter((o) => {
+    if (resortFilter && !o.rosterResorts.includes(resortFilter)) return false;
     if (!search.trim()) return true;
     const term = search.toLowerCase();
     return (
       o.fullName.toLowerCase().includes(term) ||
       (o.email ?? "").toLowerCase().includes(term) ||
+      (o.contactEmail ?? "").toLowerCase().includes(term) ||
       (o.phone ?? "").toLowerCase().includes(term)
     );
   });
@@ -309,12 +313,24 @@ export function OwnersPage() {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setVisibleCount(50); }}
           placeholder="Search owners by name, email, or phone…"
           className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
 
+      <label className="block text-sm font-medium">
+        Roster resort
+        <select aria-label="Filter owners by roster resort" value={resortFilter}
+          onChange={e => { setResortFilter(e.target.value); setVisibleCount(50); }} className="ml-3 border rounded-lg p-2 bg-background">
+          <option value="">All resorts</option>
+          {[...new Set(owners.flatMap(o => o.rosterResorts))].sort().map(resort =>
+            <option key={resort} value={resort}>{resort}</option>)}
+        </select>
+      </label>
+      <p className="text-sm text-muted-foreground" aria-live="polite">
+        Showing {Math.min(visibleCount, filteredOwners?.length ?? 0)} of {filteredOwners?.length ?? 0} matching owners
+      </p>
       {/* Owners List */}
       {filteredOwners && filteredOwners.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
@@ -322,7 +338,7 @@ export function OwnersPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredOwners?.map((owner) => (
+          {filteredOwners?.slice(0, visibleCount).map((owner) => (
             <div
               key={owner._id}
               className="bg-background border rounded-xl p-4 hover:border-primary/30 transition-colors"
@@ -368,6 +384,15 @@ export function OwnersPage() {
                     )}
                   </div>
 
+                  {owner.rosterKey && (
+                    <div className="mt-2 text-sm">
+                      <p>{owner.rosterWeekCount} roster weeks · {owner.rosterPropertyCount} roster properties</p>
+                      <p className="text-muted-foreground">{owner.rosterResorts.join(", ")}</p>
+                      {owner.contactEmail && <p>Source contact: {owner.contactEmail}</p>}
+                      {!owner.email && <p className="text-amber-700">Review required: no approved sign-in email. Invitations disabled.</p>}
+                      {owner.importNotes && <p className="text-amber-700">{owner.importNotes}</p>}
+                    </div>
+                  )}
                   {/* Assigned Properties */}
                   {owner.properties.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -382,7 +407,7 @@ export function OwnersPage() {
                       ))}
                     </div>
                   )}
-                  {owner.propertyCount === 0 && (
+                  {owner.propertyCount === 0 && !owner.rosterWeekCount && (
                     <p className="mt-2 text-xs text-muted-foreground/60 italic">
                       No properties assigned
                     </p>
@@ -394,6 +419,7 @@ export function OwnersPage() {
                     <button
                       onClick={(e) => { e.stopPropagation(); handleSendInvite(owner); }}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted/50 transition-colors"
+                      disabled={!owner.email}
                       title="Send portal invitation"
                     >
                       <Send className="w-3.5 h-3.5 text-blue-500" />
@@ -425,6 +451,12 @@ export function OwnersPage() {
             </div>
           ))}
         </div>
+      )}
+      {(filteredOwners?.length ?? 0) > visibleCount && (
+        <button onClick={() => setVisibleCount(n => n + 50)}
+          className="border rounded-lg px-4 py-2 text-sm font-medium hover:bg-muted">
+          Show 50 more owners
+        </button>
       )}
     </div>
   );
