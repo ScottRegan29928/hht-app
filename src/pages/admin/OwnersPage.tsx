@@ -1,3 +1,5 @@
+import { matchesOwnerSearch } from "../../../convex/ownerOwnership";
+import { OwnerOwnershipSummary } from "../../components/admin/OwnerOwnershipSummary";
 import { useState } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -56,14 +58,7 @@ export function OwnersPage() {
 
   const filteredOwners = owners?.filter((o) => {
     if (resortFilter && !o.rosterResorts.includes(resortFilter)) return false;
-    if (!search.trim()) return true;
-    const term = search.toLowerCase();
-    return (
-      o.fullName.toLowerCase().includes(term) ||
-      (o.email ?? "").toLowerCase().includes(term) ||
-      (o.contactEmail ?? "").toLowerCase().includes(term) ||
-      (o.phone ?? "").toLowerCase().includes(term)
-    );
+    return matchesOwnerSearch(o, search);
   });
 
   const handleCreate = async () => {
@@ -314,7 +309,8 @@ export function OwnersPage() {
           type="text"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setVisibleCount(50); }}
-          placeholder="Search owners by name, email, or phone…"
+          aria-label="Search owners by name, email, phone, property, unit, or week"
+          placeholder="Search name, email, phone, property, unit, or week…"
           className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
@@ -393,6 +389,7 @@ export function OwnersPage() {
                       {owner.importNotes && <p className="text-amber-700">{owner.importNotes}</p>}
                     </div>
                   )}
+                  <OwnerOwnershipSummary groups={owner.ownershipGroups ?? []} />
                   {/* Assigned Properties */}
                   {owner.properties.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
