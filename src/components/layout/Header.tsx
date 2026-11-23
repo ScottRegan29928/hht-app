@@ -6,7 +6,7 @@ import { ContactPanel } from "./ContactPanel";
 import { cn } from "@/lib/utils";
 import { HeaderSearchBar } from "@/components/search/HeaderSearchBar";
 import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
-import { currentHostname, linkForMode } from "@/lib/siteCapabilities";
+import { currentHostname, hidesBuyLinks, linkForMode } from "@/lib/siteCapabilities";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { isResort, resortInfo } from "@/lib/resort";
@@ -29,7 +29,9 @@ function baseNavLinks(siteSlug: string, hostname: string) {
   return [
     { href: "/", label: "Home", external: false },
     { href: rent.href, label: "Find a Rental", external: rent.external },
-    { href: buy.href, label: "Buy a Week", external: buy.external },
+    ...(hidesBuyLinks(siteSlug)
+      ? []
+      : [{ href: buy.href, label: "Buy a Week", external: buy.external }]),
   ];
 }
 

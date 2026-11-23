@@ -72,6 +72,15 @@ export function capabilitiesFor(siteSlug: string): Capability {
   return CAPABILITIES[siteSlug] ?? CAPABILITIES[FALLBACK_SLUG];
 }
 
+/**
+ * "Buy a Week" is hidden everywhere on Heritage Vacations for now
+ * [scott, 2026-11-16]. Flip to false to restore the sister-site link.
+ */
+const HIDE_BUY_LINKS = new Set(["heritage"]);
+export function hidesBuyLinks(siteSlug: string): boolean {
+  return HIDE_BUY_LINKS.has(siteSlug);
+}
+
 export function siteSells(siteSlug: string, mode: ListingMode): boolean {
   return capabilitiesFor(siteSlug)[mode];
 }

@@ -1,6 +1,16 @@
 {
   "rewrites": [
     {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "portal.heritagevacations.com"
+        }
+      ],
+      "destination": "/robots-portal.txt"
+    },
+    {
       "source": "/((?!assets/)(?!.*\\.(?:jpe?g|png|webp|gif|svg|ico|pdf|xml|txt|js|css|json|woff2?|mp4)$).*)",
       "has": [
         {
@@ -21,6 +31,21 @@
         {
           "type": "host",
           "value": "www.heritagevacations.com"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(facebookexternalhit|facebookcatalog|Facebot|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|WhatsApp|TelegramBot|Discordbot|Pinterest|redditbot|Applebot|SkypeUriPreview|vkShare|Embedly|quora link preview|outbrain|nuzzel|Iframely|Google-InspectionTool|Mastodon|Bluesky|GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai|PerplexityBot|Perplexity-User|CCBot|Amazonbot|Bytespider|meta-externalagent|meta-externalfetcher|DuckAssistBot|cohere-ai|YouBot|MistralAI-User|Diffbot).*"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/prerender?site=heritage&path=/$1"
+    },
+    {
+      "source": "/((?!assets/)(?!.*\\.(?:jpe?g|png|webp|gif|svg|ico|pdf|xml|txt|js|css|json|woff2?|mp4)$).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "portal.heritagevacations.com"
         },
         {
           "type": "header",
@@ -272,6 +297,26 @@
         {
           "type": "host",
           "value": "www.heritagevacations.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=heritage"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [
+        {
+          "type": "host",
+          "value": "portal.heritagevacations.com"
+        }
+      ],
+      "destination": "https://savory-heron-748.convex.site/api/sitemap.xml?site=heritage"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "portal.heritagevacations.com"
         }
       ],
       "destination": "https://savory-heron-748.convex.site/api/robots.txt?site=heritage"
@@ -560,6 +605,16 @@
         {
           "type": "host",
           "value": "www.heritagevacations.com"
+        }
+      ],
+      "destination": "/index-heritage.html"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "portal.heritagevacations.com"
         }
       ],
       "destination": "/index-heritage.html"
@@ -705,6 +760,21 @@
       "has": [
         {
           "type": "host",
+          "value": "portal.heritagevacations.com"
+        }
+      ],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
           "value": "hv.lead-works.com"
         }
       ],
@@ -807,6 +877,30 @@
     }
   ],
   "redirects": [
+    {
+      "source": "^/$",
+      "has": [
+        {
+          "type": "host",
+          "value": "portal.heritagevacations.com"
+        }
+      ],
+      "destination": "/adminlogin",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "^/(management(?:/.*)?|adminlogin)$",
+      "has": [
+        {
+          "type": "host",
+          "value": "heritagevacations.com"
+        }
+      ],
+      "destination": "https://portal.heritagevacations.com/$1",
+      "permanent": false,
+      "statusCode": 307
+    },
     {
       "source": "^/rentals/.*(timeshare-resale|for-sale|resales).*$",
       "has": [

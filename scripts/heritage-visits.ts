@@ -1,0 +1,2 @@
+import {scheduleWebsiteVisits} from "../src/lib/websiteVisits";
+scheduleWebsiteVisits({"enabled": true, "key": "cfbae2552b7e8a307c5671cad6018314e7046aeb16b6397d994a4d49f91076e3", "hosts": ["heritagevacations.com"], "publicPaths": ["/", "/accessibility", "/community/swallowtail-at-sea-pines", "/community/spicebush", "/community/racquet-club", "/community/plantation-club", "/community/night-heron", "/community/port-villa", "/community/twin-oaks", "/community/ketch-court"]});
