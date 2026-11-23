@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { allowedCommunityIds } from "./sites";
-import { query, mutation } from "./_generated/server";
+import { query, internalMutation } from "./_generated/server";
 import { resolveFacets, FACET_IDS, resolveAllAmenityIds } from "./searchFacets";
 import { filterableIdsForSite } from "./amenitySettings";
 
@@ -514,7 +514,7 @@ export const search = query({
 
 // ── Admin Mutations ──
 
-export const updateLinks = mutation({
+export const updateLinks = internalMutation({
   args: {
     slug: v.string(),
     bookingUrl: v.optional(v.string()),
@@ -536,7 +536,7 @@ export const updateLinks = mutation({
   },
 });
 
-export const updateFeatureCategories = mutation({
+export const updateFeatureCategories = internalMutation({
   args: {
     slug: v.string(),
     featureCategories: v.object({
@@ -564,7 +564,7 @@ export const updateFeatureCategories = mutation({
   },
 });
 
-export const updateCoords = mutation({
+export const updateCoords = internalMutation({
   args: {
     slug: v.string(),
     latitude: v.number(),
@@ -581,7 +581,7 @@ export const updateCoords = mutation({
   },
 });
 
-export const seed = mutation({
+export const seed = internalMutation({
   args: {
     address: v.string(),
     slug: v.string(),

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, internalMutation } from "./_generated/server";
 import { allowedCommunityIds } from "./sites";
 
 // ── Public Queries ──
@@ -101,7 +101,7 @@ export const getBySlug = query({
 
 // ── Admin Mutations ──
 
-export const seed = mutation({
+export const seed = internalMutation({
   args: {
     name: v.string(),
     slug: v.string(),
@@ -127,7 +127,7 @@ export const seed = mutation({
   },
 });
 
-export const updateName = mutation({
+export const updateName = internalMutation({
   args: {
     slug: v.string(),
     name: v.string(),
@@ -142,7 +142,7 @@ export const updateName = mutation({
   },
 });
 
-export const updateCoords = mutation({
+export const updateCoords = internalMutation({
   args: {
     slug: v.string(),
     latitude: v.number(),
