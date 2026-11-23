@@ -122,6 +122,9 @@ export const consolidate = internalMutation({
       if (dryRun) continue;
       await ctx.db.patch(plan.primary._id, {
         email: plan.email,
+        importNotes: plan.primary.importNotes?.replace(
+          "Email shared by multiple owner records; sign-in requires identity review",
+          "Shared-email account grouping approved; per-unit/week owner-of-record labels preserved"),
         rosterHoldings: plan.holdings,
         rosterSharedAccount: {
           batchId, consolidatedAt: Date.now(),

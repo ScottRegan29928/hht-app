@@ -18,6 +18,7 @@ function fixture() {
       { _id: "primary", role: "owner", rosterKey: "first", displayName: "Synthetic First",
         firstName: "Synthetic", lastName: "First", rosterSource: "source",
         contactEmail: "common@example.test", homeAddress: "First contact", createdAt: 1,
+        importNotes: "Phone missing in source; Email shared by multiple owner records; sign-in requires identity review",
         rosterHoldings: [holding()] },
       { _id: "secondary", role: "owner", rosterKey: "second", displayName: "Synthetic Trust",
         rosterSource: "source", contactEmail: "COMMON@example.test",
@@ -86,6 +87,7 @@ describe("explicit shared-owner consolidation", () => {
     const [primary, archived] = f.rows.userProfiles;
     expect(primary.displayName).toBe("Synthetic First");
     expect(primary.homeAddress).toBe("First contact");
+    expect(primary.importNotes).toBe("Phone missing in source; Shared-email account grouping approved; per-unit/week owner-of-record labels preserved");
     expect(primary.email).toBe("common@example.test");
     expect(primary.rosterHoldings).toHaveLength(3);
     expect(primary.rosterHoldings.find((h: any) => h.unitNumber === "2001")).toMatchObject({
