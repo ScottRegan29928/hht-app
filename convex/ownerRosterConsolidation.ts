@@ -45,6 +45,10 @@ export const consolidate = internalMutation({
       ...(await ctx.db.query("marketplaceListings").collect()).map(x => x.ownerProfileId),
       ...(await ctx.db.query("marketplaceMatches").collect()).map(x => x.ownerProfileId),
       ...(await ctx.db.query("saleRequests").collect()).map(x => x.ownerId),
+      ...(await ctx.db.query("storeCharges").collect()).map(x => x.ownerProfileId),
+      ...(await ctx.db.query("inquiryReplies").collect()).map(x => x.authorProfileId),
+      ...(await ctx.db.query("reviewResponseHistory").collect()).map(x => x.authorProfileId),
+      ...(await ctx.db.query("amenitySettings").collect()).map(x => x.updatedBy),
     ].filter(Boolean).map(String);
     const seenKeys = new Set<string>();
     const seenEmails = new Set<string>();

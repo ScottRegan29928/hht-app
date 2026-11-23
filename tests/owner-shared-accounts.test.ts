@@ -119,10 +119,13 @@ describe("explicit shared-owner consolidation", () => {
     expect(f.writes).toEqual([]);
   });
 
-  for (const dependency of ["weeks", "properties", "ownerInvites", "marketplaceListings", "marketplaceMatches", "saleRequests"]) {
+  for (const dependency of ["weeks", "properties", "ownerInvites", "marketplaceListings", "marketplaceMatches", "saleRequests", "storeCharges", "inquiryReplies", "reviewResponseHistory", "amenitySettings"]) {
     test(`refuses ${dependency} dependencies before any write`, async () => {
       const f = fixture();
-      f.rows[dependency].push({ [dependency === "ownerInvites" ? "profileId" : dependency.startsWith("marketplace") ? "ownerProfileId" : "ownerId"]: "secondary" });
+      (f.rows[dependency] ??= []).push({ [dependency === "ownerInvites" ? "profileId" :
+        dependency.startsWith("marketplace") || dependency === "storeCharges" ? "ownerProfileId" :
+        dependency === "inquiryReplies" || dependency === "reviewResponseHistory" ? "authorProfileId" :
+        dependency === "amenitySettings" ? "updatedBy" : "ownerId"]: "secondary" });
       await expect(run(consolidate, f.ctx, f.args)).rejects.toThrow("dependencies");
       expect(f.writes).toEqual([]);
     });
