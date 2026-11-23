@@ -1,7 +1,7 @@
 import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { rosterHolding, normalizedEmail, validEmail, uniqueHoldings, holdingSummary } from "./ownerRosterData";
+import { rosterHolding, normalizedEmail, validEmail, uniqueHoldings, holdingSummary, ownerOfRecordGroups } from "./ownerRosterData";
 
 const text = v.optional(v.string());
 const profileInput = v.object({
@@ -34,7 +34,7 @@ export const importBatch = internalMutation({
       const matches = existing.filter(p => p.rosterKey === key);
       if (matches.length > 1) throw new Error("Ambiguous existing rosterKey");
       const prior = matches[0];
-      if (prior && (prior.role !== "owner" || prior.userId || prior.rosterSource !== source))
+      if (prior && (prior.rosterSharedAccount || prior.rosterConsolidatedInto || prior.role !== "owner" || prior.userId || prior.rosterSource !== source))
         throw new Error("Protected profile: linked, non-owner, or different source");
       const email = normalizedEmail(input.email);
       if (input.email !== undefined && (!email || !validEmail(email)))
@@ -91,10 +91,14 @@ export const myHoldings = query({
     if (!userId) throw new Error("Not authenticated");
     const profile = await ctx.db.query("userProfiles")
       .withIndex("by_userId", q => q.eq("userId", userId)).unique();
-    if (!profile || profile.role !== "owner") throw new Error("Owner access required");
+    if (!profile || profile.role !== "owner" || profile.rosterConsolidatedInto) throw new Error("Owner access required");
     const sites = await ctx.db.query("sites").collect();
     const communities = new Set(sites.filter(s => s.ownerPortalEnabled).flatMap(s => s.communitySlugs ?? []));
     const holdings = (profile.rosterHoldings ?? []).filter(h => h.communitySlug && communities.has(h.communitySlug));
-    return { holdings, ...holdingSummary(holdings) };
+    // Stable source keys are private import provenance, not owner-facing data.
+    const visibleHoldings = holdings.map(({ sourceRosterKey, ...h }) => h);
+    return { holdings: visibleHoldings, ...holdingSummary(holdings),
+      isSharedAccount: !!profile.rosterSharedAccount,
+      ownerOfRecordGroups: ownerOfRecordGroups(holdings) };
   },
 });

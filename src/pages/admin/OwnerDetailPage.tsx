@@ -1,3 +1,4 @@
+import { SharedOwnershipNotice, type SharedOwnershipNoticeProps } from "../../components/owner/SharedOwnershipNotice";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useAction } from "convex/react";
@@ -196,6 +197,8 @@ export function OwnerDetailPage() {
           </div>
         </div>
       </div>
+
+      <SharedOwnershipNotice {...(owner as typeof owner & SharedOwnershipNoticeProps)} />
 
       {/* Action message */}
       {actionMsg && (
