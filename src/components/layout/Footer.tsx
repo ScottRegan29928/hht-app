@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { useSiteBrand, useSiteFlags } from "@/lib/siteContext";
-import { currentHostname, linkForMode } from "@/lib/siteCapabilities";
+import { currentHostname, hidesBuyLinks, linkForMode } from "@/lib/siteCapabilities";
 import { HeritageFooter } from "./HeritageFooter";
 import { isResort, resortInfo } from "@/lib/resort";
 
@@ -91,6 +91,7 @@ function SharedFooter() {
                   </Link>
                 )}
               </li>
+              {!hidesBuyLinks(siteSlug) && (
               <li>
                 {buyLink.external ? (
                   <a
@@ -108,6 +109,7 @@ function SharedFooter() {
                   </Link>
                 )}
               </li>
+              )}
               {/* Admin-managed pages for THIS site. Replaces a hardcoded
                   link to the old myhiltonheadtimeshare.com WordPress page,
                   which sent Spicebush and Swallowtail visitors to another

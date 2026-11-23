@@ -17,6 +17,7 @@ import { FridayNote } from "@/components/property/FridayNote";
 import {
   currentHostname,
   lockedModeFor,
+  hidesBuyLinks,
   resolveSearchHref,
   siteSells,
 } from "@/lib/siteCapabilities";
@@ -349,6 +350,7 @@ export function HomePage() {
                 <Calendar className="w-4 h-4" />
                 {content.closing.primaryLabel}
               </HomeCta>
+              {!(hidesBuyLinks(siteSlug) && /type=buy/.test(content.closing.secondaryHref)) && (
               <HomeCta
                 siteSlug={siteSlug}
                 href={content.closing.secondaryHref}
@@ -357,6 +359,7 @@ export function HomePage() {
                 <Key className="w-4 h-4" />
                 {content.closing.secondaryLabel}
               </HomeCta>
+              )}
             </div>
           </div>
         </section>

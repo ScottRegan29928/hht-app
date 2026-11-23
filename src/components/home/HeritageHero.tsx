@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   currentHostname,
+  hidesBuyLinks,
   resolveSearchHref,
 } from "@/lib/siteCapabilities";
 import type { HomeContent } from "@/lib/homeContent";
@@ -80,6 +81,7 @@ function CtaLink({
 
 export function HeritageHero({ content }: { content: HomeContent }) {
   const hero = content.hero;
+  const { siteSlug } = useSiteFlags();
   const slides = hero.images.map((src) => ({
     src,
     alt: SLIDE_ALTS[src] ?? "Heritage Vacations at Sea Pines, Hilton Head Island",
@@ -165,6 +167,7 @@ export function HeritageHero({ content }: { content: HomeContent }) {
               >
                 {hero.primaryLabel}
               </CtaLink>
+              {!(hidesBuyLinks(siteSlug) && /type=buy/.test(hero.secondaryHref)) && (
               <CtaLink
                 href={hero.secondaryHref}
                 className="inline-flex items-center justify-center border border-white text-white bg-white/10 backdrop-blur-[2px] transition-colors hover:bg-white/20"
@@ -178,6 +181,7 @@ export function HeritageHero({ content }: { content: HomeContent }) {
               >
                 {hero.secondaryLabel}
               </CtaLink>
+              )}
             </div>
           </div>
         </div>
