@@ -1,3 +1,4 @@
+import { SharedOwnershipNotice, type SharedOwnershipNoticeProps } from "../../components/owner/SharedOwnershipNotice";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -41,6 +42,7 @@ export function OwnerAccountPage() {
   const theme = RESORT_THEMES[siteSlug] ?? DEFAULT_THEME;
 
   const account = useQuery(api.ownerAccount.getAccount);
+  const roster = useQuery(api.ownerRoster.myHoldings);
   const updateContact = useMutation(api.ownerAccount.updateContact);
   const changeEmail = useAction(api.ownerAccount.changeEmail);
   const changePassword = useAction(api.ownerAccount.changePassword);
@@ -203,6 +205,8 @@ export function OwnerAccountPage() {
           Update your contact details and sign-in credentials.
         </p>
       </div>
+
+      <SharedOwnershipNotice {...(roster as typeof roster & SharedOwnershipNoticeProps)} />
 
       {/* Contact details */}
       <form onSubmit={saveContact} className={card}>

@@ -1,3 +1,4 @@
+import type { SharedOwnershipNoticeProps } from "../../components/owner/SharedOwnershipNotice";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Link } from "react-router-dom";
@@ -78,6 +79,15 @@ export function OwnerDashboardPage() {
           Your ownership at {resortName}, all in one place.
         </p>
       </div>
+
+      {(roster as typeof roster & SharedOwnershipNoticeProps)?.isSharedAccount && (
+        <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          This shared account includes ownership records under different names.{" "}
+          <Link to="/owner/properties" className="font-semibold underline underline-offset-2">
+            View owners of record for each unit and week
+          </Link>.
+        </p>
+      )}
 
       {/* Match alerts get top billing — they are time-sensitive and the whole
           reason the email was sent. */}
