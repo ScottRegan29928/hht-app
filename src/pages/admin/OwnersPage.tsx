@@ -1,3 +1,4 @@
+import { SharedOwnershipNotice, type SharedOwnershipNoticeProps } from "../../components/owner/SharedOwnershipNotice";
 import { matchesOwnerSearch } from "../../../convex/ownerOwnership";
 import { OwnerOwnershipSummary } from "../../components/admin/OwnerOwnershipSummary";
 import { useState } from "react";
@@ -389,6 +390,8 @@ export function OwnersPage() {
                       {owner.importNotes && <p className="text-amber-700">{owner.importNotes}</p>}
                     </div>
                   )}
+                  <SharedOwnershipNotice {...(owner as typeof owner & SharedOwnershipNoticeProps)} />
+
                   <OwnerOwnershipSummary groups={owner.ownershipGroups ?? []} />
                   {/* Assigned Properties */}
                   {owner.properties.length > 0 && (

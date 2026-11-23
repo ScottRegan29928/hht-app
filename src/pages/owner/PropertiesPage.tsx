@@ -1,3 +1,4 @@
+import { SharedOwnershipNotice, type SharedOwnershipNoticeProps } from "../../components/owner/SharedOwnershipNotice";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Link } from "react-router-dom";
@@ -117,6 +118,8 @@ export function OwnerPropertiesPage() {
           View your ownership records and available listing options
         </p>
       </div>
+
+      <SharedOwnershipNotice {...(roster as typeof roster & SharedOwnershipNoticeProps)} />
 
       {!!roster?.holdings.length && (
         <section className="rounded-xl border p-5 space-y-3" aria-label="Imported ownership records">
