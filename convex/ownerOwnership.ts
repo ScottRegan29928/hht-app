@@ -60,11 +60,13 @@ const matchesToken = (values: string[], term: string) => values.some(value =>
 export function matchesOwnerSearch(owner: {
   fullName: string; email?: string; contactEmail?: string; phone?: string;
   ownershipGroups?: OwnershipGroup[];
+  ownerOfRecordGroups?: { ownerOfRecord: string }[];
 }, query: string): boolean {
   const term = query.trim().toLowerCase();
   if (!term) return true;
   const parts = tokens(term);
-  const contacts = [owner.fullName, owner.email, owner.contactEmail, owner.phone].filter(Boolean) as string[];
+  const contacts = [owner.fullName, owner.email, owner.contactEmail, owner.phone,
+    ...(owner.ownerOfRecordGroups ?? []).map(g => g.ownerOfRecord)].filter(Boolean) as string[];
   // Keep the existing name/email/phone substring search intact.
   if (!/\b(?:weeks?|units?)\s*\d/i.test(term) && contacts.some(value => value.toLowerCase().includes(term))) return true;
   if (!parts.length) return false;

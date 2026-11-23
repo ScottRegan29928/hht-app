@@ -26,6 +26,12 @@ const schema = defineSchema({
     contactEmail: v.optional(v.string()),
     importNotes: v.optional(v.string()),
     rosterHoldings: v.optional(v.array(rosterHolding)),
+    // Approved account grouping does not change the legal owner of any holding.
+    rosterConsolidatedInto: v.optional(v.id("userProfiles")),
+    rosterSharedAccount: v.optional(v.object({
+      batchId: v.string(), consolidatedAt: v.number(),
+      memberRosterKeys: v.array(v.string()), ownerNames: v.array(v.string()),
+    })),
     // Owner profile fields
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),

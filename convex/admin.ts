@@ -1,5 +1,5 @@
 import { groupedOwnership } from "./ownerOwnership";
-import { assertUniqueOwnerLogin, holdingSummary } from "./ownerRosterData";
+import { assertUniqueOwnerLogin, holdingSummary, ownerOfRecordGroups } from "./ownerRosterData";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import {
@@ -815,6 +815,7 @@ export const listOwners = query({
     // Enrich each owner with properties via week-level ownership
     return await Promise.all(
       owners
+        .filter(owner => !owner.rosterConsolidatedInto)
         .sort((a, b) => b.createdAt - a.createdAt)
         .map(async (owner) => {
           const ownedWeeks = await ctx.db
@@ -832,6 +833,8 @@ export const listOwners = query({
           return {
             ...ownerSummary,
             ...holdingSummary(rosterHoldings),
+            isSharedAccount: !!owner.rosterSharedAccount,
+            ownerOfRecordGroups: ownerOfRecordGroups(rosterHoldings),
             ownershipGroups: groupedOwnership(rosterHoldings, ownedWeeks, properties, communities),
             fullName:
               [owner.firstName, owner.lastName].filter(Boolean).join(" ") ||
@@ -857,7 +860,7 @@ export const getOwner = query({
   handler: async (ctx, { ownerId }) => {
     await requireAdmin(ctx);
     const owner = await ctx.db.get(ownerId);
-    if (!owner || owner.role !== "owner") throw new Error("Owner not found");
+    if (!owner || owner.role !== "owner" || owner.rosterConsolidatedInto) throw new Error("Owner not found or consolidated into a primary account");
 
     // Get assigned properties via week-level ownership
     const ownedWeeks = await ctx.db
@@ -891,6 +894,8 @@ export const getOwner = query({
 
     return {
       ...owner,
+      isSharedAccount: !!owner.rosterSharedAccount,
+      ownerOfRecordGroups: ownerOfRecordGroups(owner.rosterHoldings),
       fullName:
         [owner.firstName, owner.lastName].filter(Boolean).join(" ") ||
         owner.displayName ||
@@ -960,7 +965,7 @@ export const updateOwner = mutation({
   handler: async (ctx, { ownerId, ...args }) => {
     await requireAdmin(ctx);
     const owner = await ctx.db.get(ownerId);
-    if (!owner || owner.role !== "owner") throw new Error("Owner not found");
+    if (!owner || owner.role !== "owner" || owner.rosterConsolidatedInto) throw new Error("Owner not found or consolidated into a primary account");
 
     const email = args.email?.trim().toLowerCase() || undefined;
     if (owner.userId && email !== owner.email) throw new Error("Linked owners must change their own sign-in email in Account");
@@ -995,7 +1000,10 @@ export const deleteOwner = mutation({
   handler: async (ctx, { ownerId }) => {
     await requireAdmin(ctx);
     const owner = await ctx.db.get(ownerId);
-    if (!owner || owner.role !== "owner") throw new Error("Owner not found");
+    if (!owner || owner.role !== "owner" || owner.rosterConsolidatedInto) throw new Error("Owner not found or consolidated into a primary account");
+
+    if (owner.rosterSharedAccount)
+      throw new Error("Contact The Club Group to separate or remove a shared owner account");
 
     // Unassign any properties
     if (owner.userId) {
@@ -1022,16 +1030,17 @@ export const searchOwners = query({
       .withIndex("by_role", (q: any) => q.eq("role", "owner"))
       .collect();
 
+    const activeOwners = owners.filter(o => !o.rosterConsolidatedInto);
     const term = (search ?? "").toLowerCase().trim();
     const filtered = term
-      ? owners.filter((o) => {
-          const name = [o.firstName, o.lastName, o.displayName, o.email]
+      ? activeOwners.filter((o) => {
+          const name = [o.firstName, o.lastName, o.displayName, o.email, ...(o.rosterSharedAccount?.ownerNames ?? [])]
             .filter(Boolean)
             .join(" ")
             .toLowerCase();
           return name.includes(term);
         })
-      : owners;
+      : activeOwners;
 
     return filtered.map((o) => ({
       _id: o._id,
@@ -1052,7 +1061,7 @@ export const resetOwnerPassword = mutation({
   handler: async (ctx, { ownerId }) => {
     await requireAdmin(ctx);
     const owner = await ctx.db.get(ownerId);
-    if (!owner || owner.role !== "owner") throw new Error("Owner not found");
+    if (!owner || owner.role !== "owner" || owner.rosterConsolidatedInto) throw new Error("Owner not found or consolidated into a primary account");
     if (!owner.userId)
       throw new Error(
         "Owner has not registered yet — send welcome letter instead",

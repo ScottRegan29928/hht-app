@@ -49,7 +49,7 @@ export const currentUser = query({
         ? await ctx.storage.getUrl(profile.avatarStorageId)
         : null;
       // Other-resort source holdings and import provenance are management-only.
-      const { rosterHoldings, rosterKey, rosterSource, rosterImportedAt, importNotes, contactEmail, ...account } = profile;
+      const { rosterHoldings, rosterKey, rosterSource, rosterImportedAt, importNotes, contactEmail, rosterSharedAccount, rosterConsolidatedInto, ...account } = profile;
       return { ...account, avatarUrl, needsLink: false };
     }
 
