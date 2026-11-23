@@ -122,7 +122,7 @@ describe("explicit shared-owner consolidation", () => {
   for (const dependency of ["weeks", "properties", "ownerInvites", "marketplaceListings", "marketplaceMatches", "saleRequests"]) {
     test(`refuses ${dependency} dependencies before any write`, async () => {
       const f = fixture();
-      f.rows[dependency].push({ [dependency === "ownerInvites" ? "profileId" : "ownerId"]: "secondary" });
+      f.rows[dependency].push({ [dependency === "ownerInvites" ? "profileId" : dependency.startsWith("marketplace") ? "ownerProfileId" : "ownerId"]: "secondary" });
       await expect(run(consolidate, f.ctx, f.args)).rejects.toThrow("dependencies");
       expect(f.writes).toEqual([]);
     });
