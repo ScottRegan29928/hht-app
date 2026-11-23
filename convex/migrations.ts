@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // ── Hostaway CSV Import Mutations ──
@@ -7,7 +7,7 @@ import { v } from "convex/values";
  * Update a single property with Hostaway CSV data (new fields + descriptions).
  * Also updates coordinates, bedrooms, bathrooms, sleeps if provided.
  */
-export const updatePropertyFromHostaway = mutation({
+export const updatePropertyFromHostaway = internalMutation({
   args: {
     propertyId: v.id("properties"),
     // Core fields (update existing)
@@ -46,7 +46,7 @@ export const updatePropertyFromHostaway = mutation({
 /**
  * Create a new property from Hostaway CSV data (for properties not in DB).
  */
-export const createPropertyFromHostaway = mutation({
+export const createPropertyFromHostaway = internalMutation({
   args: {
     address: v.string(),
     slug: v.string(),
@@ -86,7 +86,7 @@ export const createPropertyFromHostaway = mutation({
  * Preserves existing sale prices by setting listingType to "both" if sale price exists.
  * Creates weeks 1-52 if they don't exist.
  */
-export const setPropertyWeeksForRent = mutation({
+export const setPropertyWeeksForRent = internalMutation({
   args: {
     propertyId: v.id("properties"),
     weeklyRentPrice: v.number(),
@@ -137,7 +137,7 @@ export const setPropertyWeeksForRent = mutation({
  * Remove rental availability from all weeks of a property (not in Hostaway).
  * Weeks with sale prices → "sale" only. Others → "not_listed".
  */
-export const removeRentalFromProperty = mutation({
+export const removeRentalFromProperty = internalMutation({
   args: { propertyId: v.id("properties") },
   handler: async (ctx, { propertyId }) => {
     const weeks = await ctx.db
@@ -164,7 +164,7 @@ export const removeRentalFromProperty = mutation({
 
 // ── Legacy migrations (kept for reference) ──
 
-export const normalizeCommunityAmenities = mutation({
+export const normalizeCommunityAmenities = internalMutation({
   args: {},
   handler: async (ctx) => {
     const NORMALIZE: Record<string, string> = {
@@ -193,7 +193,7 @@ export const normalizeCommunityAmenities = mutation({
   },
 });
 
-export const migrateFeaturesToCommunities = mutation({
+export const migrateFeaturesToCommunities = internalMutation({
   args: {},
   handler: async (ctx) => {
     const communities = await ctx.db.query("communities").collect();
@@ -236,7 +236,7 @@ export const debugWeeks = query({
   },
 });
 
-export const deactivateProperty = mutation({
+export const deactivateProperty = internalMutation({
   args: { id: v.id("properties") },
   handler: async (ctx, { id }) => {
     await ctx.db.patch(id, { isActive: false });

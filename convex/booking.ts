@@ -1,5 +1,25 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, type MutationCtx } from "./_generated/server";
+
+import { getAuthUserId } from "@convex-dev/auth/server";
+
+/**
+ * Legacy direct writers bypass Stripe verification. Only staff may use them;
+ * guests must use rentalCheckout.startCheckout/finalizeCheckout, where verified
+ * payment/card setup precedes the atomic inventory hold.
+ */
+async function requireAdmin(ctx: MutationCtx): Promise<void> {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) throw new Error("Not signed in");
+  const profile = await ctx.db
+    .query("userProfiles")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .first();
+  const adminRoles = ["admin", "admin_user", "admin_rental", "admin_sales"];
+  if (!profile || !adminRoles.includes(profile.role)) {
+    throw new Error("Admin access required");
+  }
+}
 
 function formatPhone(value?: string): string | undefined {
   if (!value) return value;
@@ -128,6 +148,7 @@ export const createBooking = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const week = await ctx.db.get(args.weekId);
     if (!week) throw new Error("Week not found");
 
@@ -202,6 +223,7 @@ export const createRentalBooking = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
 

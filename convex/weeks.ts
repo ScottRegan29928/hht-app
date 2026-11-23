@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, internalMutation } from "./_generated/server";
 
 export const listByProperty = query({
   args: { propertyId: v.id("properties") },
@@ -43,7 +43,7 @@ export const searchByWeek = query({
   },
 });
 
-export const seed = mutation({
+export const seed = internalMutation({
   args: {
     propertyId: v.id("properties"),
     weekNumber: v.number(),
